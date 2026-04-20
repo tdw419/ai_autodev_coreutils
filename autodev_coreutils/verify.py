@@ -21,9 +21,9 @@ import sys
 from pathlib import Path
 
 try:
-    from model_choice import query
+    from model_choice import generate as llm_generate
 except ImportError:
-    query = None
+    llm_generate = None
 
 from .contract import (
     make_parser, find_project, ensure_autodev_dir,
@@ -90,7 +90,7 @@ def check_test_passes(project: Path, test_cmd: str = None) -> dict:
 
 def verify_claim(project: Path, claim: str, model: str = None) -> dict:
     """Use LLM to verify a claim against the codebase."""
-    if query is None:
+    if llm_generate is None:
         error("model_choice not installed")
 
     # Gather evidence
@@ -112,9 +112,9 @@ Output JSON: {{"verified": true/false, "confidence": 0.0-1.0, "evidence": "what 
 Output ONLY valid JSON."""
 
     if model:
-        resp = query(prompt, model=model)
+        resp = llm_generate(prompt, model=model)
     else:
-        resp = query(prompt)
+        resp = llm_generate(prompt)
 
     text = resp.strip()
     if text.startswith("```"):

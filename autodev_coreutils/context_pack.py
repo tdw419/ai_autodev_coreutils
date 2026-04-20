@@ -21,9 +21,9 @@ import sys
 from pathlib import Path
 
 try:
-    from model_choice import query
+    from model_choice import generate as llm_generate
 except ImportError:
-    query = None
+    llm_generate = None
 
 from .contract import (
     make_parser, find_project, ensure_autodev_dir,
@@ -33,7 +33,7 @@ from .contract import (
 
 def select_files(project: Path, task_text: str, model: str = None) -> list[str]:
     """Use LLM to select relevant files from the project."""
-    if query is None:
+    if llm_generate is None:
         error("model_choice not installed")
 
     # Build file listing
@@ -65,9 +65,9 @@ Be conservative -- include only files that need to be read or modified.
 Output a JSON array of file paths. Output ONLY the JSON array, nothing else."""
 
     if model:
-        resp = query(prompt, model=model)
+        resp = llm_generate(prompt, model=model)
     else:
-        resp = query(prompt)
+        resp = llm_generate(prompt)
 
     text = resp.strip()
     if text.startswith("```"):

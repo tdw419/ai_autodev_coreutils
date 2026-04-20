@@ -7,12 +7,13 @@ import sys
 from pathlib import Path
 
 from .parser import parse_yaml
+from .markdown_parser import parse_auto, parse_markdown
 from .renderer import render_json, render_markdown, render_yaml
 
 
 def cmd_build(args: argparse.Namespace) -> None:
     """Build a roadmap from a YAML spec and render it."""
-    roadmap = parse_yaml(args.input)
+    roadmap = parse_auto(args.input)
 
     fmt = args.format
     if fmt == "markdown":
@@ -35,7 +36,7 @@ def cmd_build(args: argparse.Namespace) -> None:
 def cmd_validate(args: argparse.Namespace) -> None:
     """Validate a YAML roadmap spec."""
     try:
-        roadmap = parse_yaml(args.input)
+        roadmap = parse_auto(args.input)
         issues = []
 
         if not roadmap.title:
@@ -131,7 +132,7 @@ conventions:
 
 def cmd_next_task(args: argparse.Namespace) -> None:
     """Print the next actionable task from a roadmap."""
-    roadmap = parse_yaml(args.input)
+    roadmap = parse_auto(args.input)
     task = roadmap.next_task()
     if task is None:
         print("No actionable tasks remaining.")

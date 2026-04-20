@@ -231,7 +231,14 @@ def main(argv=None):
         if args.adapter not in ADAPTERS:
             error(f"Unknown adapter: {args.adapter}. Available: {', '.join(ADAPTERS.keys())}")
         adapter_fn = ADAPTERS[args.adapter]
-        result = adapter_fn(args.input, args.output)
+        try:
+            result = adapter_fn(args.input, args.output)
+        except FileNotFoundError:
+            error(f"Input file not found: {args.input}")
+        except (json.JSONDecodeError, ValueError) as e:
+            error(f"Failed to parse input as {args.adapter}: {e}")
+        except Exception as e:
+            error(f"Adapter error: {type(e).__name__}: {e}")
         if isinstance(result, list):
             # tasks:rfl-seeds returns list of paths
             if args.json_output:

@@ -19,9 +19,9 @@ import sys
 from pathlib import Path
 
 try:
-    from model_choice import query
+    from model_choice import generate as llm_generate
 except ImportError:
-    query = None
+    llm_generate = None
 
 from .contract import (
     make_parser, add_common_args, find_project, ensure_autodev_dir,
@@ -34,7 +34,7 @@ TASKS_DIR = "tasks"
 
 def split_spec(spec_text: str, n: int, model: str = None, context: str = "") -> list[dict]:
     """Use an LLM to split a spec into N independent work items."""
-    if query is None:
+    if llm_generate is None:
         error("model_choice not installed. Run: pip install model_choice")
 
     prompt = f"""You are a task decomposer. Break this specification into exactly {n} independent, parallelizable work items.
@@ -55,9 +55,9 @@ Output JSON array of objects with keys: id, title, description, files_likely_tou
 Output ONLY valid JSON, no markdown fences."""
 
     if model:
-        resp = query(prompt, model=model)
+        resp = llm_generate(prompt, model=model)
     else:
-        resp = query(prompt)
+        resp = llm_generate(prompt)
 
     # Parse the JSON response
     text = resp.strip()
