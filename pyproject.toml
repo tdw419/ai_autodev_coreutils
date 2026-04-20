@@ -4,40 +4,49 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autodev_coreutils"
-version = "0.1.0"
-description = "Linux coreutils for AI development automation -- small composable CLI tools"
+version = "0.3.0"
+description = "Linux coreutils for AI development automation -- small composable CLI tools in one package"
 requires-python = ">=3.10"
 dependencies = [
-    "model_choice",
+    "litellm>=1.0",
     "pyyaml>=6.0",
     "rich>=13.0",
 ]
 
 [project.optional-dependencies]
-# Peer dependencies -- install from local paths:
-#   pip install -e ~/zion/projects/model_choice
-#   pip install -e ~/zion/projects/ai_possibilities/ai_possibilities
-#   pip install -e ~/zion/projects/roadmap_builder/roadmap_builder
-#   pip install -e ~/zion/projects/recursive_feedback_loop
-peers = [
-    "possibilities",
-    "roadmap_builder",
-    "recursive_feedback_loop",
-]
 dev = ["pytest>=8.0", "mypy>=1.8"]
 
 [project.scripts]
-# Each coreutil is its own command
+# Meta command
+autodev = "autodev_coreutils.cli:main"
+# New coreutils
 autodev-task-split = "autodev_coreutils.task_split:main"
 autodev-context-pack = "autodev_coreutils.context_pack:main"
 autodev-verify = "autodev_coreutils.verify:main"
 autodev-snapshot = "autodev_coreutils.snapshot:main"
 autodev-watchdog = "autodev_coreutils.watchdog:main"
-# Meta command
-autodev = "autodev_coreutils.cli:main"
+# Consolidated peer tools
+possibilities = "possibilities.cli:main"
+roadmap = "roadmap_builder.cli:main"
+rfl = "recursive_feedback_loop.cli:main"
+model-choice = "model_choice.cli:main"
+autodev-loop = "autodev.cli:main"
+carry-forward = "carry_forward.carry_forward:main"
+creative-daemon = "autodev.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["autodev_coreutils*"]
+where = ["."]
+include = [
+    "autodev_coreutils*",
+    "model_choice*",
+    "possibilities*",
+    "roadmap_builder*",
+    "recursive_feedback_loop*",
+    "carry_forward*",
+    "autodev*",
+    "session_relay*",
+]
+exclude = ["tests*", "tests.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

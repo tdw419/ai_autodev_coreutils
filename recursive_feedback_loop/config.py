@@ -1,0 +1,203 @@
+"""Configuration for the recursive feedback loop."""
+
+import os
+import time
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class LoopConfig:
+    """Configuration for a recursive feedback loop run."""
+
+    # --- Seed ---
+    seed_prompt: str = ""
+    seed_prompt_file: Optional[str] = None  # path to load seed from
+
+    # --- Loop control ---
+    max_iterations: int = 10
+    max_runtime_seconds: int = 3600  # 1 hour default
+    iteration_timeout: int = 600  # 10 min per iteration (Hermes uses tools)
+    seed_timeout: Optional[int] = None  # seed iteration timeout (default: 2x iteration_timeout)
+
+    # --- Mode ---
+    mode: str = "oneshot"  # "oneshot" (fresh Hermes per iteration) or "session" (persistent tmux)
+    tmux_session_name: str = ""  # auto-derived if empty; set via --tmux-session
+
+    # --- Hermes ---
+    hermes_binary: str = "hermes"
+    hermes_model: Optional[str] = None  # e.g. "anthropic/claude-sonnet-4"
+    hermes_provider: Optional[str] = None
+    hermes_profile: Optional[str] = None
+    hermes_workdir: Optional[str] = None
+    hermes_no_tools: bool = False  # if True, disable tools for faster text-only iterations
+
+    # --- Compaction ---
+    compaction_strategy: str = "hierarchical"  # sliding_window | rolling_summary | hierarchical
+    max_context_tokens: int = 8000  # hard cap on context size sent back
+    recent_turns_verbatim: int = 3  # how many recent turns to keep full
+    medium_turns_bullets: int = 5  # turns to keep as bullet points
+    summary_max_chars: int = 500  # max chars for the overall summary block
+
+    # --- Prompt synthesis ---
+    synthesis_instruction: str = (
+        "You are continuing a recursive feedback loop. You already analyzed the code in the previous iteration.\n\n"
+        "YOUR RULES:\n"
+        "1. DO NOT repeat or restate anything from the previous iteration. Zero repetition.\n"
+        "2. You MUST go deeper. For each issue already identified, you must either:\n"
+        "   - Provide the EXACT fix (complete code, line numbers, imports)\n"
+        "   - Identify the ROOT CAUSE (why does this bug exist? what design assumption is wrong?)\n"
+        "   - Find NEW issues that the previous iteration missed entirely\n"
+        "3. Escalate specificity: if iteration 1 said 'there's a bug', iteration 2 must say "
+        "'the bug is on line N in function foo() because variable X is None when Y happens'\n"
+        "4. If you proposed fixes, validate them: will they break anything else? Are there edge cases?\n"
+        "5. Aim for at least 3 completely NEW observations per iteration."
+    )
+    synthesis_instruction_file: Optional[str] = None  # path to load from
+
+    # --- Output ---
+    output_dir: str = ""  # directory for logs, snapshots, exports
+    save_snapshots: bool = True  # save context state after each iteration
+    export_format: str = "jsonl"  # jsonl | markdown | both
+
+    # --- Session tracking ---
+    session_tag: str = "rfl"  # tag for the Hermes session source
+
+    # --- Compaction model (for rolling_summary/hierarchical) ---
+    compaction_model: Optional[str] = None  # if None, use main model
+    compaction_provider: Optional[str] = None
+
+    # --- Concurrency (set programmatically, not via CLI) ---
+    run_id: str = ""  # unique run identifier (auto-set)
+
+    def resolve_seed_prompt(self) -> str:
+        """Get the seed prompt from config or file."""
+        if self.seed_prompt:
+            return self.seed_prompt
+        if self.seed_prompt_file:
+            return Path(self.seed_prompt_file).read_text().strip()
+        raise ValueError("No seed prompt provided. Set seed_prompt or seed_prompt_file.")
+
+    def resolve_synthesis_instruction(self) -> str:
+        """Get the synthesis instruction from config or file."""
+        if self.synthesis_instruction_file:
+            return Path(self.synthesis_instruction_file).read_text().strip()
+        return self.synthesis_instruction
+
+    def get_output_dir(self) -> Path:
+        """Resolve output directory. Auto-timestamps if not specified."""
+        if self.output_dir:
+            p = Path(self.output_dir)
+        else:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            p = Path.cwd() / f"rfl_output_{timestamp}"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    def get_run_id(self) -> str:
+        """Get or generate a unique run ID."""
+        if self.run_id:
+            return self.run_id
+        return f"rfl_{os.getpid()}_{int(time.time())}"
+
+    def get_tmux_session_name(self) -> str:
+        """Get the tmux session name. Auto-derives a unique one if not set."""
+        if self.tmux_session_name:
+            return self.tmux_session_name
+        # Derive from output dir path hash for uniqueness
+        out = str(self.get_output_dir())
+        h = abs(hash(out)) % 10000
+        return f"rfl_{h}"
+
+    def get_lockfile_path(self) -> Path:
+        """Path to the PID lockfile for this run."""
+        return self.get_output_dir() / ".rfl.lock"
+
+    def get_lockfile_data(self) -> dict:
+        """Data to write into the lockfile."""
+        return {
+            "pid": os.getpid(),
+            "run_id": self.get_run_id(),
+            "workdir": str(Path(self.hermes_workdir).resolve()) if self.hermes_workdir else "",
+            "mode": self.mode,
+            "started_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "tmux_session": self.get_tmux_session_name() if self.mode == "session" else "",
+        }
+
+
+def find_running_rfl_instances() -> list:
+    """Scan for running RFL instances by finding .rfl.lock files.
+    
+    Returns list of dicts with pid, workdir, output_dir, etc.
+    Stale lockfiles (PID no longer alive) are cleaned up.
+    """
+    instances = []
+    # Scan cwd and common output locations
+    search_dirs = [Path.cwd()]
+    # Also check for any rfl_output_* or rfl_roundtable_* dirs in cwd
+    for p in Path.cwd().glob("rfl_output*"):
+        if p.is_dir():
+            search_dirs.append(p)
+    for p in Path.cwd().glob("rfl_roundtable_*"):
+        if p.is_dir():
+            search_dirs.append(p)
+    
+    seen_dirs = set()
+    for search_dir in search_dirs:
+        real = search_dir.resolve()
+        if real in seen_dirs:
+            continue
+        seen_dirs.add(real)
+        
+        lockfile = search_dir / ".rfl.lock"
+        if not lockfile.exists():
+            continue
+        
+        try:
+            data = json.loads(lockfile.read_text())
+            pid = data.get("pid", 0)
+            
+            # Check if PID is still alive
+            if pid and _pid_alive(pid):
+                data["output_dir"] = str(search_dir)
+                data["lockfile"] = str(lockfile)
+                instances.append(data)
+            else:
+                # Stale lockfile -- clean it up
+                lockfile.unlink(missing_ok=True)
+        except (json.JSONDecodeError, OSError):
+            pass
+    
+    return instances
+
+
+def check_workdir_conflicts(workdir: str, my_pid: int = None) -> list:
+    """Check if any running RFL instance is using the same workdir.
+    
+    Returns list of conflicting instances.
+    """
+    if not workdir:
+        return []
+    
+    my_pid = my_pid or os.getpid()
+    target = str(Path(workdir).resolve())
+    conflicts = []
+    
+    for inst in find_running_rfl_instances():
+        if inst.get("pid") == my_pid:
+            continue
+        if inst.get("workdir") == target:
+            conflicts.append(inst)
+    
+    return conflicts
+
+
+def _pid_alive(pid: int) -> bool:
+    """Check if a PID is still alive (portable)."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False

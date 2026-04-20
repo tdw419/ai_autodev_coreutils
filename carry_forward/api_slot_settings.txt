@@ -1,0 +1,17 @@
+Done. Here's the system:
+
+**chain_mode** -- one command, instant switch:
+
+```
+chain_mode present   -> 1 slot (you're working, chain stays invisible)
+chain_mode idle      -> 2 slots (you're around, chain shares)
+chain_mode harvest   -> 3 slots (you're away, chain takes most)
+chain_mode away      -> 4 slots (you're sleeping, chain goes full)
+chain_mode status    -> shows mode + active sessions
+```
+
+Numbers work too: `chain_mode 1` through `chain_mode 4`.
+
+**How it works:** The pre-flight script reads `~/.hermes/chain-mode` before every cron tick. It counts sessions with tool calls in the last 30 minutes from state.db. If active sessions >= mode slots, it says LOCKED and the session exits. Otherwise it proceeds.
+
+Current state: mode 4 (full), 0 active sessions, chain running. Want me to set it to something different?

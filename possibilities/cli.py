@@ -1,0 +1,521 @@
+"""CLI for the possibility tree explorer."""
+
+import argparse
+import json
+import sys
+
+from .models import PossibilityNode, ExplorationConfig
+from .explorer import PossibilityExplorer
+from .scorer import compute_fertility, rank_paths, collect_all_paths, converge
+from .render import render_tree, render_ranked_paths, render_summary, render_convergence
+from .merge import merge_trees, load_tree
+from .escalate import escalate, ESCALATION_COMPLEXITIES, COMPLEXITY_LABELS
+
+
+def parse_args(argv=None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="possibilities",
+        description="Explore branching possibilities for any project using AI.",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # explore
+    explore_p = subparsers.add_parser(
+        "explore", help="Explore possibilities from a seed question"
+    )
+    explore_p.add_argument(
+        "question", help="Seed question (e.g. 'What should we build next?')"
+    )
+    explore_p.add_argument(
+        "-w", "--workdir", default=".",
+        help="Project directory to read for context"
+    )
+    explore_p.add_argument(
+        "-d", "--depth", type=int, default=3,
+        help="Max exploration depth (default: 3)"
+    )
+    explore_p.add_argument(
+        "--branch-min", type=int, default=3,
+        help="Min branches per node (default: 3)"
+    )
+    explore_p.add_argument(
+        "--branch-max", type=int, default=7,
+        help="Max branches per node (default: 7)"
+    )
+    explore_p.add_argument(
+        "-m", "--model", default="openai/glm-5.1",
+        help="LLM model override -- model_choice uses this exact model (default: openai/glm-5.1)"
+    )
+    explore_p.add_argument(
+        "-c", "--complexity", default="balanced",
+        choices=["fast", "balanced", "thorough", "auto"],
+        help="model_choice complexity tier (default: balanced)"
+    )
+    explore_p.add_argument(
+        "--decay", type=float, default=0.7,
+        help="Fertility decay factor (default: 0.7)"
+    )
+    explore_p.add_argument(
+        "--max-nodes", type=int, default=80,
+        help="Max total nodes in tree (default: 80)"
+    )
+    explore_p.add_argument(
+        "-s", "--strategy", default="bfs",
+        choices=["bfs", "fertility_guided"],
+        help="Exploration strategy (default: bfs)"
+    )
+    explore_p.add_argument(
+        "--context-files", nargs="*", default=[],
+        help="Extra files to include as context"
+    )
+    explore_p.add_argument(
+        "--temperature", type=float, default=0.9,
+        help="LLM temperature (default: 0.9)"
+    )
+    explore_p.add_argument(
+        "--show-paths", type=int, default=10,
+        help="Number of ranked paths to show (default: 10)"
+    )
+    explore_p.add_argument(
+        "-o", "--export", default=None,
+        help="Export tree to JSON file"
+    )
+    explore_p.add_argument(
+        "--show-pruned", action="store_true",
+        help="Show pruned (duplicate) nodes in tree"
+    )
+    explore_p.add_argument(
+        "--stats", action="store_true",
+        help="Show model_choice cost summary after run"
+    )
+
+    # show
+    show_p = subparsers.add_parser(
+        "show", help="Display a saved tree"
+    )
+    show_p.add_argument("file", help="JSON file with saved tree")
+    show_p.add_argument(
+        "--top", type=int, default=10,
+        help="Number of ranked paths to show"
+    )
+    show_p.add_argument(
+        "--show-pruned", action="store_true",
+        help="Show pruned nodes"
+    )
+
+    # resume
+    resume_p = subparsers.add_parser(
+        "resume", help="Continue exploring an existing tree"
+    )
+    resume_p.add_argument("file", help="JSON file with saved tree")
+    resume_p.add_argument(
+        "-d", "--depth", type=int, default=None,
+        help="New max depth (default: keep existing)"
+    )
+    resume_p.add_argument(
+        "--max-nodes", type=int, default=None,
+        help="New max nodes limit"
+    )
+    resume_p.add_argument(
+        "-m", "--model", default=None,
+        help="LLM model override"
+    )
+    resume_p.add_argument(
+        "-c", "--complexity", default="balanced",
+        choices=["fast", "balanced", "thorough", "auto"],
+        help="model_choice complexity tier (default: balanced)"
+    )
+    resume_p.add_argument(
+        "-o", "--export", default=None,
+        help="Export updated tree to file"
+    )
+    resume_p.add_argument(
+        "--show-paths", type=int, default=10,
+        help="Number of ranked paths to show"
+    )
+    resume_p.add_argument(
+        "--stats", action="store_true",
+        help="Show model_choice cost summary after run"
+    )
+
+    # merge
+    merge_p = subparsers.add_parser(
+        "merge", help="Merge two or more tree files into one"
+    )
+    merge_p.add_argument(
+        "files", nargs="+",
+        help="Two or more tree JSON files to merge"
+    )
+    merge_p.add_argument(
+        "-o", "--output", default=None,
+        help="Output file for merged tree (required)"
+    )
+    merge_p.add_argument(
+        "--dedup", action="store_true",
+        help="Run cross-tree deduplication (requires LLM)"
+    )
+    merge_p.add_argument(
+        "-m", "--model", default="openai/glm-5.1",
+        help="LLM model for dedup (default: openai/glm-5.1)"
+    )
+    merge_p.add_argument(
+        "-c", "--complexity", default="balanced",
+        choices=["fast", "balanced", "thorough", "auto"],
+        help="model_choice complexity tier for dedup (default: balanced)"
+    )
+    merge_p.add_argument(
+        "--decay", type=float, default=0.7,
+        help="Fertility decay factor (default: 0.7)"
+    )
+    merge_p.add_argument(
+        "--top", type=int, default=10,
+        help="Number of ranked paths to show"
+    )
+    merge_p.add_argument(
+        "--show-pruned", action="store_true",
+        help="Show pruned nodes in output"
+    )
+    merge_p.add_argument(
+        "--stats", action="store_true",
+        help="Show model_choice cost summary after run"
+    )
+
+    # escalate
+    esc_p = subparsers.add_parser(
+        "escalate", help="Re-explore thin branches with stronger models"
+    )
+    esc_p.add_argument(
+        "file", help="JSON file with saved tree to improve"
+    )
+    esc_p.add_argument(
+        "-w", "--workdir", default=".",
+        help="Project directory for context"
+    )
+    esc_p.add_argument(
+        "-m", "--current-model", default="openai/glm-5.1",
+        help="Model used for initial exploration (kept for compat, unused for tier lookup)"
+    )
+    esc_p.add_argument(
+        "--starting-complexity", default="balanced",
+        choices=["balanced", "thorough"],
+        help="Complexity level used for initial exploration (default: balanced)"
+    )
+    esc_p.add_argument(
+        "--max-tiers", type=int, default=2,
+        help="Number of escalation tiers to try (default: 2)"
+    )
+    esc_p.add_argument(
+        "--min-children", type=int, default=2,
+        help="Nodes with fewer children are 'thin' (default: 2)"
+    )
+    esc_p.add_argument(
+        "--decay", type=float, default=0.7,
+        help="Fertility decay factor (default: 0.7)"
+    )
+    esc_p.add_argument(
+        "-o", "--output", default=None,
+        help="Output file for escalated tree"
+    )
+    esc_p.add_argument(
+        "--show-paths", type=int, default=10,
+        help="Number of ranked paths to show"
+    )
+    esc_p.add_argument(
+        "--show-pruned", action="store_true",
+        help="Show pruned nodes"
+    )
+
+    # converge
+    conv_p = subparsers.add_parser(
+        "converge", help="Find convergence points across tree branches"
+    )
+    conv_p.add_argument(
+        "file", help="JSON file with saved tree to analyze"
+    )
+    conv_p.add_argument(
+        "-m", "--model", default=None,
+        help="LLM model override for convergence analysis"
+    )
+    conv_p.add_argument(
+        "-c", "--complexity", default="balanced",
+        choices=["fast", "balanced", "thorough", "auto"],
+        help="model_choice complexity tier (default: balanced)"
+    )
+    conv_p.add_argument(
+        "--show-tree", action="store_true",
+        help="Also show the full tree before convergence"
+    )
+    conv_p.add_argument(
+        "--show-pruned", action="store_true",
+        help="Show pruned nodes in tree"
+    )
+    conv_p.add_argument(
+        "--stats", action="store_true",
+        help="Show model_choice cost summary after run"
+    )
+
+    return parser.parse_args(argv)
+
+
+def _show_stats():
+    """Print model_choice cost summary."""
+    from model_choice import cost_summary, cache_stats
+    costs = cost_summary()
+    cache = cache_stats()
+    print("\n--- model_choice stats ---")
+    if not costs:
+        print("  (no calls tracked)")
+    for provider, stats in costs.items():
+        print(f"  {provider}: {stats['calls']} calls, {stats['total_tokens']} tokens")
+    if cache.get("hits") or cache.get("misses"):
+        rate = cache["hits"] / max(cache["hits"] + cache["misses"], 1) * 100
+        print(f"  Cache: {cache['hits']} hits / {cache['misses']} misses ({rate:.0f}% hit rate)")
+
+
+def cmd_explore(args: argparse.Namespace):
+    config = ExplorationConfig(
+        seed_question=args.question,
+        project_path=args.workdir,
+        max_depth=args.depth,
+        branch_min=args.branch_min,
+        branch_max=args.branch_max,
+        model=args.model,
+        complexity=args.complexity,
+        decay=args.decay,
+        max_nodes=args.max_nodes,
+        explore_strategy=args.strategy,
+        context_files=args.context_files,
+        temperature=args.temperature,
+        show_paths=args.show_paths,
+    )
+
+    print(f"Possibility Explorer")
+    print(f"  Question:    {config.seed_question}")
+    print(f"  Project:     {config.project_path}")
+    print(f"  Complexity:  {config.complexity}")
+    print(f"  Model:       {config.model or '(auto)'}")
+    print(f"  Depth:       {config.max_depth}")
+    print(f"  Strategy:    {config.explore_strategy}")
+    print()
+
+    explorer = PossibilityExplorer(config)
+    tree = explorer.explore()
+
+    # Output
+    print("\n" + "=" * 60)
+    print(render_tree(tree, show_pruned=args.show_pruned))
+    print(render_summary(tree))
+
+    paths = rank_paths(tree, top_n=config.show_paths)
+    print(render_ranked_paths(paths))
+
+    if args.export:
+        with open(args.export, "w") as f:
+            json.dump(tree.to_dict(), f, indent=2)
+        print(f"\nTree saved to {args.export}")
+
+    if args.stats:
+        _show_stats()
+
+
+def cmd_show(args: argparse.Namespace):
+    with open(args.file) as f:
+        data = json.load(f)
+    tree = PossibilityNode.from_dict(data)
+    compute_fertility(tree)
+
+    print(render_tree(tree, show_pruned=args.show_pruned))
+    print(render_summary(tree))
+
+    if args.top:
+        paths = rank_paths(tree, top_n=args.top)
+        print(render_ranked_paths(paths))
+
+
+def cmd_resume(args: argparse.Namespace):
+    with open(args.file) as f:
+        data = json.load(f)
+    tree = PossibilityNode.from_dict(data)
+
+    # Build config, keeping existing depth unless overridden
+    config = ExplorationConfig(
+        seed_question=tree.description,
+        model=args.model or "openai/glm-5.1",
+        complexity=args.complexity,
+        max_depth=args.depth or 3,
+        max_nodes=args.max_nodes or 120,
+        explore_strategy="bfs",
+    )
+
+    print(f"Resuming exploration of: \"{tree.description}\"")
+    print(f"  Model:       {config.model or '(auto)'}")
+    print(f"  Complexity:  {config.complexity}")
+    print(f"  Max depth:   {config.max_depth}")
+    print()
+
+    explorer = PossibilityExplorer(config)
+    tree = explorer.resume(tree)
+
+    print("\n" + "=" * 60)
+    print(render_tree(tree))
+
+    paths = rank_paths(tree, top_n=args.show_paths)
+    print(render_ranked_paths(paths))
+
+    if args.export:
+        with open(args.export, "w") as f:
+            json.dump(tree.to_dict(), f, indent=2)
+        print(f"\nTree saved to {args.export}")
+    else:
+        # Auto-save back to the same file
+        with open(args.file, "w") as f:
+            json.dump(tree.to_dict(), f, indent=2)
+        print(f"\nTree updated in {args.file}")
+
+    if args.stats:
+        _show_stats()
+
+
+def cmd_merge(args: argparse.Namespace):
+    if len(args.files) < 2:
+        print("Error: merge requires at least 2 input files")
+        sys.exit(1)
+
+    if not args.output:
+        print("Error: -o/--output is required for merge")
+        sys.exit(1)
+
+    # Load all trees
+    trees = []
+    for path in args.files:
+        print(f"  Loading {path}")
+        trees.append(load_tree(path))
+
+    print(f"\nMerging {len(trees)} trees")
+    if args.dedup:
+        print(f"  Cross-tree dedup: ON (model: {args.model}, complexity: {args.complexity})")
+    print()
+
+    merged = merge_trees(
+        trees,
+        dedup=args.dedup,
+        model=args.model,
+        complexity=args.complexity,
+        decay=args.decay,
+    )
+
+    # Render
+    print("=" * 60)
+    print(render_tree(merged, show_pruned=args.show_pruned))
+    print(render_summary(merged))
+
+    paths = rank_paths(merged, top_n=args.top)
+    print(render_ranked_paths(paths))
+
+    # Save
+    with open(args.output, "w") as f:
+        json.dump(merged.to_dict(), f, indent=2)
+    print(f"\nMerged tree saved to {args.output}")
+
+    if args.stats:
+        _show_stats()
+
+
+def cmd_escalate(args: argparse.Namespace):
+    with open(args.file) as f:
+        data = json.load(f)
+    tree = PossibilityNode.from_dict(data)
+
+    print(f"Provider Escalation")
+    print(f"  Tree:      {args.file}")
+    print(f"  Project:   {args.workdir}")
+    print(f"  Starting:  {args.starting_complexity}")
+    print(f"  Max tiers: {args.max_tiers}")
+    print()
+
+    # Show the escalation chain
+    from .escalate import _starting_complexity_index
+    start_idx = _starting_complexity_index(args.starting_complexity)
+    chain = ESCALATION_COMPLEXITIES[start_idx + 1: start_idx + 1 + args.max_tiers]
+    print(f"  Chain: {' -> '.join(COMPLEXITY_LABELS.get(c, c) for c in chain)}")
+    print()
+
+    tree = escalate(
+        tree,
+        current_model=args.current_model,
+        project_path=args.workdir,
+        max_tiers=args.max_tiers,
+        min_children=args.min_children,
+        decay=args.decay,
+        starting_complexity=args.starting_complexity,
+    )
+
+    # Render
+    print("=" * 60)
+    print(render_tree(tree, show_pruned=args.show_pruned))
+    print(render_summary(tree))
+
+    paths = rank_paths(tree, top_n=args.show_paths)
+    print(render_ranked_paths(paths))
+
+    # Save
+    out_path = args.output or args.file
+    with open(out_path, "w") as f:
+        json.dump(tree.to_dict(), f, indent=2)
+    print(f"\nEscalated tree saved to {out_path}")
+
+    if args.stats:
+        _show_stats()
+
+
+def cmd_converge(args: argparse.Namespace):
+    with open(args.file) as f:
+        data = json.load(f)
+    tree = PossibilityNode.from_dict(data)
+    compute_fertility(tree)
+
+    print("Convergence Analysis")
+    print(f"  Tree:       {args.file}")
+    print(f"  Complexity: {args.complexity}")
+    print(f"  Paths:      {len(collect_all_paths(tree))}")
+    print()
+
+    if args.show_tree:
+        print(render_tree(tree, show_pruned=args.show_pruned))
+        print(render_summary(tree))
+        print()
+
+    convergences = converge(
+        tree,
+        model=args.model,
+        complexity=args.complexity,
+    )
+
+    print("=" * 60)
+    print(render_convergence(convergences))
+
+    if args.stats:
+        _show_stats()
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    if args.command == "explore":
+        cmd_explore(args)
+    elif args.command == "show":
+        cmd_show(args)
+    elif args.command == "resume":
+        cmd_resume(args)
+    elif args.command == "merge":
+        cmd_merge(args)
+    elif args.command == "escalate":
+        cmd_escalate(args)
+    elif args.command == "converge":
+        cmd_converge(args)
+    else:
+        parse_args(["--help"])
+
+
+if __name__ == "__main__":
+    main()

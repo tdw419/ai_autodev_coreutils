@@ -1,4 +1,7 @@
-.autodev/
 __pycache__/
 *.pyc
 *.egg-info/
+.autodev/
+.pytest_cache/
+.benchmarks/
+.mypy_cache/

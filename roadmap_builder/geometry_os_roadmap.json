@@ -1,0 +1,1066 @@
+{
+  "title": "Geometry OS Roadmap",
+  "version": "0.3.0",
+  "description": "GPU-native operating system where pixels are instructions, the GPU texture is memory,\nand programs write programs. Implemented in Rust (~19,400 lines) with 347 tests passing\non real hardware (NVIDIA RTX 5090, 32GB VRAM).\n",
+  "project_url": "https://github.com/nousresearch/geometry_os",
+  "phases": [
+    {
+      "id": "phase-0",
+      "title": "Bootstrap",
+      "status": "complete",
+      "description": "The foundation. Rust binary that initializes wgpu, creates the 4096x4096 RGBA8\ntexture (64MB), and proves the GPU pipeline works end-to-end.\n",
+      "goal": "Rust project skeleton with wgpu initialization and a 4096x4096 texture.",
+      "deliverables": [
+        {
+          "name": "wgpu initialization",
+          "description": "Create GPU device, queue, and 4096x4096 RGBA8 texture",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Texture created and accessible via compute shader",
+              "validation": "cargo test --lib texture_init",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Cargo project structure",
+          "description": "Multi-binary Cargo.toml with daemon, repl, debug targets",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "cargo build succeeds for all targets",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 500,
+      "scope_files_total": 0,
+      "test_target": 10
+    },
+    {
+      "id": "phase-1",
+      "title": "Pixel VM Core",
+      "status": "complete",
+      "description": "The VM reads RGBA pixels as (opcode, stratum, p1, p2) and executes them.\n8 concurrent VMs, each with 128 registers, 64-level call stack, program counter.\nSoftware VM (software_vm.rs) mirrors the shader exactly for cross-validation.\n",
+      "goal": "Fetch-decode-execute loop that reads opcodes from pixel values in the texture.",
+      "deliverables": [
+        {
+          "name": "Compute shader VM (glyph_vm_scheduler.wgsl)",
+          "description": "GPU compute shader that fetches, decodes, and executes pixel opcodes",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "All basic opcodes execute correctly on GPU",
+              "validation": "347 tests pass, 0 failures",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Software VM mirror (software_vm.rs)",
+          "description": "CPU-side VM that produces identical results to the shader",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Cross-validated: same inputs produce same outputs on CPU and GPU",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Opcode set (35+ opcodes)",
+          "description": "NOP, LDI, MOV, LOAD, STORE, ADD, SUB, MUL, DIV, JMP, BNE, CALL, RET, HALT, ENTRY, CHAR, BLIT, SEND, RECV, SPAWN, YIELD, WAIT_EVENT, XOR, NOT, MOD, LDB, STB, RECTF, LINE, TEXT_STR, CIRCLEF, and more",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Each opcode has dedicated tests",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "8 concurrent VMs",
+          "description": "Parallel execution with per-VM register file, PC, call stack",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "All 8 VMs can execute simultaneously",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "The pixel encoding: R=opcode (0-255), G=stratum (layer/mode/condition),\nB=parameter 1, A=parameter 2. Each VM gets a spatial region of the texture.\n",
+      "risks": [],
+      "scope_lines_total": 4000,
+      "scope_files_total": 0,
+      "test_target": 80
+    },
+    {
+      "id": "phase-2",
+      "title": "Spatial Memory",
+      "status": "complete",
+      "description": "Memory management via 2D spatial coordinates mapped to 1D via Hilbert curve.\nEach VM gets an isolated region bounded by base_addr/bound_addr.\nOut-of-bounds access triggers VM_FAULT.\n",
+      "goal": "Hilbert curve mapping and spatial memory allocation with bounds checking.",
+      "deliverables": [
+        {
+          "name": "Hilbert curve mapping",
+          "description": "2D texture coords <-> 1D physical addresses via Hilbert curve",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Spatial locality preserved in physical cache layout",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Spatial memory allocation",
+          "description": "VM isolation via base_addr/bound_addr bounds checking",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Out-of-bounds access triggers VM_FAULT",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Visual memory debugging",
+          "description": "Used vs free regions visible as different colors on texture",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 5500,
+      "scope_files_total": 0,
+      "test_target": 120
+    },
+    {
+      "id": "phase-3",
+      "title": "Compilation Pipeline",
+      "status": "complete",
+      "description": "Three-tier compilation: .gasm text assembly -> pixel bytecode,\nGeoLang compiler (C-like -> pixel opcodes directly, 2079 lines, 25 tests),\nand C-to-.glyph transpiler supporting arithmetic, control flow, structs, pointers, arrays.\n",
+      "goal": "Text assembly and C-like language to pixel bytecode compilation.",
+      "deliverables": [
+        {
+          "name": "Assembler (.gasm -> pixel bytecode)",
+          "description": "Two-pass assembler with labels, DATA directives, disassembler",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Labels resolve correctly, DATA sections load into texture",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "GeoLang compiler",
+          "description": "C-like language compiled directly to pixel opcodes (2079 lines, 25 tests)",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Arithmetic, control flow, functions compile and execute",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "C-to-.glyph transpiler",
+          "description": "Transpiles C: arithmetic, control flow, structs, pointers, arrays -> pixel bytecode",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "GASP animation compiler",
+          "description": "Tween/animation system with keyframe labels (src/gasp_compiler.rs)",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 9000,
+      "scope_files_total": 0,
+      "test_target": 180
+    },
+    {
+      "id": "phase-4",
+      "title": "IPC and I/O",
+      "status": "complete",
+      "description": "SPAWN/YIELD for VM forking with memory isolation. SEND/RECV message queues\nfor inter-VM communication. 3-layer IPC: GPU VM -> device proxy .glyph shim -> CPU stub Rust thread.\nCPU stub with 9 command types including file I/O, SQL queries, and LLM calls.\n",
+      "goal": "Inter-VM communication and the CPU stub pattern for external I/O.",
+      "deliverables": [
+        {
+          "name": "SPAWN/YIELD VM forking",
+          "description": "Create child VMs with isolated memory regions",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "Child VM executes independently, memory isolated from parent",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "SEND/RECV message queues",
+          "description": "Inter-VM message passing via mailbox system",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Event queue (WAIT_EVENT)",
+          "description": "External event injection for keyboard, mouse, inter-VM messages",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "CPU stub with 9 command types",
+          "description": "READ_BLOCK, WRITE_BLOCK, OPEN, CLOSE, IOCTL, CMD_SQL_QUERY, CMD_MODEL_CALL, CMD_STATUS_READ, CMD_STATUS_WRITE",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "SqliteExecutor",
+          "description": "rusqlite-backed SQL query execution via CPU stub",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "ModelExecutor",
+          "description": "HTTP LLM client via CPU stub -- VM can call LLMs",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "FileExecutor",
+          "description": "File I/O via CPU stub",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "The CPU stub pattern is what makes agent-driven execution possible:\nthe VM can call an LLM, query a database, or read a file without any\nof those concepts existing in the GPU shader.\n",
+      "risks": [],
+      "scope_lines_total": 13000,
+      "scope_files_total": 0,
+      "test_target": 260
+    },
+    {
+      "id": "phase-5",
+      "title": "Self-Improvement",
+      "status": "complete",
+      "description": "The VM can evolve its own programs. Evolution engine (src/evolution.rs, 1045 lines)\nperforms mutation -> execute -> score -> keep/discard cycles. Fitness function\n(src/fitness.rs) uses composite scoring: speed, correctness, memory, spatial locality.\nGovernance gate (src/governance.rs, 558 lines) enforces Seven Laws before any mutation.\n",
+      "goal": "Evolution engine with fitness-guided mutations and governance gates.",
+      "deliverables": [
+        {
+          "name": "Evolution engine (evolution.rs)",
+          "description": "Mutation -> execute -> score -> keep/discard loop",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "GEO-68: fitness-component-guided mutations beat random by 57% on real GPU",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Fitness function (fitness.rs)",
+          "description": "Composite scoring: speed, correctness, memory, spatial locality",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Mutation engine (mutation.rs)",
+          "description": "Pixel-level variations with selection pressure",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Governance gate (governance.rs)",
+          "description": "Seven Laws check before any mutation executes (558 lines)",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 16000,
+      "scope_files_total": 0,
+      "test_target": 300
+    },
+    {
+      "id": "phase-6",
+      "title": "Visualization",
+      "status": "complete",
+      "description": "Real-time visualization of the 4096x4096 texture at 30fps. VM HUD overlay shows\nregister values, PC, execution state. Filmstrip projector captures multi-frame\nexecution for time-based debugging. 8x8 bitmap font atlas at 0x00F00000.\n",
+      "goal": "Windowed runtime with VM HUD overlay, filmstrip projector, and font atlas.",
+      "deliverables": [
+        {
+          "name": "Windowed runtime",
+          "description": "4096x4096 texture display at 30fps via wgpu",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "VM HUD overlay",
+          "description": "Register values, PC, execution state rendered spatially",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Filmstrip projector (filmstrip.rs)",
+          "description": "Multi-frame execution capture for time-based debugging",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Font atlas",
+          "description": "8x8 bitmap font at 0x00F00000, CHAR opcode renders glyphs",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 18000,
+      "scope_files_total": 0,
+      "test_target": 330
+    },
+    {
+      "id": "phase-7",
+      "title": "Infrastructure",
+      "status": "complete",
+      "description": "DRM backend for AMDGPU with DMA-BUF sharing. Pixel compiler/linker with stdlib.\nMultiple binaries: daemon, pmp-eval, pmp-repl, pmp-trace, frame_debug.\nCanvas-based UI: 32x32 text surface, assembler, terminal mode (geo> CLI),\n256x256 framebuffer. Old sprints A-E completed here.\n",
+      "goal": "DRM backend, pixel compiler/linker, multiple binary targets, and canvas-based UI.",
+      "deliverables": [
+        {
+          "name": "DRM backend",
+          "description": "AMDGPU command buffers, DMA-BUF sharing for zero-copy",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Pixel compiler/linker with stdlib",
+          "description": "Standard library: memset, memcpy, math routines loaded as pixel programs",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Multi-binary targets",
+          "description": "daemon, pmp-eval, pmp-repl, pmp-trace, frame_debug",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Canvas text surface + assembler",
+          "description": "32x32 grid, type assembly, F8 to assemble, F5 to run",
+          "status": "done",
+          "acceptance_criteria": [
+            {
+              "description": "All Sprint A-E visual and interactive programs work",
+              "validation": "",
+              "met": true
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Terminal mode (geo> CLI)",
+          "description": "REPL with help, list/ls, load, run, edit, regs, peek, poke, reset, clear, quit",
+          "status": "done",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-6",
+          "target": "phase-7",
+          "type": "hard",
+          "reason": "Visualization required for canvas UI"
+        }
+      ],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 19400,
+      "scope_files_total": 0,
+      "test_target": 347
+    },
+    {
+      "id": "phase-8",
+      "title": "Bare-Metal RV64",
+      "status": "planned",
+      "description": "The current system runs through wgpu, which has limitations: no native u64 support\nin WGSL (requiring vec2<u32> emulation), buffer size constraints, and an abstraction\nlayer between the shader and the hardware. Phase 8 goes direct to metal.\n\nPort the VM to SPIR-V with native u64 support. AMDGPU direct command submission\nvia DRM ioctl. DMA-BUF framebuffer sharing for zero-copy visualization. RV64I base\ninstruction set with Sv39 MMU.\n",
+      "goal": "Boot a minimal RV64 Linux kernel on the GPU, bypassing wgpu entirely.",
+      "deliverables": [
+        {
+          "name": "SPIR-V RV64 kernel",
+          "description": "Port the VM to SPIR-V with native u64 registers",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "SPIR-V shader compiles and dispatches on AMD hardware",
+              "validation": "Native GPU dispatch without wgpu",
+              "met": false
+            },
+            {
+              "description": "Native u64 registers work (no vec2<u32> emulation)",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 2000,
+          "scope_files": [
+            "systems/infinite_map_rs/src/shaders/riscv64_vm.glsl",
+            "src/spirv_vm.rs"
+          ],
+          "notes": ""
+        },
+        {
+          "name": "AMDGPU direct command submission",
+          "description": "PM4 packets, GVM management via DRM ioctl",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Submit compute dispatches directly to AMDGPU",
+              "validation": "DRM ioctl calls succeed, shader executes",
+              "met": false
+            }
+          ],
+          "scope_lines": 1500,
+          "scope_files": [
+            "src/amdgpu_direct.rs"
+          ],
+          "notes": ""
+        },
+        {
+          "name": "RV64I base instruction set",
+          "description": "Implement RV64I with Sv39 page table walks in the shader",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "rv64ui-p-* compliance tests pass",
+              "validation": "RISC-V compliance test suite",
+              "met": false
+            }
+          ],
+          "scope_lines": 3000,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Boot minimal RV64 Linux",
+          "description": "The 'screen is the hard drive' concept fully realized",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Linux kernel boots on the GPU VM",
+              "validation": "Kernel boot messages visible on framebuffer",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-7",
+          "target": "phase-8",
+          "type": "hard",
+          "reason": "Need working wgpu-based system as reference implementation"
+        }
+      ],
+      "technical_notes": "Steps:\n1. Create SPIR-V RV64 kernel (systems/infinite_map_rs/src/shaders/riscv64_vm.glsl)\n2. Implement native u64 registers and Sv39 page table walks in the shader\n3. Complete AMDGPU command buffer submission (PM4 packets, GVM management)\n4. Boot minimal RV64 Linux on the native GPU executor\n5. Verify with rv64ui-p-* compliance tests\n",
+      "risks": [
+        "AMDGPU ioctl interface is poorly documented -- may need kernel module development",
+        "SPIR-V compute shaders have different capabilities than WGSL -- feature discovery needed",
+        "RV64I emulation performance on GPU compute units is unknown"
+      ],
+      "scope_lines_total": 26000,
+      "scope_files_total": 0,
+      "test_target": 420
+    },
+    {
+      "id": "phase-9",
+      "title": "AI-Native Opcodes",
+      "status": "planned",
+      "description": "The current opcode set is deterministic: ADD always adds, JMP always jumps.\nBut LLM-generated code is probabilistic. Phase 9 introduces opcodes for\nuncertainty-aware execution, attention mechanisms, and self-modification.\n",
+      "goal": "Opcodes designed for probabilistic, AI-generated code execution.",
+      "deliverables": [
+        {
+          "name": "BRANCH_PROB (220)",
+          "description": "Branch based on probability threshold",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Branches correctly with given probability value",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "CONFIDENCE_MARK (221)",
+          "description": "Associate confidence score with a code block",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "ALTERNATE_PATH (222)",
+          "description": "Define fallback paths for low-confidence execution",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "ATTENTION_FOCUS (223)",
+          "description": "Mark spatial regions as active, skip inactive regions",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "GLYPH_MUTATE (224)",
+          "description": "Transform a glyph at a coordinate (self-modification)",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "SPATIAL_SPAWN (225)",
+          "description": "Create new glyph clusters at target coordinates",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "SEMANTIC_MERGE (226)",
+          "description": "Unify redundant glyph clusters (spatial refactoring)",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "LOAD_EMBEDDING (227)",
+          "description": "Load vector embeddings into specialized registers",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Embedding loaded and accessible by other opcodes",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-7",
+          "target": "phase-9",
+          "type": "soft",
+          "reason": "Can be developed in parallel with Phase 8 but benefits from stable base"
+        },
+        {
+          "source": "phase-5",
+          "target": "phase-9",
+          "type": "informs",
+          "reason": "Self-improvement patterns inform AI-native opcode design"
+        }
+      ],
+      "technical_notes": "When an AI generates .glyph code, it doesn't know with certainty that every opcode\nis correct. Probabilistic execution lets the VM handle uncertainty gracefully.\nAttention focus lets it skip clearly wrong regions. Self-modification opcodes\nlet it fix its own output.\n",
+      "risks": [
+        "Probabilistic opcodes make debugging harder -- need excellent visualization",
+        "Unclear how to test non-deterministic opcodes -- may need statistical testing"
+      ],
+      "scope_lines_total": 23000,
+      "scope_files_total": 0,
+      "test_target": 400
+    },
+    {
+      "id": "phase-10",
+      "title": "Persistent Spatial Filesystem",
+      "status": "future",
+      "description": "Each file occupies a contiguous spatial region of the texture. Directory structure\nis a spatial hierarchy (parent regions contain child regions). Metadata stored as\npixel headers. CPU stub's existing file I/O handles persistence to disk. Hilbert\ncurve ensures spatial locality for related files.\n",
+      "goal": "Files as spatial regions of the texture, not traditional block devices.",
+      "deliverables": [
+        {
+          "name": "Spatial file allocator",
+          "description": "Allocate/free spatial regions for file storage in the texture",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Files can be created, read, written, and deleted",
+              "validation": "",
+              "met": false
+            },
+            {
+              "description": "Spatial locality maintained for related files",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Directory hierarchy",
+          "description": "Parent regions contain child regions with metadata headers",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Nested directory traversal works",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Persistence bridge",
+          "description": "CPU stub syncs spatial regions to/from disk",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Files survive VM restart",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Visual file browser",
+          "description": "See your files on the texture -- opening a file is navigating to a spatial region",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-7",
+          "target": "phase-10",
+          "type": "hard",
+          "reason": "Need stable memory allocation and CPU stub for persistence"
+        },
+        {
+          "source": "phase-2",
+          "target": "phase-10",
+          "type": "hard",
+          "reason": "Hilbert curve mapping is the foundation of spatial file addressing"
+        }
+      ],
+      "technical_notes": "",
+      "risks": [
+        "Fragmentation of spatial regions over time -- need spatial defragmentation",
+        "File size limited by available texture space (64MB total)"
+      ],
+      "scope_lines_total": 25000,
+      "scope_files_total": 0,
+      "test_target": 450
+    },
+    {
+      "id": "phase-11",
+      "title": "Networking as Spatial I/O",
+      "status": "future",
+      "description": "New CPU stub commands: CMD_NET_SEND (10), CMD_NET_RECV (11), CMD_NET_DNS (12).\nNetwork addresses represented as spatial coordinates. Agent loops can query\nexternal services, fetch data, communicate with other instances. The VM doesn't\nknow about TCP/IP -- it writes a message and reads the response.\n",
+      "goal": "Network communication through the CPU stub pattern.",
+      "deliverables": [
+        {
+          "name": "Network CPU stub commands",
+          "description": "CMD_NET_SEND, CMD_NET_RECV, CMD_NET_DNS in the stub executor",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "VM can send/receive messages to/from network endpoints",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Spatial address mapping",
+          "description": "Network endpoints mapped to spatial coordinates",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "DNS resolution",
+          "description": "VM can resolve hostnames via CPU stub",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-4",
+          "target": "phase-11",
+          "type": "hard",
+          "reason": "CPU stub pattern is the I/O mechanism"
+        }
+      ],
+      "technical_notes": "",
+      "risks": [],
+      "scope_lines_total": 26000,
+      "scope_files_total": 0,
+      "test_target": 480
+    },
+    {
+      "id": "phase-12",
+      "title": "Self-Hosting",
+      "status": "future",
+      "description": "The ultimate proof of the architecture. If the compiler can run on the VM it\ntargets, the system has achieved self-hosting. Same milestone GCC and Rust\nachieved for traditional platforms.\n",
+      "goal": "The GeoLang compiler, compiled to .glyph, running on the GPU VM.",
+      "deliverables": [
+        {
+          "name": "Compiler self-compilation",
+          "description": "Verify GeoLang compiler can compile itself (self-compilation)",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Compiler output matches reference build",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Compiler transpiled to .glyph",
+          "description": "Transpile the compiler's own C output to .glyph bytecode",
+          "status": "todo",
+          "acceptance_criteria": [],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Compiler loaded into GPU texture",
+          "description": "The compiled compiler runs on the GPU VM",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "VM can assemble programs using the on-GPU compiler",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-3",
+          "target": "phase-12",
+          "type": "hard",
+          "reason": "Need working GeoLang compiler and transpiler"
+        },
+        {
+          "source": "phase-10",
+          "target": "phase-12",
+          "type": "soft",
+          "reason": "Filesystem helpful for managing compiler output on the texture"
+        }
+      ],
+      "technical_notes": "Steps:\n1. Verify the GeoLang compiler can compile itself (self-compilation)\n2. Transpile the compiler's own C output to .glyph bytecode\n3. Load the compiled compiler into the GPU texture\n4. The VM assembles its own programs -- the system builds itself\n",
+      "risks": [
+        "Compiler may be too large for a single VM's memory region",
+        "Performance of compiler on GPU VM may be impractically slow",
+        "Bootstrapping may require multiple passes"
+      ],
+      "scope_lines_total": 28000,
+      "scope_files_total": 0,
+      "test_target": 520
+    },
+    {
+      "id": "phase-13",
+      "title": "Multi-Agent Orchestration",
+      "status": "future",
+      "description": "Specialized agents on separate VMs: researcher (queries LLM for ideas),\ncoder (generates .glyph), tester (runs programs and scores fitness), reviewer (governance gate).\nGPU-parallel evolution: population of mutants evaluated simultaneously across 8 VMs.\n",
+      "goal": "Multiple agent loops running concurrently on different VMs, coordinated via IPC.",
+      "deliverables": [
+        {
+          "name": "Agent role definitions",
+          "description": "Researcher, Coder, Tester, Reviewer -- each on its own VM",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Each agent role executes its specialized task independently",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Inter-agent IPC protocol",
+          "description": "SEND/RECV message queue protocol for agent coordination",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "Agents can delegate tasks and share results via IPC",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "GPU-parallel evolution",
+          "description": "Population of mutants evaluated simultaneously across 8 VMs",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "8 VMs evaluate different mutants in parallel",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        },
+        {
+          "name": "Agent-driven self-improvement loop",
+          "description": "The multi-agent system runs autonomously, improving the codebase",
+          "status": "todo",
+          "acceptance_criteria": [
+            {
+              "description": "System produces measurably improved programs without human intervention",
+              "validation": "",
+              "met": false
+            }
+          ],
+          "scope_lines": 0,
+          "scope_files": [],
+          "notes": ""
+        }
+      ],
+      "dependencies": [
+        {
+          "source": "phase-4",
+          "target": "phase-13",
+          "type": "hard",
+          "reason": "IPC and CPU stub are the communication backbone"
+        },
+        {
+          "source": "phase-5",
+          "target": "phase-13",
+          "type": "hard",
+          "reason": "Evolution engine and fitness functions are the core mechanism"
+        },
+        {
+          "source": "phase-9",
+          "target": "phase-13",
+          "type": "soft",
+          "reason": "AI-native oppcodes would improve agent-generated code quality"
+        },
+        {
+          "source": "phase-12",
+          "target": "phase-13",
+          "type": "soft",
+          "reason": "Self-hosting means agents can modify the compiler itself"
+        }
+      ],
+      "technical_notes": "",
+      "risks": [
+        "Agent coordination complexity -- deadlock and starvation possible",
+        "Resource contention across 8 VMs for GPU time",
+        "Governance enforcement across multiple agents is non-trivial"
+      ],
+      "scope_lines_total": 32000,
+      "scope_files_total": 0,
+      "test_target": 600
+    }
+  ],
+  "global_risks": [
+    "wgpu API changes between versions may break shader compatibility",
+    "GPU compute shader precision varies across vendors -- NVIDIA-only for now",
+    "64MB texture limit constrains program complexity and filesystem size",
+    "Self-hosting bootstrap problem: compiler needs itself to build itself",
+    "Regulatory/ethical concerns around autonomous self-improving GPU programs"
+  ],
+  "conventions": [
+    "All opcodes tested on both software_vm.rs and GPU shader",
+    "Rust code formatted with rustfmt, linted with clippy",
+    "347 tests must remain green -- no regressions allowed",
+    "New opcodes require: implementation, tests, documentation, assembler support",
+    "CPU stub executors are independently testable",
+    "Spatial locality principle: related data goes in adjacent texture regions",
+    "The 'screen is the hard drive' -- framebuffer regions map to persistent data"
+  ],
+  "meta": {
+    "language": "Rust",
+    "gpu_abstraction": "wgpu 0.19",
+    "shader_language": "WGSL",
+    "texture_size": "4096x4096 RGBA8 (64MB)",
+    "concurrent_vms": 8,
+    "tests_current": 347,
+    "loc_current": 19400
+  }
+}

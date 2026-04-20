@@ -1,0 +1,332 @@
+"""Shared test fixtures for carry_forward tests."""
+import pytest
+import sqlite3
+import os
+import sys
+import time
+from datetime import datetime
+from unittest.mock import patch
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+
+def _create_state_db(path):
+    conn = sqlite3.connect(path)
+    conn.execute("""
+        CREATE TABLE sessions (
+            id TEXT PRIMARY KEY,
+            parent_session_id TEXT,
+            source TEXT,
+            message_count INTEGER DEFAULT 0,
+            tool_call_count INTEGER DEFAULT 0,
+            started_at REAL,
+            model TEXT,
+            title TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT,
+            role TEXT,
+            content TEXT,
+            timestamp REAL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def _create_carry_db(path):
+    conn = sqlite3.connect(path)
+    for ddl in [
+        """CREATE TABLE IF NOT EXISTS blockers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT, message TEXT NOT NULL,
+            created_at REAL NOT NULL, resolved_at REAL)""",
+        """CREATE TABLE IF NOT EXISTS chain_meta (
+            session_id TEXT PRIMARY KEY, parent_session_id TEXT,
+            continuation_count INTEGER DEFAULT 0, outcome TEXT,
+            project_dir TEXT, created_at REAL NOT NULL,
+            consecutive_stalls INTEGER DEFAULT 0,
+            consecutive_noops INTEGER DEFAULT 0)""",
+        """CREATE TABLE IF NOT EXISTS learned_patterns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pattern_type TEXT NOT NULL, pattern_key TEXT NOT NULL,
+            observation TEXT NOT NULL, sample_size INTEGER DEFAULT 1,
+            last_seen REAL NOT NULL, created_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS chain_git_heads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL, project_dir TEXT NOT NULL,
+            git_head TEXT NOT NULL, recorded_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS decision_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT, decision TEXT NOT NULL,
+            reasons_json TEXT, thresholds_json TEXT,
+            can_continue INTEGER NOT NULL, created_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS decision_outcomes (
+            decision_id INTEGER PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            outcome_productive INTEGER, outcome_git_moved INTEGER,
+            outcome_chain_continued INTEGER,
+            outcome_tool_calls INTEGER DEFAULT 0,
+            outcome_message_count INTEGER DEFAULT 0,
+            checked_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS config (
+            key TEXT PRIMARY KEY, value TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'default',
+            updated_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS tick_file_changes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL, tick_number INTEGER NOT NULL,
+            files_changed_json TEXT NOT NULL,
+            committed INTEGER NOT NULL DEFAULT 0,
+            recorded_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS tick_test_counts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL, tick_number INTEGER NOT NULL,
+            test_count INTEGER NOT NULL,
+            source TEXT NOT NULL DEFAULT 'unknown',
+            recorded_at REAL NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS lessons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lesson TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT 'general',
+            evidence TEXT,
+            hit_count INTEGER DEFAULT 1,
+            last_hit REAL NOT NULL,
+            created_at REAL NOT NULL
+        )""",
+        """CREATE TABLE IF NOT EXISTS project_thresholds (
+            project_dir TEXT NOT NULL,
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'auto-detect',
+            project_type TEXT,
+            updated_at REAL NOT NULL,
+            PRIMARY KEY (project_dir, key)
+        )""",
+        """CREATE TABLE IF NOT EXISTS failure_fingerprints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            fingerprint_type TEXT NOT NULL,
+            file_path TEXT,
+            snippet TEXT,
+            project_dir TEXT,
+            created_at REAL NOT NULL
+        )""",
+        """CREATE TABLE IF NOT EXISTS model_health_cache (
+            model TEXT PRIMARY KEY,
+            total_sessions INTEGER NOT NULL DEFAULT 0,
+            productive_sessions INTEGER NOT NULL DEFAULT 0,
+            productivity_rate REAL NOT NULL DEFAULT 0.0,
+            is_reliable INTEGER NOT NULL DEFAULT 1,
+            cached_at REAL NOT NULL
+        )""",
+    ]:
+        conn.execute(ddl)
+    conn.commit()
+    conn.close()
+
+
+@pytest.fixture
+def state_db(tmp_path):
+    path = str(tmp_path / "state.db")
+    _create_state_db(path)
+    return path
+
+
+@pytest.fixture
+def carry_db(tmp_path):
+    path = str(tmp_path / "carry_forward.db")
+    _create_carry_db(path)
+    return path
+
+
+@pytest.fixture
+def patched_env(state_db, carry_db):
+    import carry_forward.carry_forward as cf
+    with patch.object(cf, 'DB_PATH', state_db), \
+         patch.object(cf, 'CARRY_DB_PATH', carry_db), \
+         patch.object(cf, 'get_conn', lambda: sqlite3.connect(state_db)), \
+         patch.object(cf, 'get_carry_conn', lambda: sqlite3.connect(carry_db)):
+        yield cf
+
+
+def insert_session(state_db, sid, parent=None, source='cli', msgs=0, tools=0, ts=None, model=None):
+    conn = sqlite3.connect(state_db)
+    conn.execute(
+        "INSERT INTO sessions (id, parent_session_id, source, message_count, tool_call_count, started_at, model) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (sid, parent, source, msgs, tools, ts or time.time(), model)
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_blocker(carry_db, message, age_hours=5, resolved=False):
+    ts = time.time() - (age_hours * 3600)
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO blockers (session_id, message, created_at, resolved_at) VALUES (?, ?, ?, ?)",
+        ("test_session", message, ts, time.time() if resolved else None)
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_git_heads(carry_db, session_id, project_dir, git_head):
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO chain_git_heads (session_id, project_dir, git_head, recorded_at) VALUES (?, ?, ?, ?)",
+        (session_id, project_dir, git_head, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_config(carry_db, key, value, source='default'):
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO config (key, value, source, updated_at) VALUES (?, ?, ?, ?)",
+        (key, str(value), source, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_chain(state_db, n, alive=True):
+    """Insert a chain of *n* sessions, each parented to the previous one.
+
+    If *alive* is True each session gets 5 tools / 10 msgs; otherwise 0/0.
+    Returns the list of session IDs (earliest first).
+    """
+    ids = []
+    for i in range(n):
+        sid = f"chain_{i}"
+        parent = ids[-1] if ids else None
+        msgs, tools = (10, 5) if alive else (0, 0)
+        insert_session(state_db, sid, parent=parent, msgs=msgs, tools=tools)
+        ids.append(sid)
+    return ids
+
+
+def insert_tick_changes(carry_db, session_id, tick_number, files, committed=False):
+    """Insert file change data for a tick."""
+    import json
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO tick_file_changes (session_id, tick_number, files_changed_json, committed, recorded_at) VALUES (?, ?, ?, ?, ?)",
+        (session_id, tick_number, json.dumps(sorted(files)), 1 if committed else 0, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_test_count(carry_db, session_id, tick_number, test_count, source="pytest"):
+    """Insert test count for a tick."""
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO tick_test_counts (session_id, tick_number, test_count, source, recorded_at) VALUES (?, ?, ?, ?, ?)",
+        (session_id, tick_number, test_count, source, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_decision(carry_db, session_id, decision, can_continue, reasons=None):
+    """Insert a decision_log entry and return its ID."""
+    import json
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO decision_log (session_id, decision, reasons_json, thresholds_json, can_continue, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (session_id, decision, json.dumps(reasons or []), json.dumps({}), 1 if can_continue else 0, time.time())
+    )
+    dec_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.commit()
+    conn.close()
+    return dec_id
+
+
+def insert_outcome(carry_db, decision_id, session_id, productive=1, git_moved=0, chain_continued=0, tool_calls=0, messages=0):
+    """Insert a decision_outcomes entry."""
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO decision_outcomes (decision_id, session_id, outcome_productive, outcome_git_moved, outcome_chain_continued, outcome_tool_calls, outcome_message_count, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (decision_id, session_id, productive, git_moved, chain_continued, tool_calls, messages, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_lesson(carry_db, lesson, category="general", evidence="", hit_count=1):
+    """Insert a lesson into the lessons table."""
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO lessons (lesson, category, evidence, hit_count, last_hit, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (lesson, category, evidence, hit_count, time.time(), time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_project_threshold(carry_db, project_dir, key, value, source="calibration", project_type=None):
+    """Insert a project-specific threshold override."""
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT OR REPLACE INTO project_thresholds (project_dir, key, value, source, project_type, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (project_dir, key, str(value), source, project_type, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_messages(state_db, session_id, role, content):
+    """Insert a message into the state DB for a session."""
+    conn = sqlite3.connect(state_db)
+    conn.execute(
+        "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
+        (session_id, role, content, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_failure_fingerprint(carry_db, session_id, fingerprint_type,
+                               file_path=None, snippet=None, project_dir=None):
+    """Insert a failure fingerprint into the carry_forward DB."""
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT INTO failure_fingerprints (session_id, fingerprint_type, file_path, snippet, project_dir, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (session_id, fingerprint_type, file_path, snippet, project_dir, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_model_health_cache(carry_db, model, total_sessions=10, productive_sessions=8,
+                               productivity_rate=0.8, is_reliable=1):
+    """Insert a model health cache entry."""
+    conn = sqlite3.connect(carry_db)
+    conn.execute(
+        "INSERT OR REPLACE INTO model_health_cache (model, total_sessions, productive_sessions, productivity_rate, is_reliable, cached_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (model, total_sessions, productive_sessions, productivity_rate, is_reliable, time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_model_sessions(state_db, model, total=10, productive=8, source='cron'):
+    """Insert a batch of sessions for a given model to establish health stats.
+    
+    Creates `total` sessions, `productive` of which have tool_call_count > 0.
+    Returns list of session IDs.
+    """
+    ids = []
+    for i in range(total):
+        sid = f"{model.replace('-', '_').replace('.', '_')}_{i}"
+        tools = 5 if i < productive else 0
+        msgs = 10 if i < productive else 0
+        ts = time.time() - (total - i) * 100  # spread over time
+        insert_session(state_db, sid, source=source, msgs=msgs, tools=tools, ts=ts, model=model)
+        ids.append(sid)
+    return ids
