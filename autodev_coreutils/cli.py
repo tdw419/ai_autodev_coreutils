@@ -198,6 +198,25 @@ def main(argv=None):
     sub.add_parser("status", help="Show .autodev/ state for current project")
     sub.add_parser("init", help="Initialize .autodev/ directory")
 
+    # pipe subcommand
+    pipe_p = sub.add_parser("pipe", help="Pipe between tool formats")
+    pipe_p.add_argument(
+        "adapter",
+        help="Adapter name (e.g. possibilities:roadmap, roadmap:tasks, tasks:rfl-seeds)",
+    )
+    pipe_p.add_argument("input", help="Input file")
+    pipe_p.add_argument("-o", "--output", default=None, help="Output file")
+    pipe_p.add_argument("-n", "--number", type=int, default=5, help="Number of items (context-dependent)")
+
+    # flow subcommand
+    flow_p = sub.add_parser("flow", help="Full pipeline: explore -> roadmap -> split -> pack -> seed")
+    flow_p.add_argument("--question", "-Q", help="Seed question for possibility exploration")
+    flow_p.add_argument("--from-tree", dest="from_tree", help="Use existing possibility tree JSON")
+    flow_p.add_argument("--from-roadmap", dest="from_roadmap", help="Use existing roadmap YAML")
+    flow_p.add_argument("-n", "--parallel", type=int, default=3, help="Number of parallel tasks (default: 3)")
+    flow_p.add_argument("--skip-pack", action="store_true", help="Skip context packing step")
+    flow_p.add_argument("-m", "--model", default=None, help="LLM model override")
+
     args = parser.parse_args(argv)
     project = find_project(args.workdir)
 
@@ -207,6 +226,40 @@ def main(argv=None):
         show_status(project, args.json_output, args.quiet)
     elif args.command == "init":
         init_project(project, args.quiet)
+    elif args.command == "pipe":
+        from .adapters import ADAPTERS
+        if args.adapter not in ADAPTERS:
+            error(f"Unknown adapter: {args.adapter}. Available: {', '.join(ADAPTERS.keys())}")
+        adapter_fn = ADAPTERS[args.adapter]
+        result = adapter_fn(args.input, args.output)
+        if isinstance(result, list):
+            # tasks:rfl-seeds returns list of paths
+            if args.json_output:
+                output({"seeds": [str(p) for p in result]}, json_mode=True)
+            elif not args.quiet:
+                output(f"Generated {len(result)} seed files:")
+                for p in result:
+                    output(f"  {p}")
+        elif isinstance(result, str) and not args.output:
+            # Print to stdout if no output file specified
+            if not args.quiet:
+                print(result)
+        else:
+            if not args.quiet and args.output:
+                output(f"Wrote to {args.output}")
+    elif args.command == "flow":
+        from .flow import main_flow
+        return main_flow(
+            question=args.question,
+            tree_file=args.from_tree,
+            roadmap_file=args.from_roadmap,
+            project_path=args.workdir,
+            parallel=args.parallel,
+            skip_pack=args.skip_pack,
+            json_mode=args.json_output,
+            quiet=args.quiet,
+            model=args.model,
+        )
     else:
         parser.print_help()
 

@@ -33,6 +33,32 @@ pip install -e .
 | `autodev-snapshot` | `checkpoint` | Capture or restore workflow state for resume |
 | `autodev-watchdog` | `watch` | Monitor a running agent, intervene on stall |
 
+### Pipe Adapters
+
+Bridge between existing tool formats:
+
+| Adapter | From | To | Purpose |
+|---------|------|----|---------|
+| `possibilities:roadmap` | tree.json | roadmap.yaml | Top paths become phases |
+| `roadmap:tasks` | roadmap.yaml | markdown spec | Roadmap becomes task-split input |
+| `tasks:rfl-seeds` | task_*.md | seed_*.txt | Tasks become RFL --from-file prompts |
+
+```bash
+autodev pipe possibilities:roadmap tree.json -o .autodev/roadmap.yaml
+autodev pipe roadmap:tasks .autodev/roadmap.yaml | autodev-task-split - -n 3
+autodev pipe tasks:rfl-seeds .autodev/tasks/ --json
+```
+
+### Flow (One-Shot Pipeline)
+
+Chains the entire pipeline end-to-end:
+
+```bash
+autodev flow --question "What should we build next?" -w ./project
+```
+
+Runs: explore -> roadmap -> split -> pack -> seed in one command.
+
 ### Existing Tools (external, must be installed separately)
 
 | Command | Purpose |
@@ -41,11 +67,6 @@ pip install -e .
 | `roadmap` | Parse specs into structured engineering roadmaps |
 | `rfl` | Recursive Feedback Loop -- AI self-feeding conversation engine |
 | `model-choice` | LLM provider selection and fallback chains |
-
-### Hermes Skills (loaded via skill_view, not CLI)
-
-carry-forward, keep-or-revert, learnings, strategist, session-chain,
-delegate-dispatch, ai-guide, autodev
 
 ## Quick Start
 
@@ -59,33 +80,33 @@ autodev status
 # List all tools
 autodev list
 
-# Explore possibilities, build roadmap, split into tasks
-possibilities explore "What should we build next?" -w .
-roadmap init "My Project" -o .autodev/roadmap.yaml
+# Full pipeline from question to RFL seeds
+autodev flow --question "What should we build next?" -w . --skip-pack
+
+# Or step by step:
+possibilities explore "What next?" -w . -o .autodev/tree.json
+autodev pipe possibilities:roadmap .autodev/tree.json -o .autodev/roadmap.yaml
 autodev-task-split .autodev/roadmap.yaml -n 3 --json
+autodev pipe tasks:rfl-seeds .autodev/tasks/
 
-# Pack context for a specific task
-autodev-context-pack --task 0
-
-# After agent work, verify claims
+# Verify after agent work
 autodev-verify --claim "Added error handling to parser.py"
 
 # Snapshot before risky changes
 autodev-snapshot --tag "before-refactor"
-
-# Monitor a long-running agent
-autodev-watchdog --command "rfl run --from-file seed.txt" --timeout 600
 ```
 
 ## The `.autodev/` Directory
 
 ```
 .autodev/
-  tasks/              # task-split output (task_000.md, task_001.md, ...)
-  snapshots/          # snapshot archives (snap_<tag>.tar.gz)
-  pack/               # context-pack output (minimal file bundles)
-  *_state.json        # per-tool state files
-  .gitignore
+  tasks/                  # task-split output (task_000.md, ...)
+  snapshots/              # snapshot archives (snap_<tag>.tar.gz)
+  pack/                   # context-pack output (minimal file bundles)
+  possibility_tree.json   # raw exploration tree
+  roadmap.yaml            # generated roadmap
+  *_state.json            # per-tool state files
+  seed_task_*.txt         # RFL seed prompts
 ```
 
 ## Why
@@ -102,4 +123,4 @@ compose. The contract is: project directory + markdown specs + exit codes.
 python3 -m pytest tests/ -v
 ```
 
-16 tests, all passing.
+22 tests, all passing.
