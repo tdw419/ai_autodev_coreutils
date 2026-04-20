@@ -33,25 +33,36 @@ These are small, single-purpose tools that do one thing well:
 
 | Tool | Analogy | Purpose | Status |
 |------|---------|---------|--------|
-| `possibilities` | `ls` | Explore the space of what could be built | EXISTS (installed CLI) |
-| `roadmap` | `mkdir -p` | Structure a plan into phases/milestones | EXISTS (installed CLI) |
-| `task-split` | `split` | Break one spec into N parallel work items | NEW |
-| `context-pack` | `tar` | Bundle exactly the files an agent needs | NEW |
-| `diff-apply` | `patch` | Apply a natural-language change description | NEW |
-| `verify` | `test` | Verify an agent's claims against files/git | NEW |
-| `snapshot` | `checkpoint` | Capture workflow state for resume | NEW |
-| `watchdog` | `watch` | Monitor a running agent, intervene on stall | NEW |
+| `possibilities` | `ls` | Explore the space of what could be built | PEER DEP (installed from ~/zion/projects/ai_possibilities) |
+| `roadmap` | `mkdir -p` | Structure a plan into phases/milestones | PEER DEP (installed from ~/zion/projects/roadmap_builder) |
+| `rfl` | `while/do/done` | Iterative self-feeding refinement loop | PEER DEP (installed from ~/zion/projects/recursive_feedback_loop) |
+| `model-choice` | `env` | LLM provider selection (shared infra) | PEER DEP (installed from ~/zion/projects/model_choice) |
+| `task-split` | `split` | Break one spec into N parallel work items | BUILT-IN |
+| `context-pack` | `tar` | Bundle exactly the files an agent needs | BUILT-IN |
+| `verify` | `test` | Verify an agent's claims against files/git | BUILT-IN |
+| `snapshot` | `checkpoint` | Capture workflow state for resume | BUILT-IN |
+| `watchdog` | `watch` | Monitor a running agent, intervene on stall | BUILT-IN |
 
-### ALSO IN (existing tools to integrate)
+### WHY NOT COPY PEER DEPS IN
 
-| Tool | Role | Status |
-|------|------|--------|
-| `rfl` | The engine (while/do/done loop) | EXISTS (installed CLI) |
-| `model-choice` | Provider selection (env var) | EXISTS (installed CLI) |
-| `carry-forward` | Bouncer/gate for session loops | EXISTS (Hermes skill) |
-| `keep-or-revert` | Atomic git commit/rollback | EXISTS (Hermes skill) |
-| `learnings` | Accumulate knowledge across runs | EXISTS (Hermes skill) |
-| `strategist` | Prioritize next work from data | EXISTS (Hermes skill) |
+These projects have their own repos, tests, release cycles, and development
+history. Copying them into coreutils would mean:
+- Two copies to maintain, immediately drift
+- Breaks their independent iteration
+- Bloats this project with code that isn't ours
+
+Instead: coreutils depends on them as peer packages (editable installs),
+uses their CLI interfaces, and provides adapters to bridge their formats.
+Like Linux -- grep doesn't ship inside sed.
+
+### ALSO IN (pipe adapters + pipeline)
+
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| `adapters.py` | Bridge between tool formats (possibilities:roadmap, etc) | BUILT-IN |
+| `flow.py` | One-shot pipeline: explore->roadmap->split->pack->seed | BUILT-IN |
+| `autodev pipe` | CLI for running individual adapters | BUILT-IN |
+| `autodev flow` | CLI for running full pipeline | BUILT-IN |
 
 ### OUT (different layer)
 
