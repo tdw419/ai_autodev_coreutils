@@ -117,7 +117,7 @@ def _extract_paths(tree_data: dict) -> list[dict]:
     return paths
 
 
-def roadmap_to_task_spec(roadmap_yaml: str | Path) -> str:
+def roadmap_to_task_spec(roadmap_yaml: str | Path, output: str | Path = None) -> str:
     """Convert a roadmap YAML into a single markdown spec suitable for task-split.
 
     The markdown spec lists all phases, deliverables, and tasks from the
@@ -162,7 +162,10 @@ def roadmap_to_task_spec(roadmap_yaml: str | Path) -> str:
 
         lines.append("")
 
-    return "\n".join(lines)
+    result = "\n".join(lines)
+    if output:
+        Path(output).write_text(result)
+    return result
 
 
 def tasks_to_rfl_seeds(tasks_dir: str | Path, output_dir: str | Path = None) -> list[Path]:
