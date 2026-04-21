@@ -41,7 +41,9 @@ These are small, single-purpose tools that do one thing well:
 | `context-pack` | `tar` | Bundle exactly the files an agent needs | BUILT-IN |
 | `verify` | `test` | Verify an agent's claims against files/git | BUILT-IN |
 | `snapshot` | `checkpoint` | Capture workflow state for resume | BUILT-IN |
-| `watchdog` | `watch` | Monitor a running agent, intervene on stall | BUILT-IN |
+|| `watchdog` | `watch` | Monitor a running agent, intervene on stall | BUILT-IN |
+|| `decide` | `test` | Pick between options using evidence and LLM judgment | BUILT-IN |
+|| `discover` | `find` | Find new work by scanning projects, RAG, codebases | BUILT-IN |
 
 ### WHY NOT COPY PEER DEPS IN
 

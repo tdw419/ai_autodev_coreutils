@@ -25,6 +25,8 @@ autodev-context-pack = "autodev_coreutils.context_pack:main"
 autodev-verify = "autodev_coreutils.verify:main"
 autodev-snapshot = "autodev_coreutils.snapshot:main"
 autodev-watchdog = "autodev_coreutils.watchdog:main"
+autodev-decide = "autodev_coreutils.decide:main"
+autodev-discover = "autodev_coreutils.discover:main"
 # Consolidated peer tools
 possibilities = "possibilities.cli:main"
 roadmap = "roadmap_builder.cli:main"

@@ -27,6 +27,8 @@ One install gives you all of these commands:
 | `autodev-verify` | `test` | new | Verify agent claims against codebase |
 | `autodev-snapshot` | `checkpoint` | new | Capture/restore workflow state |
 | `autodev-watchdog` | `watch` | new | Monitor agent, intervene on stall |
+| `autodev-decide` | `test` | new | Pick between options using evidence and LLM judgment |
+| `autodev-discover` | `find` | new | Find new work by scanning projects, RAG, and codebases |
 
 ## The Contract
 

@@ -55,6 +55,18 @@ COREUTILS = {
         "module": "autodev_coreutils.watchdog",
         "new": True,
     },
+    "decide": {
+        "cmd": "autodev-decide",
+        "desc": "Pick between options using evidence and LLM judgment",
+        "module": "autodev_coreutils.decide",
+        "new": True,
+    },
+    "discover": {
+        "cmd": "autodev-discover",
+        "desc": "Find new work by scanning projects, RAG, and codebases",
+        "module": "autodev_coreutils.discover",
+        "new": True,
+    },
     # Existing tools (external CLIs)
     "possibilities": {
         "cmd": "possibilities",
@@ -198,6 +210,27 @@ def main(argv=None):
     sub.add_parser("status", help="Show .autodev/ state for current project")
     sub.add_parser("init", help="Initialize .autodev/ directory")
 
+    # discover subcommand
+    disc_p = sub.add_parser("discover", help="Find new work by scanning projects, RAG, and codebases")
+    disc_p.add_argument(
+        "--source", "-s",
+        choices=["projects", "rag", "geo", "all"],
+        default="all",
+        help="Which source(s) to scan (default: all)",
+    )
+    disc_p.add_argument(
+        "--limit", "-n", type=int, default=20,
+        help="Max findings to report (default: 20)",
+    )
+    disc_p.add_argument(
+        "--update-roadmap", action="store_true",
+        help="Write top findings into .autodev/roadmap.yaml",
+    )
+    disc_p.add_argument(
+        "--into-flow", action="store_true",
+        help="Run autodev flow on the best finding",
+    )
+
     # pipe subcommand
     pipe_p = sub.add_parser("pipe", help="Pipe between tool formats")
     pipe_p.add_argument(
@@ -226,6 +259,16 @@ def main(argv=None):
         show_status(project, args.json_output, args.quiet)
     elif args.command == "init":
         init_project(project, args.quiet)
+    elif args.command == "discover":
+        from .discover import main as discover_main
+        return discover_main([
+            "-w", args.workdir,
+            "--source", args.source,
+            "--limit", str(args.limit),
+        ] + (["--update-roadmap"] if args.update_roadmap else [])
+          + (["--into-flow"] if args.into_flow else [])
+          + (["--json"] if args.json_output else [])
+          + (["-q"] if args.quiet else []))
     elif args.command == "pipe":
         from .adapters import ADAPTERS
         if args.adapter not in ADAPTERS:

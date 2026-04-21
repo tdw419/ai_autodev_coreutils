@@ -27,7 +27,7 @@ providers:
     env_key: ZAI_API_KEY
     api_base: https://api.z.ai/api/coding/paas/v4
     complexity: balanced
-    max_concurrent: 3
+    max_concurrent: 1
     min_interval: 0.5
 
   - provider: ollama_fallback
