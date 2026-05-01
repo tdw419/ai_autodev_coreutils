@@ -7,6 +7,10 @@ for a delegate_task worker. Builds a structured prompt from the issue
 context and any project AI_GUIDE.md, then outputs the parameters needed
 to spawn the worker.
 
+Supports role-based specialization: when a role is matched (from issue
+labels or heuristics), the role's system prompt is prepended and its
+allowed toolsets / max_turns are applied.
+
 The orchestrator (Hermes cron agent) reads this output and calls
 delegate_task with the prepared workspace and prompt.
 """
@@ -16,6 +20,8 @@ import json
 import os
 import sys
 from pathlib import Path
+
+from roles import load_all_roles, match_role, build_role_prompt
 
 PROJECT_DIR = Path(os.environ.get("ORCH_PROJECT_DIR", os.path.expanduser("~/zion/projects/agent-orchestration")))
 WORKSPACES_DIR = PROJECT_DIR / "workspaces"
@@ -94,6 +100,7 @@ def spawn_worker(
     issue: dict,
     project_dir: Path | None = None,
     pipeline: str | None = None,
+    role_name: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """
@@ -103,6 +110,9 @@ def spawn_worker(
     executor instead of a raw delegate_task call. Each issue becomes a
     DAG execution with the task context injected as {{task}}.
 
+    If role_name is provided (or matched from issue labels), the role's
+    system prompt is prepended and its toolsets/max_turns are applied.
+
     Returns a dict with workspace_path, prompt_path, prompt, and
     project_dir that the orchestrator can use.
     """
@@ -111,6 +121,14 @@ def spawn_worker(
 
     if workspace.exists():
         print(f"Warning: workspace {workspace} already exists (issue may be in-progress)", file=sys.stderr)
+
+    # Load roles and match to this issue
+    roles = load_all_roles()
+    role = None
+    if role_name and role_name in roles:
+        role = roles[role_name]
+    elif not role_name:
+        role = match_role(issue, roles)
 
     if not dry_run:
         workspace.mkdir(parents=True, exist_ok=True)
@@ -123,6 +141,7 @@ def spawn_worker(
             "url": issue.get("url", ""),
             "status": "in-progress",
             "pipeline": pipeline,
+            "role": role.name if role else None,
             "spawned_at": __import__("datetime").datetime.now().isoformat(),
         }
         (workspace / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
@@ -133,6 +152,10 @@ def spawn_worker(
 
     # Build the task description
     task_desc = build_prompt(issue, ai_guide)
+
+    # Apply role system prompt if matched
+    if role:
+        task_desc = build_role_prompt(task_desc, role)
 
     # Build execution instructions based on mode (pipeline vs direct)
     if pipeline:
@@ -153,8 +176,12 @@ def spawn_worker(
             "mode": "direct",
             "workdir": str(workspace),
             "prompt": task_desc,
-            "acp_command": "claude",
+            "acp_command": role.acp_command if role else "claude",
         }
+        # Apply role-specific constraints
+        if role:
+            exec_instructions["allowed_toolsets"] = role.allowed_toolsets
+            exec_instructions["max_turns"] = role.max_turns
 
     if not dry_run:
         # Save prompt to workspace
@@ -171,6 +198,7 @@ def spawn_worker(
         "prompt_path": str(prompt_path),
         "execution_mode": execution_mode,
         "project_dir": str(resolved_project) if resolved_project else None,
+        "role": role.to_dict() if role else None,
         "exec_instructions": exec_instructions,
     }
 
@@ -195,6 +223,11 @@ def main():
         "--pipeline", "-P",
         default=os.environ.get("ORCH_PIPELINE", ""),
         help="Pipeline YAML to use (enables DAG mode). Default: ORCH_PIPELINE env var",
+    )
+    parser.add_argument(
+        "--role", "-r",
+        default=None,
+        help="Role profile to use (e.g. implementer, reviewer, tester, coordinator). Default: auto-match from labels",
     )
     parser.add_argument(
         "--dry-run", "-n",
@@ -236,6 +269,7 @@ def main():
         issue=issue,
         project_dir=Path(args.project_dir) if args.project_dir else None,
         pipeline=args.pipeline or None,
+        role_name=args.role or None,
         dry_run=args.dry_run,
     )
 
