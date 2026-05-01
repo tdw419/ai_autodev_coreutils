@@ -1235,6 +1235,503 @@ phases:
   - Documentation may drift from code if not kept in sync -- consider adding a doc-check to the test suite
   scope_lines_total: 420
   test_target: 0
+- id: phase-13
+  title: Pull Request Automation
+  status: planned
+  goal: Complete the issue-to-PR lifecycle by auto-creating pull requests after successful pipeline execution
+  description: 'Symphony''s end-to-end flow is: issue -> workspace -> agent work -> PR. The orchestrator currently
+    stops at "workspace with commits" -- no PR is ever created. This phase closes that gap by adding PR creation
+    after successful pipelines, with metadata linking the PR back to the issue, the role, and the pipeline used.
+    This transforms the orchestrator from a "workspace factory" into a true autonomous development pipeline that
+    mirrors the 500% PR increase reported by OpenAI teams using Symphony.
+
+    '
+  deliverables:
+  - name: PR creator module
+    description: Python module that creates GitHub PRs after successful pipeline execution with orchestrator metadata
+    status: planned
+    acceptance_criteria:
+    - description: Module can create a PR from a workspace branch with structured body
+      validation: python3 pr_creator.py --workspace workspaces/42 --repo owner/repo
+      met: false
+    tasks:
+    - id: p13.d1.t1
+      title: Create pr_creator.py module
+      status: planned
+      description: 'Python module that: (1) reads workspace metadata (issue number, role, pipeline,
+        duration from meta.json), (2) creates a feature branch from workspace changes, (3) pushes
+        to remote, (4) creates a GitHub PR via gh CLI with structured body (issue link, role used,
+        pipeline name, duration, test results), (5) labels the PR and links it to the issue. Include
+        --draft flag for draft PRs.'
+      files:
+      - ~/zion/projects/agent-orchestration/pr_creator.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pr_creator.py
+  - name: PR integration with executor pipeline
+    description: Add a PR step to the standard and team pipelines that runs after successful commit
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline YAMLs include an optional PR creation step after commit
+      validation: read pipeline YAML, trace nodes
+      met: false
+    tasks:
+    - id: p13.d2.t1
+      title: Add PR step to pipeline templates
+      status: planned
+      description: 'Add a conditional bash node to standard-pipeline.yaml and team-pipeline.yaml
+        that calls pr_creator.py after commit. The step should be gated by a pipeline env var
+        (CREATE_PR=true) so it can be toggled. Include the PR body template as a pipeline env
+        variable.'
+      dependencies:
+      - p13.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml
+      - ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml
+    - ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml
+  - name: PR lifecycle management
+    description: Track PR status and auto-close/update when the source issue changes state
+    status: planned
+    acceptance_criteria:
+    - description: PR metadata stored in workspace includes PR number and URL
+      validation: check workspace meta.json after PR creation
+      met: false
+    tasks:
+    - id: p13.d3.t1
+      title: Add PR tracking to workspace metadata
+      status: planned
+      description: 'After PR creation, update workspace meta.json with: pr_number, pr_url,
+        pr_state, created_at. Add a function to pr_creator.py that checks PR status (open/merged/closed)
+        and can close a PR when the source issue is closed. Update orchestrator.py run_loop()
+        to check for completed workspaces with open PRs and post a summary comment on the issue.'
+      dependencies:
+      - p13.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pr_creator.py
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pr_creator.py
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Configurable PR settings
+    description: YAML config for PR behavior (draft mode, labels, reviewers, branch naming)
+    status: planned
+    acceptance_criteria:
+    - description: pr_config.yaml exists with sensible defaults
+      validation: read YAML file
+      met: false
+    tasks:
+    - id: p13.d4.t1
+      title: Create pr_config.yaml
+      status: planned
+      description: 'Create pr_config.yaml with: draft (bool, default false), auto_label (bool,
+        default true), labels (list, e.g. ["auto-generated", "agent"]), reviewers (list, optional),
+        branch_prefix (string, e.g. "orch/"), pr_body_template (multiline string with {{issue_url}},
+        {{role}}, {{pipeline}}, {{duration}} placeholders), close_on_issue_close (bool, default
+        true).'
+      files:
+      - ~/zion/projects/agent-orchestration/pr_config.yaml
+    scope_lines: 40
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pr_config.yaml
+  dependencies:
+  - source: phase-8
+    target: phase-13
+    type: soft
+    reason: PR creation events should be logged to the execution history from phase 8
+  technical_notes: 'Uses gh CLI for all GitHub operations (PR create, issue link, label). No GitHub
+    API tokens needed -- relies on gh auth. PR body should be structured for both human and machine
+    readability. Consider adding a "Generated by Hermes Orchestrator" footer.'
+  risks:
+  - PRs created by agents may not meet human review standards -- consider always starting in draft mode
+  - Branch naming collisions if multiple workers create PRs for the same issue
+  - Pushing to remote requires write access -- need to handle auth errors gracefully
+  scope_lines_total: 330
+  test_target: 10
+- id: phase-14
+  title: Agent Health Monitoring (Deacon Pattern)
+  status: planned
+  goal: Implement the Gas Town Deacon pattern -- a health supervision daemon that monitors running workers, detects
+    stuck agents, and manages resource usage
+  description: 'Gas Town''s Deacon role is a "daemon beacon; central health supervisor" that monitors
+    the health of all running agents. Currently the orchestrator can spawn workers but has no way to
+    detect if a worker is stuck, consuming excessive resources, or has silently failed. This phase adds
+    health monitoring: periodic checks on workspace activity, disk usage tracking, timeout detection,
+    and auto-recovery or escalation for unhealthy workers. This is essential for running the orchestrator
+    in production where workers may run for hours.
+
+    '
+  deliverables:
+  - name: Health check module
+    description: Python module that checks the health of active worker workspaces
+    status: planned
+    acceptance_criteria:
+    - description: Module can scan all active workspaces and report health status per worker
+      validation: python3 health_check.py --all
+      met: false
+    - description: Detects stuck workers (no file changes in N minutes)
+      validation: create a stale workspace, run health check
+      met: false
+    tasks:
+    - id: p14.d1.t1
+      title: Create health_check.py module
+      status: planned
+      description: 'Python module that: (1) scans all workspaces with status "in-progress", (2)
+        checks last file modification time (stuck detection), (3) measures disk usage per workspace,
+        (4) checks for zombie processes (optional, via ps), (5) reports health as JSON with per-worker
+        status (healthy, stale, oversized, unknown). Configurable thresholds: stale_after_minutes
+        (default 30), max_disk_mb (default 500). Support --watch flag for continuous monitoring.'
+      files:
+      - ~/zion/projects/agent-orchestration/health_check.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/health_check.py
+  - name: Auto-recovery for stuck workers
+    description: Automatically detect and handle stuck workers (timeout, escalation, or restart)
+    status: planned
+    acceptance_criteria:
+    - description: Stuck workers are detected and marked as failed after timeout
+      validation: simulate stuck worker, verify detection
+      met: false
+    tasks:
+    - id: p14.d2.t1
+      title: Add auto-recovery logic to health_check.py
+      status: planned
+      description: 'Add to health_check.py: (1) when a worker is stale beyond threshold, update
+        its meta.json status to "failed", (2) post a comment on the GitHub issue explaining the
+        timeout, (3) optionally archive the workspace, (4) log the recovery event. Support --auto-recover
+        flag and --escalate flag (create a new issue for human review). Recovery modes: mark-failed
+        (default), archive, retry (re-spawn with reduced max_turns).'
+      dependencies:
+      - p14.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/health_check.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/health_check.py
+  - name: Health monitoring cron job
+    description: Scheduled cron job that runs health checks and auto-recovers unhealthy workers
+    status: planned
+    acceptance_criteria:
+    - description: Cron job runs health checks every 15 minutes
+      validation: cronjob list
+      met: false
+    tasks:
+    - id: p14.d3.t1
+      title: Create health monitoring cron job
+      status: planned
+      description: 'Create a Hermes cron job that runs health_check.py --auto-recover every 15
+        minutes. Include config for thresholds, notification on failure, and escalation. The cron
+        prompt should read health_config.yaml for settings.'
+      dependencies:
+      - p14.d2.t1
+      files: []
+    scope_lines: 20
+    scope_files: []
+  - name: Health dashboard in status.sh
+    description: Show worker health status alongside the existing status dashboard
+    status: planned
+    acceptance_criteria:
+    - description: status.sh shows health status per active worker
+      validation: run status.sh, check for health section
+      met: false
+    tasks:
+    - id: p14.d4.t1
+      title: Add health section to status.sh
+      status: planned
+      description: 'Add a "Worker Health" section to status.sh that calls health_check.py and
+        displays: per-worker status (healthy/stale/oversized), disk usage, last activity time,
+        time since spawn. Use color coding if terminal supports it (green=healthy, yellow=stale,
+        red=failed).'
+      dependencies:
+      - p14.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/status.sh
+    scope_lines: 40
+    scope_files:
+    - ~/zion/projects/agent-orchestration/status.sh
+  dependencies:
+  - source: phase-11
+    target: phase-14
+    type: soft
+    reason: Workspace lifecycle from phase 11 provides the state tracking that health monitoring depends on
+  technical_notes: 'Health checks are filesystem-based (no need for process monitoring). Stuck detection
+    uses file modification timestamps. Disk usage via du -sb. The Deacon pattern is complementary to
+    the Dog pattern (phase 11): Dog cleans up completed workspaces, Deacon monitors active ones.'
+  risks:
+  - Stuck detection threshold is tricky -- too short and you kill slow workers, too long and stuck workers waste resources
+  - Auto-recovery could lose work if a worker was actually making progress on a long task
+  - File modification time may not accurately reflect agent activity (agent might be "thinking")
+  scope_lines_total: 260
+  test_target: 10
+- id: phase-15
+  title: Safety Policies and Approval Gates
+  status: planned
+  goal: Add configurable safety policies modeled on Symphony's approval_policy to control when human approval
+    is required before agent actions proceed
+  description: 'Symphony supports three approval modes: untrusted (every action requires approval), on-failure
+    (only failed actions require approval), and never (fully autonomous). The current Hermes orchestrator
+    runs in "never" mode exclusively -- no human checkpoints exist. This is fine for trusted pipelines
+    but risky for production repos, sensitive changes, or new team members. This phase adds configurable
+    approval gates at the pipeline level, node level, and orchestrator level, enabling a spectrum from
+    fully autonomous to fully supervised operation. This is the "Outer Harness" safety layer from Harness
+    Engineering applied to the Hermes orchestrator.
+
+    '
+  deliverables:
+  - name: Approval policy engine
+    description: Configurable approval modes that gate pipeline execution at defined checkpoints
+    status: planned
+    acceptance_criteria:
+    - description: Support for untrusted, on-failure, and never approval modes
+      validation: configure each mode, verify behavior
+      met: false
+    tasks:
+    - id: p15.d1.t1
+      title: Create approval.py module
+      status: planned
+      description: 'Python module implementing approval policies: (1) ApprovalMode enum (untrusted,
+        on-failure, never), (2) check_approval() function that takes mode, node result, and policy
+        config, returns (approved: bool, reason: str), (3) untrusted mode: every AI node requires
+        approval before proceeding, (4) on-failure mode: only failed bash/test nodes require approval
+        before retry, (5) never mode: no approval needed (current behavior). Include approval_context
+        that captures what needs approval (diff, test output, prompt).'
+      files:
+      - ~/zion/projects/agent-orchestration/approval.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/approval.py
+  - name: APPROVAL node type for DAG
+    description: Add an APPROVAL node type that pauses pipeline execution until human approval
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline YAML can include approval nodes that block until approved
+      validation: create pipeline with approval node, execute it
+      met: false
+    tasks:
+    - id: p15.d2.t1
+      title: Add APPROVAL node type to DAG executor
+      status: planned
+      description: 'Add NodeType.APPROVAL to dag.py. The approval node takes: prompt (what the human
+        is approving), timeout (how long to wait before failing), and on_timeout (fail or skip).
+        In executor.py: when an approval node is reached, write a pending approval file to the workspace,
+        post a GitHub comment requesting approval, and poll for an approval file or comment. If approval
+        is granted, continue. If timeout, apply on_timeout behavior. Support --auto-approve flag to
+        bypass for CI.'
+      dependencies:
+      - p15.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dag.py
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dag.py
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Approval-safe pipeline template
+    description: Pipeline YAML that includes approval gates at critical checkpoints
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline template has approval nodes before commit and PR creation
+      validation: read pipeline YAML
+      met: false
+    tasks:
+    - id: p15.d3.t1
+      title: Create safe-pipeline.yaml with approval gates
+      status: planned
+      description: 'Create pipelines/safe-pipeline.yaml based on standard-pipeline.yaml but with
+        APPROVAL nodes inserted: (1) after implement (approve code changes before testing), (2) after
+        review (approve before commit). The approval nodes include context about what changed (file
+        list, diff summary) so the approver can make an informed decision. Include a --mode flag
+        that switches between untrusted and on-failure by changing which approval nodes are active.'
+      dependencies:
+      - p15.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/safe-pipeline.yaml
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/safe-pipeline.yaml
+  - name: Approval audit trail
+    description: Log all approval decisions with who approved, when, and why
+    status: planned
+    acceptance_criteria:
+    - description: Approval events are logged with timestamp, approver, decision, and context
+      validation: check log files after approval
+      met: false
+    tasks:
+    - id: p15.d4.t1
+      title: Add approval logging to approval.py
+      status: planned
+      description: 'Append approval events to ~/.orchestrator/logs/approvals.jsonl. Each entry:
+        timestamp, pipeline, node_id, issue_number, decision (approved/rejected/timeout), approver
+        (auto or github_username), reason, context_snapshot (files changed, test results). Add a
+        CLI subcommand to approval.py: audit (show recent approvals), stats (approval rate, average
+        wait time).'
+      dependencies:
+      - p15.d1.t1
+      - p8.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/approval.py
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/approval.py
+  dependencies:
+  - source: phase-7
+    target: phase-15
+    type: soft
+    reason: Approval logic should be tested before deployment
+  - source: phase-8
+    target: phase-15
+    type: soft
+    reason: Approval events should be logged to the execution history from phase 8
+  technical_notes: 'Approval is filesystem-based for simplicity: pending approvals are JSON files in the
+    workspace. For GitHub integration, approvals can be triggered by comments with "/approve" or "/reject"
+    on the issue. The APPROVAL node type is the key innovation -- it makes safety a first-class concept
+    in the DAG, not an external wrapper.'
+  risks:
+  - Approval nodes can stall pipelines indefinitely if no one approves -- need timeout and escalation
+  - Different approval modes for different repos/tasks adds configuration complexity
+  - Human approval defeats the purpose of autonomous orchestration -- needs to be optional and off by default
+  scope_lines_total: 360
+  test_target: 15
+- id: phase-16
+  title: Multi-Repo Orchestration
+  status: planned
+  goal: Extend the orchestrator to manage tasks across multiple GitHub repositories with per-repo configuration
+  description: 'Symphony and Gas Town both manage multiple repositories simultaneously. The current Hermes
+    orchestrator is hardcoded to a single repo (ORCH_REPO). This phase extends it to support multiple repos
+    with per-repo configuration: different pipelines, roles, AI_GUIDE.md files, approval policies, and
+    cost budgets. Workspaces are organized by repo. The orchestrator polls all configured repos and routes
+    tasks to the appropriate worker configuration. This is the scaling phase that transforms the orchestrator
+    from a single-project tool into a fleet manager.
+
+    '
+  deliverables:
+  - name: Multi-repo configuration
+    description: Extend orchestrator.yaml to support multiple repos with per-repo settings
+    status: planned
+    acceptance_criteria:
+    - description: Config supports repos as a list with per-repo pipeline, roles, labels, and policies
+      validation: read config YAML
+      met: false
+    tasks:
+    - id: p16.d1.t1
+      title: Extend orchestrator.yaml for multi-repo support
+      status: planned
+      description: 'Redesign orchestrator.yaml to support: repos (list of repo configs), each with:
+        name, url, labels, pipeline, roles_dir, ai_guide_path, approval_mode, max_concurrent, budget_daily.
+        Keep backward compatibility: if "repo" (singular) is set, treat as single-repo mode. Add a
+        validate_config() function to orchestrator.py that checks all repo configs are valid and accessible.'
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.yaml
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.yaml
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Per-repo workspace organization
+    description: Organize workspaces by repo to avoid collisions and enable repo-specific cleanup
+    status: planned
+    acceptance_criteria:
+    - description: Workspaces are organized as workspaces/{repo_name}/{issue_number}
+      validation: spawn a worker, check workspace path
+      met: false
+    tasks:
+    - id: p16.d2.t1
+      title: Update spawner.py for per-repo workspace layout
+      status: planned
+      description: 'Change workspace path from workspaces/{issue_number} to workspaces/{repo_name}/{issue_number}.
+        Update spawner.py spawn_worker() to accept repo_name parameter. Update orchestrator.py to
+        pass repo_name when spawning. Update status.sh, health_check.py, and workspace_manager.py
+        to handle the new layout. Add a migration function that moves existing workspaces to the new
+        layout.'
+      dependencies:
+      - p16.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/spawner.py
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+      - ~/zion/projects/agent-orchestration/status.sh
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/spawner.py
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+    - ~/zion/projects/agent-orchestration/status.sh
+  - name: Multi-repo poller
+    description: Poll all configured repos and aggregate results into a unified task queue
+    status: planned
+    acceptance_criteria:
+    - description: Single orchestrator loop polls all repos and reports per-repo task counts
+      validation: run orchestrator with multi-repo config
+      met: false
+    tasks:
+    - id: p16.d3.t1
+      title: Add multi-repo polling to orchestrator.py
+      status: planned
+      description: 'Update orchestrator.py run_loop() to iterate over all configured repos, poll
+        each, and aggregate results. Apply per-repo max_concurrent limits. Report per-repo stats
+        in the summary output. Handle repo-specific errors gracefully (one repo failing shouldn''t
+        block others). Add --repo flag to filter to a single repo for debugging.'
+      dependencies:
+      - p16.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Per-repo cost tracking
+    description: Track estimated costs per repo and alert when approaching budget limits
+    status: planned
+    acceptance_criteria:
+    - description: Cost report shows per-repo estimated spend with daily totals
+      validation: run cost report command
+      met: false
+    tasks:
+    - id: p16.d4.t1
+      title: Add cost tracking to orchestrator
+      status: planned
+      description: 'Create cost_tracker.py module: (1) estimate token usage per pipeline execution
+        based on node types and turns (AI nodes cost ~10K tokens/turn, bash nodes are free), (2)
+        accumulate daily costs per repo, (3) compare against per-repo budget_daily limit, (4) alert
+        (print warning) when approaching 80% of budget, (5) stop spawning workers when budget is
+        exceeded. Store daily costs in ~/.orchestrator/costs/{repo}/{date}.json. CLI: python3
+        cost_tracker.py report --period week.'
+      dependencies:
+      - p16.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/cost_tracker.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/cost_tracker.py
+  dependencies:
+  - source: phase-4
+    target: phase-16
+    type: soft
+    reason: Multi-repo support extends the base orchestrator from phase 4
+  - source: phase-13
+    target: phase-16
+    type: soft
+    reason: PR creation from phase 13 should work across multiple repos
+  - source: phase-14
+    target: phase-16
+    type: soft
+    reason: Health monitoring from phase 14 should cover workers across all repos
+  - source: phase-15
+    target: phase-16
+    type: soft
+    reason: Approval policies from phase 15 may vary per repo
+  technical_notes: 'Multi-repo is primarily a configuration and routing change, not a fundamental architecture
+    change. The poller already accepts a repo parameter. The spawner already supports per-task configuration.
+    The main work is in the orchestrator loop (iterate over repos) and workspace layout (add repo prefix).
+    Backward compatibility is important: single-repo mode must continue to work with no config changes.'
+  risks:
+  - More repos means more GitHub API calls -- need to respect rate limits across all repos
+  - Per-repo configuration drift -- different repos may need different orchestrator versions
+  - Cost tracking is estimates only -- actual token usage depends on the LLM provider and model
+  - Workspace migration from flat layout to repo-prefixed layout could break existing workspaces
+  scope_lines_total: 320
+  test_target: 10
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
 - delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
@@ -1250,6 +1747,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 12
-  estimated_weeks: 8-10
+  phases_total: 16
+  estimated_weeks: 12-14
   updated: '2026-05-01'
+  phases_added: [13, 14, 15, 16]
+  phases_added_from: 'OpenAI Symphony research analysis - advanced orchestration patterns'
