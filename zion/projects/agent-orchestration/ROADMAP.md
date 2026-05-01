@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 8/22 phases complete, 0 in progress
+**Progress:** 8/25 phases complete, 0 in progress
 
-**Deliverables:** 32/87 complete
+**Deliverables:** 32/99 complete
 
-**Tasks:** 32/87 complete
+**Tasks:** 32/99 complete
 
 ## Scope Summary
 
@@ -34,6 +34,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-20 Context Window Optimization (Smart Zone) | PLANNED | 0/4 | 300 | 5 |
 | phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | PLANNED | 0/4 | 410 | 10 |
 | phase-22 Config Hot-Reload and Live Tuning | PLANNED | 0/4 | 270 | 5 |
+| phase-23 End-to-End Integration and Real-World Validation | PLANNED | 0/4 | 550 | 15 |
+| phase-24 Project Onboarding Bootstrap | PLANNED | 0/4 | 400 | 10 |
+| phase-25 Orchestrator Resilience and State Recovery | PLANNED | 0/4 | 380 | 10 |
 
 ## Dependencies
 
@@ -78,6 +81,13 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-4 | phase-22 | soft | Config hot-reload modifies the orchestrator loop from phase 4 |
 | phase-6 | phase-22 | soft | Role profile hot-reload requires the role system from phase 6 |
 | phase-19 | phase-22 | soft | Self-improvement auto-tuning benefits from hot-reload to apply changes immediately |
+| phase-13 | phase-23 | soft | PR automation from phase 13 is needed for the full issue-to-PR lifecycle test |
+| phase-14 | phase-23 | soft | Health monitoring from phase 14 should be included in the integration chain |
+| phase-12 | phase-24 | soft | Agent-legible self-documentation from phase 12 defines the AI_GUIDE.md format that onboarding generates |
+| phase-4 | phase-24 | soft | Onboarding generates orchestrator config compatible with the orchestrator from phase 4 |
+| phase-11 | phase-25 | soft | Workspace lifecycle from phase 11 provides the state tracking that resilience builds on |
+| phase-8 | phase-25 | soft | Execution history from phase 8 should record checkpoint and recovery events |
+| phase-23 | phase-25 | soft | Integration validation from phase 23 ensures resilience works with the full system |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -1174,6 +1184,149 @@ Polling-based file watching (every 5s) is sufficient and avoids platform-specifi
 - Bad config changes could break the orchestrator mid-operation -- need validation before applying
 - Race condition if config file is being written while being read -- use atomic file reads
 - Config drift between what''s on disk and what''s in memory if validation rejects a change
+
+## [ ] phase-23: End-to-End Integration and Real-World Validation (PLANNED)
+
+**Goal:** Validate the complete orchestrator system works end-to-end on a real project, measure throughput, and fix integration issues
+
+Phases 1-22 build individual components (poller, spawner, executor, DAG, roles, logging, health, PR creation, etc.) but none validates the full lifecycle: issue filed -> polled -> workspace created -> pipeline executed -> tests pass -> PR created -> issue linked -> workspace archived. This phase runs the full system against a real GitHub repo, measures the time from issue to PR, identifies and fixes integration bugs, and establishes baseline metrics. This is the "smoke test" that proves the orchestrator delivers on the 500% PR increase claim from the Symphony research.
+
+### Deliverables
+
+- [ ] **Integration test suite for full lifecycle** -- Automated test that exercises the complete orchestrator flow from issue creation to PR
+  - [ ] `p23.d1.t1` Create test_e2e_lifecycle.py
+    > End-to-end test using a test GitHub repo: (1) create a test issue with agent-ready label via gh CLI, (2) run orchestrator one loop iteration, (3) verify workspace was created with correct structure, (4) verify pipeline YAML was loaded, (5) check execution log was written, (6) verify workspace metadata exists. Use fixtures and mocking for parts that need GitHub access. Include cleanup that removes test issues and workspaces after the test.
+    _Files: ~/zion/projects/agent-orchestration/test_e2e_lifecycle.py_
+  - [ ] Test creates an issue, waits for poller, verifies workspace creation, pipeline execution, and final state
+    _Validation: python3 -m pytest test_e2e_lifecycle.py -v_
+  _~200 LOC_
+- [ ] **Component integration stress test** -- Test that all modules work together correctly when chained (poller -> spawner -> executor -> logger -> health)
+  - [ ] `p23.d2.t1` Create test_integration_chain.py
+    > Integration test that chains all modules: (1) mock poller returns a test issue, (2) spawner creates workspace and returns path, (3) executor runs a pipeline in that workspace, (4) execution_log records the run, (5) health_check can scan the workspace, (6) workspace_manager can archive it. Verify data flows correctly between modules. Catch any interface mismatches (wrong parameter names, missing fields, incompatible types).
+    _Files: ~/zion/projects/agent-orchestration/test_integration_chain.py_
+  - [ ] Can run a full pipeline through the executor with real (mocked) poller and spawner
+    _Validation: python3 -m pytest test_integration_chain.py -v_
+  _~150 LOC_
+- [ ] **Fix integration issues discovered during testing** -- Address any bugs, interface mismatches, or missing error handling found during e2e testing
+  - [ ] `p23.d3.t1` Fix integration bugs from e2e testing (depends: p23.d1.t1, p23.d2.t1)
+    > Run the full integration test suite. Fix any failures. Common integration issues to check: workspace path inconsistencies between spawner and health_check, execution log schema mismatches, role loading failures when roles/ dir is empty, config fallback behavior when orchestrator.yaml is missing, poller error handling when gh auth fails.
+    _Files: ~/zion/projects/agent-orchestration/poller.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/health_check.py_
+  - [ ] All integration tests pass after fixes
+    _Validation: python3 -m pytest test_e2e_lifecycle.py test_integration_chain.py -v_
+  _~100 LOC_
+- [ ] **Baseline metrics collection** -- Measure and record baseline performance metrics for the orchestrator
+  - [ ] `p23.d4.t1` Create metrics.py baseline collector
+    > Create metrics.py that reads execution logs and computes: (1) average pipeline duration, (2) pipeline success rate (% that complete without failure), (3) per-node-type average duration, (4) time from issue creation to workspace creation, (5) loop retry rates. Output as JSON for historical comparison. This establishes the baseline before optimization phases (19, 20) can improve on it.
+    _Files: ~/zion/projects/agent-orchestration/metrics.py_
+  - [ ] Metrics script reports time-to-PR, pipeline success rate, and resource usage
+    _Validation: python3 metrics.py --baseline_
+  _~100 LOC_
+
+### Technical Notes
+
+This is the "does it actually work?" phase. Focus on real integration, not unit tests (those were done in phase 7). Use a dedicated test repo to avoid polluting real projects. The baseline metrics are crucial for measuring improvement in later phases.
+
+### Risks
+
+- Integration tests may require GitHub auth -- need to handle missing credentials gracefully
+- Timing-based tests may be flaky -- use generous timeouts
+- Test cleanup may fail if workspaces are in use -- add force cleanup
+
+## [ ] phase-24: Project Onboarding Bootstrap (PLANNED)
+
+**Goal:** Create a quick-start tool that onboards new GitHub repos to the orchestrator in under 5 minutes
+
+Symphony reads WORKFLOW.md from each project automatically. The Hermes orchestrator currently requires manual configuration: creating orchestrator.yaml, setting up AI_GUIDE.md, adding agent-ready labels, configuring the cron job. This phase creates a bootstrap CLI that automates all of this. Run "python3 onboard.py owner/repo" and it: detects the project type (Python/Node/Go), generates an appropriate AI_GUIDE.md, creates a minimal orchestrator config, adds the agent-ready label to the repo, and outputs the cron job command to copy-paste. This directly applies the agent.md spec pattern from the research: making projects agent-legible with minimal human effort.
+
+### Deliverables
+
+- [ ] **Project type detector** -- Analyze a repo to detect its language, framework, build system, and test runner
+  - [ ] `p24.d1.t1` Create project detector module
+    > Python module that analyzes a local repo clone: (1) check for language markers (setup.py, pyproject.toml, package.json, go.mod, Cargo.toml), (2) detect framework (Django, FastAPI, Express, React, etc.) from dependencies, (3) find test runner (pytest, jest, go test, cargo test), (4) locate build commands, (5) check for existing AI_GUIDE.md or AGENT.md. Output as structured dict. Use gh CLI to get repo metadata (language, topics) as additional signal.
+    _Files: ~/zion/projects/agent-orchestration/onboard.py_
+  - [ ] Can detect at least 5 project types (Python/pip, Python/poetry, Node/npm, Go, Rust)
+    _Validation: python3 onboard.py --detect ~/zion/projects/some-repo_
+  _~120 LOC_
+- [ ] **AI_GUIDE.md generator** -- Generate a project-specific AI_GUIDE.md based on detected project type and conventions
+  - [ ] `p24.d2.t1` Add AI_GUIDE.md generation to onboard.py
+    > Add --guide mode to onboard.py: (1) use project detector output to select appropriate template, (2) fill in tech stack section with detected versions (python --version, node --version), (3) generate executable commands section based on detected build/test/lint tools, (4) add three-tier boundaries with sensible defaults for the project type, (5) scan existing code for naming patterns and include them as conventions. Output to stdout or write to file with --write flag.
+    _Files: ~/zion/projects/agent-orchestration/onboard.py_
+  - [ ] Generates a valid AI_GUIDE.md with tech stack, commands, and three-tier boundaries
+    _Validation: python3 onboard.py --guide ~/zion/projects/some-repo_
+  _~100 LOC_
+- [ ] **Full onboarding CLI** -- One-command onboarding that configures everything needed for a new repo
+  - [ ] `p24.d3.t1` Implement full onboarding flow
+    > Implement the full onboard.py flow: (1) clone or verify repo exists locally, (2) run project detection, (3) generate AI_GUIDE.md and write to repo root, (4) create minimal orchestrator.yaml entry for the repo, (5) use gh CLI to add "agent-ready" label to the repo, (6) detect test commands and validate they work, (7) output a ready-to-use cron job command. Support --dry-run to preview changes without applying them. Support --pipeline flag to select which pipeline template to use.
+    _Files: ~/zion/projects/agent-orchestration/onboard.py_
+  - [ ] Single command sets up: orchestrator config, AI_GUIDE.md, GitHub label, and outputs cron command
+    _Validation: python3 onboard.py owner/repo --full_
+  _~100 LOC_
+- [ ] **Onboarding validation test** -- Test the onboarding flow on a real repo and verify the generated config works
+  - [ ] `p24.d4.t1` Create test_onboard.py
+    > Test the onboarding flow: (1) test project detection on fixture repos (Python, Node, Go), (2) test AI_GUIDE.md generation includes correct commands, (3) test dry-run mode makes no changes, (4) test full onboarding on a test repo creates valid config, (5) test error handling for unsupported project types, missing gh auth, empty repos.
+    _Files: ~/zion/projects/agent-orchestration/test_onboard.py_
+  - [ ] Can onboard a test repo and the generated config produces a valid orchestrator setup
+    _Validation: python3 -m pytest test_onboard.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The onboarding tool is the "first impression" of the orchestrator for new projects. Keep it simple and opinionated. A good default AI_GUIDE.md is worth more than a perfect one that requires manual editing. Support the most common project types (Python, Node, Go) well rather than trying to handle every edge case.
+
+### Risks
+
+- Project detection may be inaccurate for polyglot repos -- let users override detected settings
+- Generated AI_GUIDE.md may include wrong commands -- validation step is critical
+- GitHub label creation requires write access -- need clear error messaging
+
+## [ ] phase-25: Orchestrator Resilience and State Recovery (PLANNED)
+
+**Goal:** Make the orchestrator fault-tolerant with crash recovery, partial state handling, and graceful degradation
+
+The research highlights Elixir/BEAM's excellence in "managing long-running, concurrent, and fault-tolerant processes" as a deliberate architectural choice for Symphony. The Hermes orchestrator currently has no crash recovery: if the cron agent crashes mid-pipeline, the workspace is left in an indeterminate state, the issue is never updated, and no one knows the worker failed. This phase adds resilience: (1) workspace state is checkpointed after each node, (2) crashed pipelines can be resumed from the last checkpoint, (3) orphaned workspaces (from crashed orchestrator instances) are detected and cleaned up, (4) the orchestrator handles its own failures gracefully. This transforms the orchestrator from a "best-effort" tool into a reliable system that can run 24/7 without human intervention.
+
+### Deliverables
+
+- [ ] **Pipeline checkpoint system** -- Save pipeline execution state after each node so crashed pipelines can be resumed
+  - [ ] `p25.d1.t1` Add checkpoint support to executor.py
+    > Modify executor.py to: (1) after each node completes, write a checkpoint to workspace/.orchestrator/checkpoint.json with: completed_nodes list, node_results, context state, pipeline_hash, (2) on startup, check for existing checkpoint and offer --resume mode that skips already-completed nodes, (3) validate checkpoint integrity (pipeline_hash must match current pipeline to prevent stale checkpoints), (4) clean up checkpoint on successful completion. Add --resume flag to executor CLI.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] After each node completes, execution state is persisted to a checkpoint file
+    _Validation: run pipeline, check checkpoint files exist after each node_
+  - [ ] A crashed pipeline can be resumed from the last successful checkpoint
+    _Validation: kill executor mid-pipeline, restart with --resume flag, verify it skips completed nodes_
+  _~120 LOC_
+- [ ] **Orphaned workspace detector** -- Detect and handle workspaces left behind by crashed orchestrator instances
+  - [ ] `p25.d2.t1` Add orphan detection to workspace_manager.py
+    > Add detect_orphans() function to workspace_manager.py: (1) find all workspaces with status "in-progress" or "active", (2) check if the orchestrator process that created them is still running (via PID stored in meta.json, if available), (3) check if the workspace has recent file activity (any changes in the last N minutes), (4) classify orphans as: recoverable (has checkpoint, can resume), stale (no recent activity, needs attention), or zombie (process dead, no checkpoint, needs manual review). Add --detect-orphans CLI flag.
+    _Files: ~/zion/projects/agent-orchestration/workspace_manager.py_
+  - [ ] Can identify workspaces with in-progress status but no active orchestrator process
+    _Validation: create a stale workspace, run detector, verify it is flagged_
+  _~80 LOC_
+- [ ] **Graceful shutdown handler** -- Handle SIGTERM/SIGINT by saving state and cleaning up before exit
+  - [ ] `p25.d3.t1` Add signal handlers to orchestrator.py
+    > Add signal handlers to orchestrator.py: (1) on SIGTERM/SIGINT, finish current node (don't kill mid-execution), (2) update workspace meta.json status to "interrupted", (3) write a checkpoint so the pipeline can be resumed, (4) log the interruption event, (5) add a --graceful-timeout flag (default 30s) that forces exit if current node doesn't finish in time. This ensures the orchestrator can be safely stopped and restarted.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator saves state and updates workspace metadata when interrupted
+    _Validation: send SIGTERM to running orchestrator, check workspace state is clean_
+  _~60 LOC_
+- [ ] **Resilience integration tests** -- Test crash recovery, orphan detection, and graceful shutdown scenarios
+  - [ ] `p25.d4.t1` Create test_resilience.py
+    > Create resilience tests: (1) run pipeline, kill process after node 2, verify --resume skips completed nodes and finishes, (2) create workspace with stale metadata, run orphan detector, verify classification, (3) send SIGTERM to orchestrator mid-loop, verify workspace is marked interrupted and checkpoint exists, (4) test double-crash scenario (resume, crash again, resume again). Use subprocess and signal modules for process management.
+    _Files: ~/zion/projects/agent-orchestration/test_resilience.py_
+  - [ ] Tests cover: kill mid-pipeline + resume, orphan detection, signal handling
+    _Validation: python3 -m pytest test_resilience.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+Checkpoints are simple JSON files in the workspace -- no database needed. The key insight is that pipeline execution is deterministic (same DAG, same order), so we only need to track which nodes are done, not the full state. Resilience is about making the orchestrator safe to run unattended, which is essential for the "Dark Factory" model from the research.
+
+### Risks
+
+- Checkpoint files could become corrupted if the crash happens mid-write -- use atomic writes (write to temp file, then rename)
+- Resume could produce different results if external state changed between runs (e.g., main branch advanced)
+- Signal handling in Python is tricky -- need to test on both foreground and background processes
 
 ## Global Risks
 
