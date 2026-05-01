@@ -4,9 +4,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 
 **Progress:** 3/6 phases complete, 0 in progress
 
-**Deliverables:** 15/24 complete
+**Deliverables:** 16/24 complete
 
-**Tasks:** 15/24 complete
+**Tasks:** 16/24 complete
 
 ## Scope Summary
 
@@ -15,7 +15,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-1 Wiki Synthesis from Symphony Research | COMPLETE | 8/8 | 530 | - |
 | phase-2 Map Symphony Patterns to Hermes Infrastructure | COMPLETE | 2/2 | 740 | - |
 | phase-3 Close High-Value Gaps with Existing Tools | COMPLETE | 3/3 | 890 | - |
-| phase-4 Build Lightweight Symphony-Style Orchestrator | PLANNED | 2/4 | 1,160 | - |
+| phase-4 Build Lightweight Symphony-Style Orchestrator | PLANNED | 3/4 | 1,160 | - |
 | phase-5 Archon-Style Deterministic DAG for Hermes | PLANNED | 0/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | PLANNED | 0/3 | 1,780 | - |
 
@@ -236,12 +236,12 @@ infrastructure instead of Elixir/Codex.
   - [x] Uses acp_command=claude for reasoning tasks
     _Validation: check delegate_task params_
   _~100 LOC_
-- [ ] **Orchestrator cron integration** -- Wire poller + spawner into a Hermes cron job that runs on a schedule, with concurrency limits
-  - [ ] `p4.d3.t1` Create orchestrator cron job (depends: p4.d1.t1, p4.d2.t1)
+- [x] **Orchestrator cron integration** -- Wire poller + spawner into a Hermes cron job that runs on a schedule, with concurrency limits
+  - [x] `p4.d3.t1` Create orchestrator cron job (depends: p4.d1.t1, p4.d2.t1)
     > Create Hermes cron job that runs the orchestrator loop: poll issues -> filter ready -> spawn workers (up to N concurrent) -> update issue status. Include config for repo, labels, max_concurrent, polling interval.
-  - [ ] Cron job runs orchestrator on schedule
+  - [x] Cron job runs orchestrator on schedule
     _Validation: cronjob list_
-  - [ ] Respects max_concurrent limit (configurable)
+  - [x] Respects max_concurrent limit (configurable)
     _Validation: check cron prompt for limit_
   _~40 LOC_
 - [ ] **Orchestrator status dashboard** -- Simple status command showing active workers, recent completions, queue depth

@@ -453,18 +453,18 @@ phases:
   - name: Orchestrator cron integration
     description: Wire poller + spawner into a Hermes cron job that runs on a schedule,
       with concurrency limits
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Cron job runs orchestrator on schedule
       validation: cronjob list
-      met: false
+      met: true
     - description: Respects max_concurrent limit (configurable)
       validation: check cron prompt for limit
-      met: false
+      met: true
     tasks:
     - id: p4.d3.t1
       title: Create orchestrator cron job
-      status: todo
+      status: done
       description: 'Create Hermes cron job that runs the orchestrator loop: poll issues
         -> filter ready -> spawn workers (up to N concurrent) -> update issue status.
         Include config for repo, labels, max_concurrent, polling interval.'
