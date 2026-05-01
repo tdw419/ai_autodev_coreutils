@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 6/9 phases complete, 0 in progress
+**Progress:** 6/12 phases complete, 0 in progress
 
-**Deliverables:** 24/36 complete
+**Deliverables:** 24/47 complete
 
-**Tasks:** 24/36 complete
+**Tasks:** 24/47 complete
 
 ## Scope Summary
 
@@ -21,6 +21,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-7 Testing and Hardening | PLANNED | 0/4 | 550 | 30 |
 | phase-8 Execution History and Observability | PLANNED | 0/4 | 310 | 5 |
 | phase-9 Inferential Sensor (LLM-as-Judge Post-Review) | PLANNED | 0/4 | 340 | 5 |
+| phase-10 Automated Garbage Collection and Remediation | PLANNED | 0/4 | 350 | 15 |
+| phase-11 Workspace Lifecycle Management | PLANNED | 0/4 | 200 | 5 |
+| phase-12 Agent-Legible Self-Documentation | PLANNED | 0/3 | 420 | - |
 
 ## Dependencies
 
@@ -34,6 +37,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-6 | phase-7 | soft | Tests should cover all the systems built in phases 1-6 |
 | phase-7 | phase-8 | soft | Tests should be green before adding observability to avoid logging test noise |
 | phase-8 | phase-9 | soft | Review results should be logged to the execution history from phase 8 |
+| phase-9 | phase-10 | soft | LLM review sensor from phase 9 can be used to validate auto-fix quality |
+| phase-8 | phase-11 | soft | Workspace lifecycle events should be logged to the execution history from phase 8 |
+| phase-7 | phase-12 | soft | Documentation should reflect the final tested state of the code, not intermediate versions |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -502,6 +508,137 @@ The review sensor should work both as a pipeline node and as a standalone CLI to
 - LLM-as-judge can be inconsistent -- the structured prompt and criteria need careful design
 - Token cost per review -- should be configurable and possibly skippable for simple changes
 - Review may produce false positives -- need a way to override or whitelist
+
+## [ ] phase-10: Automated Garbage Collection and Remediation (PLANNED)
+
+**Goal:** Upgrade the convention-scanning cron from phase 3 into an automated remediation system that can fix convention drift, not just report it
+
+The research doc describes "Garbage Collection Loops" as weekly background tasks that scan for deviations from "golden principles" and open targeted refactoring PRs. Phase 3 created a reporting-only cron. This phase upgrades it to a two-mode system: report mode (safe, default) and auto-fix mode (optional, gated by confidence threshold). The system reads AI_GUIDE.md conventions, scans code, and either reports or fixes issues. This is the "self-correcting codebase" concept from the research applied concretely.
+
+### Deliverables
+
+- [ ] **Convention scanner library** -- Reusable Python module that reads AI_GUIDE.md and scans a codebase for convention violations
+  - [ ] `p10.d1.t1` Create gc_scanner.py module
+    > Python module that: (1) parses AI_GUIDE.md for convention rules, (2) walks a codebase tree, (3) detects violations (naming patterns, file placement, missing tests, import style, deprecated APIs), (4) outputs structured JSON report with file:line:violation:severity. Support --guide flag and --rules flag for custom rule sets.
+    _Files: ~/zion/projects/agent-orchestration/gc_scanner.py_
+  - [ ] Module can parse AI_GUIDE.md sections and extract rules
+    _Validation: python3 gc_scanner.py --guide AI_GUIDE.md --scan ._
+  - [ ] Detects at least 5 violation types (naming, structure, imports, missing files, deprecated patterns)
+    _Validation: run scanner on test fixtures_
+  _~150 LOC_
+- [ ] **Auto-fix engine** -- Module that applies automated fixes for high-confidence violations detected by the scanner
+  - [ ] `p10.d2.t1` Create gc_autofix.py module (depends: p10.d1.t1)
+    > Python module that takes scanner output and applies fixes: rename files/functions to match naming conventions, sort/organize imports, add missing __init__.py, generate test stubs for untested modules. Only apply fixes with confidence >= threshold (default 0.9). Generate a git commit per fix batch with descriptive message. Support --dry-run flag.
+    _Files: ~/zion/projects/agent-orchestration/gc_autofix.py_
+  - [ ] Can fix at least 3 violation types automatically (naming, imports, missing boilerplate)
+    _Validation: run auto-fix on test fixtures, verify corrections_
+  _~120 LOC_
+- [ ] **GC integration with orchestrator** -- Add GC as a scheduled pipeline that the orchestrator can run on target repos
+  - [ ] `p10.d3.t1` Create gc-pipeline.yaml (depends: p10.d1.t1, p10.d2.t1)
+    > Create pipelines/gc-pipeline.yaml: Bash(scan) -> AI(triage findings) -> Loop(auto-fix, max=5) -> Bash(commit fixes). The triage node uses an AI to review scan results and decide which are safe to fix. Auto-fix only runs on approved items.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/gc-pipeline.yaml_
+  - [ ] GC pipeline YAML exists that runs scan -> report -> optional auto-fix
+    _Validation: read pipeline YAML_
+  _~60 LOC_
+- [ ] **Upgrade existing GC cron** -- Update the phase 3 garbage collection cron to use the new scanner instead of ad-hoc checks
+  - [ ] `p10.d4.t1` Upgrade GC cron to use scanner module (depends: p10.d1.t1)
+    > Update the existing convention-gc cron job prompt to call gc_scanner.py with the target project's AI_GUIDE.md. Keep the weekly schedule. Add optional auto-fix mode gated by a flag.
+  - [ ] Cron prompt references gc_scanner.py instead of manual grep/find commands
+    _Validation: read cron prompt_
+  _~20 LOC_
+
+### Technical Notes
+
+The scanner should be project-agnostic -- it reads AI_GUIDE.md for rules rather than hardcoding conventions. Auto-fix should be conservative: only fix things that are mechanically verifiable (naming, imports, structure), never touch logic.
+
+### Risks
+
+- Auto-fix could introduce subtle bugs if confidence threshold is too low
+- Different projects have wildly different conventions -- parser needs to be flexible
+
+## [ ] phase-11: Workspace Lifecycle Management (PLANNED)
+
+**Goal:** Implement workspace cleanup, archival, and the "Dog" role pattern for maintaining orchestrator hygiene
+
+The orchestrator creates isolated workspaces per issue (~/zion/projects/agent-orchestration/workspaces/ISSUE-NUM) but never cleans them up. Over time, disk fills with stale workspaces. Gas Town's "Dog" role handles town-level maintenance and cleanup. This phase implements workspace lifecycle: active -> completed -> archived -> pruned, with configurable retention policies. Also adds the Dog role to the role system for general maintenance tasks.
+
+### Deliverables
+
+- [ ] **Workspace state machine** -- Track workspace lifecycle states and enforce retention policies
+  - [ ] `p11.d1.t1` Add workspace state tracking to spawner.py
+    > When spawner creates a workspace, write a .workspace.json metadata file with: issue_number, created_at, status (active), role, pipeline. When orchestrator marks an issue complete, update status to completed. Add archive() and prune() functions that move completed workspaces to an archive dir and delete old archives respectively.
+    _Files: ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/workspace_manager.py_
+  - [ ] Workspaces have defined states (active, completed, archived, pruned)
+    _Validation: check workspace metadata files_
+  _~100 LOC_
+- [ ] **Dog role profile** -- Add a maintenance role that handles cleanup, health checks, and housekeeping
+  - [ ] `p11.d2.t1` Create Dog role profile
+    > Create roles/dog.yaml: name=dog, description="Maintenance and cleanup agent", system_prompt focuses on hygiene tasks (archive old workspaces, check disk usage, verify orchestrator health, clean logs), allowed_toolsets=[bash, filesystem], max_turns=5 (short tasks). Include maintenance-specific prompts for common cleanup operations.
+    _Files: ~/zion/projects/agent-orchestration/roles/dog.yaml_
+  - [ ] Dog role YAML exists with maintenance-focused prompts and toolsets
+    _Validation: read roles/dog.yaml_
+  _~40 LOC_
+- [ ] **Cleanup cron job** -- Scheduled job that archives completed workspaces and prunes old archives
+  - [ ] `p11.d3.t1` Create workspace cleanup cron (depends: p11.d1.t1)
+    > Create a daily cron that calls workspace_manager.py cleanup --archive-after 7 --prune-after 30. Archives completed workspaces older than 7 days, deletes archives older than 30 days. Reports stats (archived N, pruned N, freed X MB).
+    _Files: ~/zion/projects/agent-orchestration/workspace_manager.py_
+  - [ ] Cron job runs daily and archives workspaces older than N days
+    _Validation: cronjob list_
+  _~30 LOC_
+- [ ] **Update status.sh with workspace hygiene** -- Show workspace states and disk usage in the status dashboard
+  - [ ] `p11.d4.t1` Add workspace section to status.sh (depends: p11.d1.t1)
+    > Add a "Workspaces" section to status.sh: active N, completed N, archived N, total disk usage. Call workspace_manager.py stats to get the data.
+    _Files: ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] status.sh shows workspace counts by state and total disk usage
+    _Validation: run status.sh_
+  _~30 LOC_
+
+### Technical Notes
+
+Archive = move to ~/.orchestrator/archives/ with timestamp. Prune = delete archived dirs older than threshold. Keep it simple -- no database, just filesystem state + JSON metadata.
+
+### Risks
+
+- Accidentally pruning active workspaces -- need strict age + status checks before deletion
+- Archived workspaces may contain useful context for similar future issues -- consider keeping a summary
+
+## [ ] phase-12: Agent-Legible Self-Documentation (PLANNED)
+
+**Goal:** Make the orchestrator project itself follow agent.md best practices, enabling the orchestrator to be maintained and extended by autonomous agents
+
+The research emphasizes "Agent-Legible Software" -- code, tests, docs, and infrastructure all optimized for high-speed autonomous iteration. The orchestrator project has working code but no AI_GUIDE.md, no inline architecture docs, and no structured conventions. This phase makes the orchestrator project "eat its own dog food": create an AI_GUIDE.md that describes the orchestrator's architecture, add docstrings and type hints to all modules, create a CONTRIBUTING.md for agents, and ensure the project can be safely modified by autonomous workers following the same patterns it orchestrates.
+
+### Deliverables
+
+- [ ] **AI_GUIDE.md for orchestrator project** -- Create a comprehensive agent.md/AI_GUIDE.md that enables autonomous agents to work on the orchestrator codebase
+  - [ ] `p12.d1.t1` Create AI_GUIDE.md for orchestrator
+    > Create ~/zion/projects/agent-orchestration/AI_GUIDE.md following the agent.md spec from the research: (1) Tech Stack: Python 3, YAML, bash, gh CLI, (2) Executable Commands: python3 -m pytest, python3 dag.py --validate, python3 executor.py --pipeline, (3) Code Examples: how to add a new node type, how to add a new role, how to create a pipeline, (4) Three-Tier Boundaries: Always (run tests before commit, use type hints), Ask First (modify YAML schema, change public APIs), Never (delete existing pipelines, modify poller auth).
+    _Files: ~/zion/projects/agent-orchestration/AI_GUIDE.md_
+  - [ ] AI_GUIDE.md exists with tech stack, commands, architecture overview, and three-tier boundaries
+    _Validation: read AI_GUIDE.md_
+  _~100 LOC_
+- [ ] **Module documentation pass** -- Add docstrings, type hints, and architecture comments to all Python modules
+  - [ ] `p12.d2.t1` Add docstrings and type hints to all modules
+    > Add comprehensive docstrings to: dag.py (node types, pipeline parsing, validation), executor.py (execution flow, context handling, node executors), poller.py (API interaction, filtering), spawner.py (workspace setup, role assignment), roles.py (role loading, matching), orchestrator.py (main loop, state management). Add type hints to all function signatures. Add module-level docstrings explaining each file's purpose.
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/poller.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/roles.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] All public functions have docstrings and type annotations
+    _Validation: python3 -c "import ast; ..." or manual review_
+  _~200 LOC_
+- [ ] **Architecture decision record** -- Create an ADR or design doc explaining the orchestrator architecture for future agents
+  - [ ] `p12.d3.t1` Create ARCHITECTURE.md (depends: p12.d1.t1)
+    > Create ~/zion/projects/agent-orchestration/ARCHITECTURE.md with: (1) ASCII system diagram showing poller -> spawner -> executor -> DAG flow, (2) Data flow description (GitHub Issues -> poller JSON -> spawner workdir -> executor pipeline -> results), (3) Key design decisions (why YAML DAGs, why role profiles, why filesystem-based state), (4) Extension points (how to add node types, roles, pipelines), (5) Comparison to Symphony/Gas Town architecture.
+    _Files: ~/zion/projects/agent-orchestration/ARCHITECTURE.md_
+  - [ ] ARCHITECTURE.md exists with system diagram, data flow, and design decisions
+    _Validation: read ARCHITECTURE.md_
+  _~120 LOC_
+
+### Technical Notes
+
+This is a meta-phase -- the orchestrator documenting itself so agents can maintain it. Follow the agent.md spec format exactly since this is the reference implementation for the Hermes ecosystem.
+
+### Risks
+
+- Documentation may drift from code if not kept in sync -- consider adding a doc-check to the test suite
 
 ## Global Risks
 
