@@ -425,21 +425,21 @@ phases:
   - name: 'Orchestrator core: worker spawner'
     description: Script that takes an issue from the poller and spawns a delegate_task
       worker with appropriate context, workdir, and skills
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Spawns delegate_task with issue context as prompt
       validation: test with a real issue
-      met: false
+      met: true
     - description: Creates isolated workdir per issue
       validation: check workdir creation
-      met: false
+      met: true
     - description: Uses acp_command=claude for reasoning tasks
       validation: check delegate_task params
-      met: false
+      met: true
     tasks:
     - id: p4.d2.t1
       title: Create worker spawner script
-      status: todo
+      status: done
       description: Python script that receives an issue, creates workdir at ~/zion/projects/agent-orchestration/workspaces/ISSUE-NUM,
         builds prompt from issue title+body+AI_GUIDE.md, calls delegate_task with
         appropriate toolsets

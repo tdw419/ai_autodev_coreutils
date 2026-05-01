@@ -4,9 +4,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 
 **Progress:** 3/6 phases complete, 0 in progress
 
-**Deliverables:** 14/24 complete
+**Deliverables:** 15/24 complete
 
-**Tasks:** 14/24 complete
+**Tasks:** 15/24 complete
 
 ## Scope Summary
 
@@ -15,7 +15,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-1 Wiki Synthesis from Symphony Research | COMPLETE | 8/8 | 530 | - |
 | phase-2 Map Symphony Patterns to Hermes Infrastructure | COMPLETE | 2/2 | 740 | - |
 | phase-3 Close High-Value Gaps with Existing Tools | COMPLETE | 3/3 | 890 | - |
-| phase-4 Build Lightweight Symphony-Style Orchestrator | PLANNED | 1/4 | 1,160 | - |
+| phase-4 Build Lightweight Symphony-Style Orchestrator | PLANNED | 2/4 | 1,160 | - |
 | phase-5 Archon-Style Deterministic DAG for Hermes | PLANNED | 0/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | PLANNED | 0/3 | 1,780 | - |
 
@@ -225,15 +225,15 @@ infrastructure instead of Elixir/Codex.
   - [x] Filters by label, excludes in-progress/completed
     _Validation: test with labeled issues_
   _~80 LOC_
-- [ ] **Orchestrator core: worker spawner** -- Script that takes an issue from the poller and spawns a delegate_task worker with appropriate context, workdir, and skills
-  - [ ] `p4.d2.t1` Create worker spawner script (depends: p4.d1.t1)
+- [x] **Orchestrator core: worker spawner** -- Script that takes an issue from the poller and spawns a delegate_task worker with appropriate context, workdir, and skills
+  - [x] `p4.d2.t1` Create worker spawner script (depends: p4.d1.t1)
     > Python script that receives an issue, creates workdir at ~/zion/projects/agent-orchestration/workspaces/ISSUE-NUM, builds prompt from issue title+body+AI_GUIDE.md, calls delegate_task with appropriate toolsets
     _Files: ~/zion/projects/agent-orchestration/spawner.py_
-  - [ ] Spawns delegate_task with issue context as prompt
+  - [x] Spawns delegate_task with issue context as prompt
     _Validation: test with a real issue_
-  - [ ] Creates isolated workdir per issue
+  - [x] Creates isolated workdir per issue
     _Validation: check workdir creation_
-  - [ ] Uses acp_command=claude for reasoning tasks
+  - [x] Uses acp_command=claude for reasoning tasks
     _Validation: check delegate_task params_
   _~100 LOC_
 - [ ] **Orchestrator cron integration** -- Wire poller + spawner into a Hermes cron job that runs on a schedule, with concurrency limits
