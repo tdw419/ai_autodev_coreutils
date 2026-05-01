@@ -1746,7 +1746,7 @@ phases:
   test_target: 10
 - id: phase-17
   title: Structural Invariants Engine
-  status: planned
+  status: done
   goal: Build custom structural tests that enforce architectural constraints (layering, dependency direction, module boundaries) beyond code style
   description: 'The Harness Engineering research emphasizes "Rigid Architecture" as a key pillar:
     enforcing a strict layering model that limits the agent''s search space. Phase 10''s
@@ -1758,20 +1758,20 @@ phases:
   deliverables:
   - name: Architecture invariant checker
     description: Python module that reads an invariants.yaml config and checks a codebase for architectural violations
-    status: planned
+    status: done
     acceptance_criteria:
     - description: 'Module parses invariants.yaml with rule definitions (forbidden_imports, required_interfaces,
         layer_order, dependency_direction)'
       validation: read config and checker code
-      met: false
+      met: true
     - description: 'Checker detects at least 4 violation types (forbidden imports, layer violations,
         missing type annotations, circular dependencies)'
       validation: run checker on test fixtures with known violations
-      met: false
+      met: true
     tasks:
     - id: p17.d1.t1
       title: Create invariant_checker.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) reads invariants.yaml defining project-specific
         architectural rules, (2) uses AST parsing to check import statements against forbidden_imports
         rules, (3) verifies layer_order (e.g., types -> config -> repo -> service), (4) checks
@@ -1785,15 +1785,15 @@ phases:
     - ~/zion/projects/agent-orchestration/invariant_checker.py
   - name: Invariants configuration schema
     description: YAML schema for defining project-specific architectural invariants with sensible defaults
-    status: planned
+    status: done
     acceptance_criteria:
     - description: 'invariants.yaml schema supports forbidden_imports, layer_order, dependency_direction,
         required_annotations, circular_dependency_limit'
       validation: read YAML schema
-      met: false
+      met: true
     - description: 'Example invariants.yaml provided for a typical layered project'
       validation: read example config
-      met: false
+      met: true
     tasks:
     - id: p17.d2.t1
       title: Create invariants.yaml schema and example config
@@ -4317,6 +4317,423 @@ phases:
   - Legal/compliance requirements may prevent fully autonomous merges in some organizations
   scope_lines_total: 410
   test_target: 10
+- id: phase-36
+  title: Dynamic Policy Engine (WORKFLOW.md Loader)
+  status: planned
+  goal: Create a runtime policy loader that dynamically configures agent behavior per-project from structured workflow definitions
+  description: 'Symphony''s Workflow Loader "parses WORKFLOW.md for prompt templates and runtime settings," acting
+    as a Policy Engine that shapes agent behavior without code changes. The Hermes orchestrator uses static AI_GUIDE.md
+    files (phase 12) that must be manually maintained. This phase adds a dynamic policy engine: a workflow_loader.py
+    module that reads structured YAML/Markdown workflow definitions from each project, extracts agent configuration
+    (system prompts, tool restrictions, quality gates, pipeline selection, environment variables), and applies them
+    at runtime. This means project owners can tune orchestrator behavior by editing a workflow file rather than
+    modifying the orchestrator itself. The loader supports per-label, per-priority, and per-issue-type overrides,
+    enabling fine-grained control over how the orchestrator handles different kinds of work.'
+  deliverables:
+  - name: Workflow definition schema
+    description: Structured YAML schema for defining agent policies per project
+    status: planned
+    acceptance_criteria:
+    - description: Schema supports at least 8 policy fields (system_prompt, tools, pipeline, quality_gates, env, limits, labels, hooks)
+      validation: read schema documentation
+      met: false
+    tasks:
+    - id: p36.d1.t1
+      title: Define workflow policy YAML schema
+      status: planned
+      description: 'Create a workflow_policy_schema.yaml that defines the structure of workflow policy files.
+        Fields: system_prompt (agent persona override), tools (allowed/restricted tool list), pipeline
+        (which pipeline template to use), quality_gates (minimum test coverage, max lint violations, required
+        checks), env (environment variables for the workspace), limits (max turns, max files, timeout), labels
+        (auto-apply labels based on issue type), hooks (pre/post pipeline shell commands). Support per-label
+        overrides so bug issues get different policies than feature issues. Document the schema with examples.'
+      files:
+      - ~/zion/projects/agent-orchestration/workflow_policy_schema.yaml
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/workflow_policy_schema.yaml
+  - name: Workflow loader module
+    description: Python module that loads and validates workflow policies from project directories
+    status: planned
+    acceptance_criteria:
+    - description: Can load a workflow policy file, validate it against schema, and return a policy object
+      validation: python3 workflow_loader.py load --path /path/to/project
+      met: false
+    tasks:
+    - id: p36.d2.t1
+      title: Create workflow_loader.py module
+      status: planned
+      description: 'Create workflow_loader.py: (1) load_policy(project_dir) -- search for .orchestrator/workflow.yaml
+        or .orchestrator/workflow.md in the project, parse it, validate against schema, return a Policy dataclass,
+        (2) merge_policies(base_policy, overrides) -- merge per-label overrides into base policy, with label-specific
+        values taking precedence, (3) apply_policy(policy, workspace) -- write policy settings into workspace
+        config (system prompt to .orchestrator/system-prompt.md, env vars to .orchestrator/env.json, tool
+        restrictions to .orchestrator/tools.yaml), (4) validate_policy(policy) -- check for invalid combinations
+        (e.g., restricted tools that the pipeline requires), (5) --dry-run to preview policy application without
+        modifying workspace. Support fallback: if no workflow file exists, use orchestrator.yaml defaults.'
+      files:
+      - ~/zion/projects/agent-orchestration/workflow_loader.py
+    dependencies:
+    - p36.d1.t1
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/workflow_loader.py
+  - name: Integration with orchestrator and executor
+    description: Wire the workflow loader into the orchestrator loop so policies are applied per-issue
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator applies workflow policy when spawning a workspace for an issue
+      validation: create a workflow.yaml, file an issue, run orchestrator, verify policy applied
+      met: false
+    tasks:
+    - id: p36.d3.t1
+      title: Integrate workflow_loader into orchestrator.py
+      status: planned
+      description: 'Modify orchestrator.py run_loop() to: (1) after spawner creates a workspace, call
+        workflow_loader.load_policy(repo_dir) to get the project policy, (2) pass the policy to the executor
+        so AI nodes use the policy''s system prompt, (3) apply tool restrictions from policy to the executor
+        session, (4) use policy''s pipeline selection instead of default if specified, (5) set environment
+        variables from policy in the workspace. In executor.py, add policy parameter to DAGExecutor that
+        overrides default settings. Policy is resolved once per workspace creation and cached for the
+        pipeline run.'
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+      - ~/zion/projects/agent-orchestration/executor.py
+    dependencies:
+    - p36.d2.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Policy template generator
+    description: CLI tool that generates a starter workflow policy from an existing project
+    status: planned
+    acceptance_criteria:
+    - description: Can generate a workflow.yaml from project analysis with sensible defaults
+      validation: python3 workflow_loader.py generate --path /path/to/project
+      met: false
+    tasks:
+    - id: p36.d4.t1
+      title: Add policy generation to workflow_loader.py
+      status: planned
+      description: 'Add --generate mode to workflow_loader.py: (1) analyze the project (reuse onboard.py
+        detection from phase 24), (2) generate a workflow.yaml with: appropriate pipeline selection based on
+        project type, sensible quality gates (test command, lint command), tool restrictions for safety
+        (no network access for simple projects), environment variables from detected config files, (3)
+        output the generated policy as YAML. Include comments explaining each field. This makes it trivial
+        for project owners to adopt the workflow policy system.'
+      files:
+      - ~/zion/projects/agent-orchestration/workflow_loader.py
+    dependencies:
+    - p36.d2.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/workflow_loader.py
+  dependencies:
+  - source: phase-4
+    target: phase-36
+    type: soft
+    reason: Policy engine extends the orchestrator loop from phase 4
+  - source: phase-5
+    target: phase-36
+    type: soft
+    reason: Pipeline selection from policy overrides the DAG executor from phase 5
+  - source: phase-6
+    target: phase-36
+    type: soft
+    reason: Role profiles from phase 6 can be overridden by per-label policy
+  - source: phase-12
+    target: phase-36
+    type: soft
+    reason: Agent-legible documentation from phase 12 is enhanced by dynamic policy loading
+  - source: phase-24
+    target: phase-36
+    type: soft
+    reason: Onboarding bootstrap from phase 24 can generate initial workflow policies
+  technical_notes: 'The workflow loader is the key differentiator between static configuration and dynamic
+    policy. The critical insight from Symphony is that behavior should be configurable per-project without
+    code changes. The loader reads YAML (not markdown) for machine-parseable configuration, but supports
+    markdown comments for human readability. Policy resolution order: per-label override > project workflow.yaml >
+    orchestrator.yaml defaults. Keep the schema simple -- YAML with 8-10 fields is enough. Do not try to
+    replicate Symphony''s full WORKFLOW.md specification; focus on the most impactful policy fields.'
+  risks:
+  - Policy files could conflict with orchestrator.yaml settings -- need clear precedence rules
+  - Complex policies may be hard to debug -- include --explain mode that shows effective settings
+  - Malformed policy files could break the orchestrator -- validate strictly and fall back to defaults
+  scope_lines_total: 410
+  test_target: 12
+- id: phase-37
+  title: Event-Driven Trigger Mode
+  status: planned
+  goal: Complement cron-based polling with webhook/event-driven triggers for faster issue response times
+  description: 'Symphony''s polling daemon reads work every 30 seconds. Hermes uses cron-based scheduling
+    (typically 5-15 minute intervals). For time-sensitive workflows, this polling delay is suboptimal. This
+    phase adds an event-driven trigger mode: a lightweight HTTP server (using Python''s built-in http.server)
+    that receives GitHub webhooks and immediately queues matching issues for processing. The event mode runs
+    alongside the existing cron mode -- cron handles the steady-state polling while events handle immediate
+    triggers. This is not about replacing cron (cron is proven and reliable) but about adding a fast-path
+    for urgent work. The webhook server writes trigger events to a shared queue file that the next cron
+    iteration picks up, or can be configured to spawn an immediate orchestrator run.'
+  deliverables:
+  - name: Webhook receiver server
+    description: Lightweight HTTP server that receives GitHub webhooks and triggers orchestrator runs
+    status: planned
+    acceptance_criteria:
+    - description: Server receives issue events via webhook and writes them to the trigger queue
+      validation: send test webhook, verify trigger event created
+      met: false
+    tasks:
+    - id: p37.d1.t1
+      title: Create webhook_server.py
+      status: planned
+      description: 'Create webhook_server.py: (1) HTTP server on configurable port (default 8471) using
+        Python''s http.server, (2) POST /webhook endpoint that validates GitHub webhook signature (X-Hub-Signature-256),
+        (3) filter events: only process "issues" events with action "opened" or "labeled", (4) check if the
+        issue has the agent-ready label, (5) write trigger event to ~/.orchestrator/triggers/pending.jsonl
+        with: issue_number, repo, timestamp, webhook_id, (6) health endpoint GET /health returning server
+        status, (7) graceful shutdown on SIGTERM. Use threading for concurrent request handling. Log all
+        received webhooks for auditability.'
+      files:
+      - ~/zion/projects/agent-orchestration/webhook_server.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/webhook_server.py
+  - name: Trigger queue consumer
+    description: Module that reads pending trigger events and integrates with the orchestrator poller
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator checks trigger queue before polling GitHub API
+      validation: create trigger event, run orchestrator, verify it processes the triggered issue first
+      met: false
+    tasks:
+    - id: p37.d2.t1
+      title: Add trigger queue to orchestrator.py
+      status: planned
+      description: 'Modify orchestrator.py run_loop() to: (1) before calling the poller, check for pending
+        trigger events in ~/.orchestrator/triggers/pending.jsonl, (2) if triggers exist, prioritize those
+        issues (add them to the front of the work queue), (3) mark processed triggers as done by moving them
+        to ~/.orchestrator/triggers/processed.jsonl, (4) deduplicate triggers (same issue triggered multiple
+        times), (5) expire stale triggers (older than N minutes, since cron will pick them up anyway).
+        This means webhook-triggered issues get processed immediately on the next cron cycle rather than
+        waiting for the poller to discover them.'
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    dependencies:
+    - p37.d1.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Webhook setup CLI
+    description: CLI command to register GitHub webhooks for a repository
+    status: planned
+    acceptance_criteria:
+    - description: Can register and verify a webhook on a GitHub repo using gh CLI
+      validation: python3 webhook_server.py setup owner/repo --url https://example.com:8471/webhook
+      met: false
+    tasks:
+    - id: p37.d3.t1
+      title: Add webhook setup to webhook_server.py
+      status: planned
+      description: 'Add --setup mode to webhook_server.py: (1) use gh CLI to create a webhook on the
+        target repo (gh api repos/{owner}/{repo}/hooks --input -), (2) configure events: ["issues"],
+        (3) generate a shared secret and display it for webhook signature validation, (4) test the webhook
+        with a ping event, (5) --teardown mode removes the webhook. Also add --status to list active
+        webhooks and their delivery status.'
+      files:
+      - ~/zion/projects/agent-orchestration/webhook_server.py
+    dependencies:
+    - p37.d1.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/webhook_server.py
+  - name: Event mode integration tests
+    description: Tests for webhook receiving, trigger queue, and orchestrator integration
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover webhook validation, trigger processing, and deduplication
+      validation: python3 -m pytest test_webhook.py -v
+      met: false
+    tasks:
+    - id: p37.d4.t1
+      title: Create test_webhook.py
+      status: planned
+      description: 'Create test_webhook.py: (1) test webhook signature validation (valid/invalid signatures),
+        (2) test event filtering (only issues events processed), (3) test trigger queue write and read,
+        (4) test trigger deduplication (same issue triggered twice), (5) test trigger expiration (old triggers
+        cleaned up), (6) test orchestrator prioritization of triggered issues, (7) test webhook setup via
+        gh CLI (mocked). Use unittest.mock for HTTP server testing.'
+      files:
+      - ~/zion/projects/agent-orchestration/test_webhook.py
+    dependencies:
+    - p37.d1.t1
+    - p37.d2.t1
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_webhook.py
+  dependencies:
+  - source: phase-4
+    target: phase-37
+    type: soft
+    reason: Event triggers extend the orchestrator loop from phase 4
+  - source: phase-25
+    target: phase-37
+    type: soft
+    reason: Resilience from phase 25 should handle webhook server crashes
+  technical_notes: 'The webhook server is deliberately lightweight -- no Flask/FastAPI dependency, just
+    Python''s built-in http.server. This keeps deployment simple and avoids dependency conflicts. The webhook
+    server is optional -- the orchestrator works fine without it using cron-only mode. The trigger queue
+    uses JSONL files (append-only) for reliability -- even if the server crashes mid-write, the file can
+    be recovered. For production use, ngrok or a reverse proxy (nginx) would handle TLS termination and
+    expose the webhook endpoint to GitHub.'
+  risks:
+  - Webhook server requires a publicly accessible URL -- may need ngrok or similar for local development
+  - GitHub webhook delivery can fail and retry -- need idempotent trigger processing
+  - Webhook secret management requires secure storage -- document how to configure
+  - HTTP server adds another process to monitor -- integrate with health check from phase 14
+  scope_lines_total: 430
+  test_target: 12
+- id: phase-38
+  title: Cross-Project Knowledge Transfer
+  status: planned
+  goal: Enable agents to share learned patterns, solutions, and conventions across multiple repositories
+  description: 'When the orchestrator works across multiple repos (phase 16), each project is treated
+    independently. But agents often encounter the same patterns across projects: similar error handling
+    approaches, shared architectural patterns, common library usage. Gas Town''s Beads system enables
+    shared state between agents. This phase adds a knowledge base that captures patterns learned from
+    successful pipeline runs and makes them available to agents working on other projects. When an agent
+    encounters a similar problem that was solved in another repo, it gets the previous solution as context.
+    This creates a "learning organization" effect where the orchestrator gets more effective over time
+    across all projects, not just within a single repo.'
+  deliverables:
+  - name: Pattern extraction module
+    description: Module that extracts reusable patterns from successful pipeline runs
+    status: planned
+    acceptance_criteria:
+    - description: Can analyze a completed run and extract patterns (solution approach, files changed, commands used)
+      validation: python3 knowledge.py extract --run RUN_ID
+      met: false
+    tasks:
+    - id: p38.d1.t1
+      title: Create knowledge.py pattern extraction module
+      status: planned
+      description: 'Create knowledge.py: (1) extract_patterns(run_id) -- analyze a successful execution
+        log to extract: issue type (from labels/title), solution_approach (from AI node prompts and outputs),
+        files_changed (from git diff in workspace), commands_used (from bash nodes), test_strategy (from
+        test node), (2) classify_pattern(pattern) -- categorize the pattern (error-handling, api-design,
+        refactoring, testing, etc.), (3) store_pattern(pattern) -- save to ~/.orchestrator/knowledge/patterns.jsonl
+        with: hash, category, source_repo, source_issue, created_at, effectiveness (derived from test
+        results). Patterns are deduplicated by content hash to avoid storing identical solutions.'
+      files:
+      - ~/zion/projects/agent-orchestration/knowledge.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/knowledge.py
+  - name: Knowledge query module
+    description: Module that retrieves relevant patterns for a given issue from the knowledge base
+    status: planned
+    acceptance_criteria:
+    - description: Can find similar patterns from other projects for a given issue description
+      validation: python3 knowledge.py query --issue "add error handling to API endpoints"
+      met: false
+    tasks:
+    - id: p38.d2.t1
+      title: Add knowledge query to knowledge.py
+      status: planned
+      description: 'Add query mode to knowledge.py: (1) query_patterns(issue_description, repo, top_n=3)
+        -- find patterns from other repos that are relevant to the current issue, (2) relevance scoring
+        based on: category match (same issue type), keyword overlap (similar terms in issue vs pattern
+        description), effectiveness (prefer patterns from successful runs), recency (prefer recent patterns),
+        (3) format_pattern(pattern) -- convert a pattern to a concise agent-readable context string suitable
+        for inclusion in the AI node prompt, (4) --similar flag to find patterns from the same repo (intra-project
+        knowledge). Output as structured JSON or formatted text.'
+      files:
+      - ~/zion/projects/agent-orchestration/knowledge.py
+    dependencies:
+    - p38.d1.t1
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/knowledge.py
+  - name: Knowledge integration with executor
+    description: Automatically inject relevant knowledge into AI node prompts
+    status: planned
+    acceptance_criteria:
+    - description: AI nodes receive relevant cross-project patterns in their context
+      validation: create a pattern, file an issue, run pipeline, check AI prompt includes the pattern
+      met: false
+    tasks:
+    - id: p38.d3.t1
+      title: Integrate knowledge into executor AI nodes
+      status: planned
+      description: 'Modify executor.py AI node execution to: (1) before constructing the AI prompt, call
+        knowledge.query_patterns(issue_description, current_repo), (2) if relevant patterns found, append
+        them to the system prompt as "Relevant patterns from other projects:" section, (3) limit context
+        injection to top 3 patterns to avoid prompt bloat, (4) add config option enable_knowledge (default
+        true) and knowledge_max_patterns (default 3) to orchestrator.yaml. The knowledge injection is
+        transparent to the agent -- it just gets better context.'
+      files:
+      - ~/zion/projects/agent-orchestration/executor.py
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    dependencies:
+    - p38.d2.t1
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/executor.py
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Knowledge management CLI
+    description: CLI to browse, prune, and manage the pattern knowledge base
+    status: planned
+    acceptance_criteria:
+    - description: Can list, search, prune, and export patterns from the knowledge base
+      validation: python3 knowledge.py list --category error-handling --limit 10
+      met: false
+    tasks:
+    - id: p38.d4.t1
+      title: Add knowledge management CLI to knowledge.py
+      status: planned
+      description: 'Add management subcommands to knowledge.py: (1) list (--category, --repo, --since,
+        --top N) -- browse stored patterns, (2) prune (--older-than, --min-effectiveness) -- remove
+        low-quality or stale patterns, (3) export (--format json/markdown, --output file) -- export
+        patterns for sharing between orchestrator instances, (4) import (--input file) -- import patterns
+        from another instance, (5) stats -- show knowledge base statistics (total patterns, per-category
+        counts, coverage by repo). Add --auto-extract flag to run pattern extraction on all recent
+        successful runs.'
+      files:
+      - ~/zion/projects/agent-orchestration/knowledge.py
+    dependencies:
+    - p38.d1.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/knowledge.py
+  dependencies:
+  - source: phase-8
+    target: phase-38
+    type: soft
+    reason: Knowledge extraction reads execution logs from phase 8
+  - source: phase-16
+    target: phase-38
+    type: soft
+    reason: Multi-repo orchestration from phase 16 provides the cross-project context where knowledge transfer is most valuable
+  - source: phase-20
+    target: phase-38
+    type: soft
+    reason: Context optimization from phase 20 should account for knowledge injection in context window management
+  - source: phase-30
+    target: phase-38
+    type: soft
+    reason: Inter-agent communication from phase 30 provides the notification channel for knowledge sharing
+  technical_notes: 'Knowledge transfer is fundamentally about "learning from experience" across projects.
+    The key challenge is relevance -- agents should only see patterns that are actually useful for their
+    current task. Simple keyword matching is a good starting point; future work could use embeddings for
+    semantic similarity. The knowledge base is stored as flat JSONL files for simplicity -- no database
+    needed for the expected scale (hundreds to low thousands of patterns). Patterns from failed runs are
+    NOT stored (only successful runs contribute to knowledge), which keeps quality high by default.'
+  risks:
+  - Pattern injection could confuse agents if patterns are irrelevant -- need good relevance scoring
+  - Knowledge base could grow unbounded -- need pruning strategy
+  - Cross-project patterns may use different conventions -- need repo-specific filtering
+  - Prompt bloat from too many patterns -- strict limit on injected context
+  scope_lines_total: 360
+  test_target: 12
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
 - delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
@@ -4326,6 +4743,8 @@ global_risks:
 - Inter-agent coordination (phase 30) adds complexity that may not be needed at low concurrency levels
 - Dark factory mode (phase 35) should only be enabled for well-tested projects with comprehensive safety gates
 - Token budget enforcement (phase 32) relies on estimates -- actual costs may differ significantly
+- Webhook server (phase 37) requires network exposure -- needs security review for production use
+- Cross-project knowledge (phase 38) could leak proprietary patterns between repos -- need per-repo knowledge isolation controls
 conventions:
 - Python scripts use python3 (no bare python command on this system)
 - GitHub API via gh CLI, not raw curl
@@ -4336,8 +4755,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 35
-  estimated_weeks: 32-38
+  phases_total: 38
+  estimated_weeks: 36-44
   updated: '2026-05-01'
-  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
-  phases_added_from: 'Phase 31-35: Self-verifying agent toolkit (agents verify own work via structured assertions), token cost tracking and budget enforcement (cost visibility from Harness Engineering), application legibility toolkit (making codebases agent-readable), agent-generated tooling (harness builds the harness), and Dark Factory mode (full autonomous operation with confidence scoring and progressive trust escalation). Added based on deep analysis of remaining gaps from OpenAI Symphony, Harness Engineering, and Gas Town research.'
+  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]
+  phases_added_from: 'Phase 36-38: Dynamic Policy Engine (Symphony Workflow Loader pattern for per-project runtime agent configuration), Event-Driven Trigger Mode (webhook-based fast-path complementing cron polling), and Cross-Project Knowledge Transfer (shared pattern library so agents learn from solutions across repos). Added based on gap analysis against Symphony Workflow Loader, Symphony polling daemon latency, and Gas Town Beads shared state patterns.'
