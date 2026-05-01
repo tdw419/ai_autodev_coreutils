@@ -1,0 +1,28 @@
+# Test pipeline with a failing node
+name: fail-test
+description: Pipeline that should stop on bash failure
+version: "1.0"
+
+nodes:
+  pass:
+    type: bash
+    name: Should Pass
+    description: This should pass
+    command: echo "pass"
+    timeout_seconds: 10
+
+  fail:
+    type: bash
+    name: Should Fail
+    description: This should fail and stop the pipeline
+    command: echo "failing..." && exit 1
+    depends_on: [pass]
+    timeout_seconds: 10
+
+  after_fail:
+    type: bash
+    name: Should Be Skipped
+    description: This should be skipped because fail failed
+    command: echo "this should not run"
+    depends_on: [fail]
+    timeout_seconds: 10

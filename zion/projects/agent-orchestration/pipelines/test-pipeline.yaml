@@ -1,0 +1,35 @@
+# Test pipeline for executor validation
+name: test-pipeline
+description: Simple pipeline to test executor with real bash commands
+version: "1.0"
+
+nodes:
+  setup:
+    type: bash
+    name: Setup
+    description: Create a test file
+    command: echo "hello from setup" > /tmp/orch_test.txt && cat /tmp/orch_test.txt
+    timeout_seconds: 10
+
+  verify:
+    type: bash
+    name: Verify
+    description: Verify the file exists
+    command: |
+      if [ -f /tmp/orch_test.txt ]; then
+        echo "PASS: file exists"
+        echo "Content: $(cat /tmp/orch_test.txt)"
+      else
+        echo "FAIL: file missing"
+        exit 1
+      fi
+    depends_on: [setup]
+    timeout_seconds: 10
+
+  cleanup:
+    type: bash
+    name: Cleanup
+    description: Remove test file
+    command: rm -f /tmp/orch_test.txt && echo "cleaned up"
+    depends_on: [verify]
+    timeout_seconds: 10
