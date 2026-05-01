@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 8/35 phases complete, 0 in progress
+**Progress:** 15/35 phases complete, 0 in progress
 
-**Deliverables:** 32/139 complete
+**Deliverables:** 59/139 complete
 
-**Tasks:** 32/139 complete
+**Tasks:** 59/139 complete
 
 ## Scope Summary
 
@@ -20,13 +20,13 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-6 Gas Town-Style Role Specialization | COMPLETE | 3/3 | 1,780 | - |
 | phase-7 Testing and Hardening | COMPLETE | 4/4 | 550 | 30 |
 | phase-8 Execution History and Observability | COMPLETE | 4/4 | 310 | 5 |
-| phase-9 Inferential Sensor (LLM-as-Judge Post-Review) | PLANNED | 0/4 | 340 | 5 |
-| phase-10 Automated Garbage Collection and Remediation | PLANNED | 0/4 | 350 | 15 |
-| phase-11 Workspace Lifecycle Management | PLANNED | 0/4 | 200 | 5 |
-| phase-12 Agent-Legible Self-Documentation | PLANNED | 0/3 | 420 | - |
-| phase-13 Pull Request Automation | PLANNED | 0/4 | 330 | 10 |
-| phase-14 Agent Health Monitoring (Deacon Pattern) | PLANNED | 0/4 | 260 | 10 |
-| phase-15 Safety Policies and Approval Gates | PLANNED | 0/4 | 360 | 15 |
+| phase-9 Inferential Sensor (LLM-as-Judge Post-Review) | COMPLETE | 4/4 | 340 | 5 |
+| phase-10 Automated Garbage Collection and Remediation | COMPLETE | 4/4 | 350 | 15 |
+| phase-11 Workspace Lifecycle Management | COMPLETE | 4/4 | 200 | 5 |
+| phase-12 Agent-Legible Self-Documentation | COMPLETE | 3/3 | 420 | - |
+| phase-13 Pull Request Automation | COMPLETE | 4/4 | 330 | 10 |
+| phase-14 Agent Health Monitoring (Deacon Pattern) | COMPLETE | 4/4 | 260 | 10 |
+| phase-15 Safety Policies and Approval Gates | COMPLETE | 4/4 | 360 | 15 |
 | phase-16 Multi-Repo Orchestration | PLANNED | 0/4 | 320 | 10 |
 | phase-17 Structural Invariants Engine | PLANNED | 0/4 | 390 | 10 |
 | phase-18 Agent Self-Debugging and Trace Tools | PLANNED | 0/4 | 320 | 5 |
@@ -558,7 +558,7 @@ Use JSON Lines format for loop logs (append-friendly). Use one JSON file per pip
 - Log files could grow large over time -- need rotation or pruning
 - Sensitive data in prompts/issue bodies may end up in logs
 
-## [ ] phase-9: Inferential Sensor (LLM-as-Judge Post-Review) (PLANNED)
+## [x] phase-9: Inferential Sensor (LLM-as-Judge Post-Review) (COMPLETE)
 
 **Goal:** Implement an LLM-based code review sensor that runs after pipeline completion to assess code quality
 
@@ -566,32 +566,32 @@ The final high-value gap from the comparison page: inferential sensors. After a 
 
 ### Deliverables
 
-- [ ] **LLM review sensor module** -- Python module that runs an LLM review on a git diff and outputs structured feedback
-  - [ ] `p9.d1.t1` Create review_sensor.py
+- [x] **LLM review sensor module** -- Python module that runs an LLM review on a git diff and outputs structured feedback
+  - [x] `p9.d1.t1` Create review_sensor.py
     > Create a Python module that reads a git diff, constructs a review prompt with project context (AI_GUIDE.md if available), calls an LLM via delegate_task or subprocess, parses the review response into structured JSON (summary, issues list with severity, verdict: approve/request_changes/block). Include configurable review criteria (security, performance, readability, convention adherence).
     _Files: ~/zion/projects/agent-orchestration/review_sensor.py_
-  - [ ] Module can review a git diff and output structured JSON with verdict
+  - [x] Module can review a git diff and output structured JSON with verdict
     _Validation: python3 review_sensor.py --diff <(git diff)_
   _~150 LOC_
-- [ ] **Review sensor as pipeline node type** -- Add REVIEW node type to the DAG executor that runs the LLM review sensor
-  - [ ] `p9.d2.t1` Add REVIEW node type to DAG (depends: p9.d1.t1)
+- [x] **Review sensor as pipeline node type** -- Add REVIEW node type to the DAG executor that runs the LLM review sensor
+  - [x] `p9.d2.t1` Add REVIEW node type to DAG (depends: p9.d1.t1)
     > Add NodeType.REVIEW to dag.py. The review node takes: diff_source (git diff command or file path), review_criteria (list), and threshold (minimum score to pass). Executor calls review_sensor.run_review(). If verdict is block, node fails (stopping the pipeline).
     _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
-  - [ ] Pipeline YAML can include a review node that runs LLM-as-judge
+  - [x] Pipeline YAML can include a review node that runs LLM-as-judge
     _Validation: create pipeline with review node, execute it_
   _~80 LOC_
-- [ ] **Review pipeline template** -- Pipeline YAML that adds an LLM review gate before the final commit
-  - [ ] `p9.d3.t1` Create review-pipeline.yaml (depends: p9.d2.t1)
+- [x] **Review pipeline template** -- Pipeline YAML that adds an LLM review gate before the final commit
+  - [x] `p9.d3.t1` Create review-pipeline.yaml (depends: p9.d2.t1)
     > Create pipelines/review-pipeline.yaml based on standard-pipeline.yaml but with a REVIEW node inserted between review (AI) and commit (bash). The review node runs the LLM sensor on the git diff. If blocked, pipeline stops before commit.
     _Files: ~/zion/projects/agent-orchestration/pipelines/review-pipeline.yaml_
-  - [ ] Pipeline template exists with review node before commit
+  - [x] Pipeline template exists with review node before commit
     _Validation: read YAML, trace through nodes_
   _~60 LOC_
-- [ ] **Review sensor configuration** -- YAML config for review criteria, model selection, and thresholds
-  - [ ] `p9.d4.t1` Create review_config.yaml
+- [x] **Review sensor configuration** -- YAML config for review criteria, model selection, and thresholds
+  - [x] `p9.d4.t1` Create review_config.yaml
     > Create review_config.yaml with: default_criteria (security, readability, performance, convention), model (claude-sonnet), max_tokens, threshold_score (0-100), custom_rules (project-specific review rules), and examples of good/bad patterns.
     _Files: ~/zion/projects/agent-orchestration/review_config.yaml_
-  - [ ] review_config.yaml exists with sensible defaults
+  - [x] review_config.yaml exists with sensible defaults
     _Validation: read YAML file_
   _~50 LOC_
 
@@ -605,7 +605,7 @@ The review sensor should work both as a pipeline node and as a standalone CLI to
 - Token cost per review -- should be configurable and possibly skippable for simple changes
 - Review may produce false positives -- need a way to override or whitelist
 
-## [ ] phase-10: Automated Garbage Collection and Remediation (PLANNED)
+## [x] phase-10: Automated Garbage Collection and Remediation (COMPLETE)
 
 **Goal:** Upgrade the convention-scanning cron from phase 3 into an automated remediation system that can fix convention drift, not just report it
 
@@ -613,33 +613,33 @@ The research doc describes "Garbage Collection Loops" as weekly background tasks
 
 ### Deliverables
 
-- [ ] **Convention scanner library** -- Reusable Python module that reads AI_GUIDE.md and scans a codebase for convention violations
-  - [ ] `p10.d1.t1` Create gc_scanner.py module
+- [x] **Convention scanner library** -- Reusable Python module that reads AI_GUIDE.md and scans a codebase for convention violations
+  - [x] `p10.d1.t1` Create gc_scanner.py module
     > Python module that: (1) parses AI_GUIDE.md for convention rules, (2) walks a codebase tree, (3) detects violations (naming patterns, file placement, missing tests, import style, deprecated APIs), (4) outputs structured JSON report with file:line:violation:severity. Support --guide flag and --rules flag for custom rule sets.
     _Files: ~/zion/projects/agent-orchestration/gc_scanner.py_
-  - [ ] Module can parse AI_GUIDE.md sections and extract rules
+  - [x] Module can parse AI_GUIDE.md sections and extract rules
     _Validation: python3 gc_scanner.py --guide AI_GUIDE.md --scan ._
-  - [ ] Detects at least 5 violation types (naming, structure, imports, missing files, deprecated patterns)
+  - [x] Detects at least 5 violation types (naming, structure, imports, missing files, deprecated patterns)
     _Validation: run scanner on test fixtures_
   _~150 LOC_
-- [ ] **Auto-fix engine** -- Module that applies automated fixes for high-confidence violations detected by the scanner
-  - [ ] `p10.d2.t1` Create gc_autofix.py module (depends: p10.d1.t1)
+- [x] **Auto-fix engine** -- Module that applies automated fixes for high-confidence violations detected by the scanner
+  - [x] `p10.d2.t1` Create gc_autofix.py module (depends: p10.d1.t1)
     > Python module that takes scanner output and applies fixes: rename files/functions to match naming conventions, sort/organize imports, add missing __init__.py, generate test stubs for untested modules. Only apply fixes with confidence >= threshold (default 0.9). Generate a git commit per fix batch with descriptive message. Support --dry-run flag.
     _Files: ~/zion/projects/agent-orchestration/gc_autofix.py_
-  - [ ] Can fix at least 3 violation types automatically (naming, imports, missing boilerplate)
+  - [x] Can fix at least 3 violation types automatically (naming, imports, missing boilerplate)
     _Validation: run auto-fix on test fixtures, verify corrections_
   _~120 LOC_
-- [ ] **GC integration with orchestrator** -- Add GC as a scheduled pipeline that the orchestrator can run on target repos
-  - [ ] `p10.d3.t1` Create gc-pipeline.yaml (depends: p10.d1.t1, p10.d2.t1)
+- [x] **GC integration with orchestrator** -- Add GC as a scheduled pipeline that the orchestrator can run on target repos
+  - [x] `p10.d3.t1` Create gc-pipeline.yaml (depends: p10.d1.t1, p10.d2.t1)
     > Create pipelines/gc-pipeline.yaml: Bash(scan) -> AI(triage findings) -> Loop(auto-fix, max=5) -> Bash(commit fixes). The triage node uses an AI to review scan results and decide which are safe to fix. Auto-fix only runs on approved items.
     _Files: ~/zion/projects/agent-orchestration/pipelines/gc-pipeline.yaml_
-  - [ ] GC pipeline YAML exists that runs scan -> report -> optional auto-fix
+  - [x] GC pipeline YAML exists that runs scan -> report -> optional auto-fix
     _Validation: read pipeline YAML_
   _~60 LOC_
-- [ ] **Upgrade existing GC cron** -- Update the phase 3 garbage collection cron to use the new scanner instead of ad-hoc checks
-  - [ ] `p10.d4.t1` Upgrade GC cron to use scanner module (depends: p10.d1.t1)
+- [x] **Upgrade existing GC cron** -- Update the phase 3 garbage collection cron to use the new scanner instead of ad-hoc checks
+  - [x] `p10.d4.t1` Upgrade GC cron to use scanner module (depends: p10.d1.t1)
     > Update the existing convention-gc cron job prompt to call gc_scanner.py with the target project's AI_GUIDE.md. Keep the weekly schedule. Add optional auto-fix mode gated by a flag.
-  - [ ] Cron prompt references gc_scanner.py instead of manual grep/find commands
+  - [x] Cron prompt references gc_scanner.py instead of manual grep/find commands
     _Validation: read cron prompt_
   _~20 LOC_
 
@@ -652,7 +652,7 @@ The scanner should be project-agnostic -- it reads AI_GUIDE.md for rules rather 
 - Auto-fix could introduce subtle bugs if confidence threshold is too low
 - Different projects have wildly different conventions -- parser needs to be flexible
 
-## [ ] phase-11: Workspace Lifecycle Management (PLANNED)
+## [x] phase-11: Workspace Lifecycle Management (COMPLETE)
 
 **Goal:** Implement workspace cleanup, archival, and the "Dog" role pattern for maintaining orchestrator hygiene
 
@@ -660,32 +660,32 @@ The orchestrator creates isolated workspaces per issue (~/zion/projects/agent-or
 
 ### Deliverables
 
-- [ ] **Workspace state machine** -- Track workspace lifecycle states and enforce retention policies
-  - [ ] `p11.d1.t1` Add workspace state tracking to spawner.py
+- [x] **Workspace state machine** -- Track workspace lifecycle states and enforce retention policies
+  - [x] `p11.d1.t1` Add workspace state tracking to spawner.py
     > When spawner creates a workspace, write a .workspace.json metadata file with: issue_number, created_at, status (active), role, pipeline. When orchestrator marks an issue complete, update status to completed. Add archive() and prune() functions that move completed workspaces to an archive dir and delete old archives respectively.
     _Files: ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/workspace_manager.py_
-  - [ ] Workspaces have defined states (active, completed, archived, pruned)
+  - [x] Workspaces have defined states (active, completed, archived, pruned)
     _Validation: check workspace metadata files_
   _~100 LOC_
-- [ ] **Dog role profile** -- Add a maintenance role that handles cleanup, health checks, and housekeeping
-  - [ ] `p11.d2.t1` Create Dog role profile
+- [x] **Dog role profile** -- Add a maintenance role that handles cleanup, health checks, and housekeeping
+  - [x] `p11.d2.t1` Create Dog role profile
     > Create roles/dog.yaml: name=dog, description="Maintenance and cleanup agent", system_prompt focuses on hygiene tasks (archive old workspaces, check disk usage, verify orchestrator health, clean logs), allowed_toolsets=[bash, filesystem], max_turns=5 (short tasks). Include maintenance-specific prompts for common cleanup operations.
     _Files: ~/zion/projects/agent-orchestration/roles/dog.yaml_
-  - [ ] Dog role YAML exists with maintenance-focused prompts and toolsets
+  - [x] Dog role YAML exists with maintenance-focused prompts and toolsets
     _Validation: read roles/dog.yaml_
   _~40 LOC_
-- [ ] **Cleanup cron job** -- Scheduled job that archives completed workspaces and prunes old archives
-  - [ ] `p11.d3.t1` Create workspace cleanup cron (depends: p11.d1.t1)
+- [x] **Cleanup cron job** -- Scheduled job that archives completed workspaces and prunes old archives
+  - [x] `p11.d3.t1` Create workspace cleanup cron (depends: p11.d1.t1)
     > Create a daily cron that calls workspace_manager.py cleanup --archive-after 7 --prune-after 30. Archives completed workspaces older than 7 days, deletes archives older than 30 days. Reports stats (archived N, pruned N, freed X MB).
     _Files: ~/zion/projects/agent-orchestration/workspace_manager.py_
-  - [ ] Cron job runs daily and archives workspaces older than N days
+  - [x] Cron job runs daily and archives workspaces older than N days
     _Validation: cronjob list_
   _~30 LOC_
-- [ ] **Update status.sh with workspace hygiene** -- Show workspace states and disk usage in the status dashboard
-  - [ ] `p11.d4.t1` Add workspace section to status.sh (depends: p11.d1.t1)
+- [x] **Update status.sh with workspace hygiene** -- Show workspace states and disk usage in the status dashboard
+  - [x] `p11.d4.t1` Add workspace section to status.sh (depends: p11.d1.t1)
     > Add a "Workspaces" section to status.sh: active N, completed N, archived N, total disk usage. Call workspace_manager.py stats to get the data.
     _Files: ~/zion/projects/agent-orchestration/status.sh_
-  - [ ] status.sh shows workspace counts by state and total disk usage
+  - [x] status.sh shows workspace counts by state and total disk usage
     _Validation: run status.sh_
   _~30 LOC_
 
@@ -698,7 +698,7 @@ Archive = move to ~/.orchestrator/archives/ with timestamp. Prune = delete archi
 - Accidentally pruning active workspaces -- need strict age + status checks before deletion
 - Archived workspaces may contain useful context for similar future issues -- consider keeping a summary
 
-## [ ] phase-12: Agent-Legible Self-Documentation (PLANNED)
+## [x] phase-12: Agent-Legible Self-Documentation (COMPLETE)
 
 **Goal:** Make the orchestrator project itself follow agent.md best practices, enabling the orchestrator to be maintained and extended by autonomous agents
 
@@ -706,25 +706,25 @@ The research emphasizes "Agent-Legible Software" -- code, tests, docs, and infra
 
 ### Deliverables
 
-- [ ] **AI_GUIDE.md for orchestrator project** -- Create a comprehensive agent.md/AI_GUIDE.md that enables autonomous agents to work on the orchestrator codebase
-  - [ ] `p12.d1.t1` Create AI_GUIDE.md for orchestrator
+- [x] **AI_GUIDE.md for orchestrator project** -- Create a comprehensive agent.md/AI_GUIDE.md that enables autonomous agents to work on the orchestrator codebase
+  - [x] `p12.d1.t1` Create AI_GUIDE.md for orchestrator
     > Create ~/zion/projects/agent-orchestration/AI_GUIDE.md following the agent.md spec from the research: (1) Tech Stack: Python 3, YAML, bash, gh CLI, (2) Executable Commands: python3 -m pytest, python3 dag.py --validate, python3 executor.py --pipeline, (3) Code Examples: how to add a new node type, how to add a new role, how to create a pipeline, (4) Three-Tier Boundaries: Always (run tests before commit, use type hints), Ask First (modify YAML schema, change public APIs), Never (delete existing pipelines, modify poller auth).
     _Files: ~/zion/projects/agent-orchestration/AI_GUIDE.md_
-  - [ ] AI_GUIDE.md exists with tech stack, commands, architecture overview, and three-tier boundaries
+  - [x] AI_GUIDE.md exists with tech stack, commands, architecture overview, and three-tier boundaries
     _Validation: read AI_GUIDE.md_
   _~100 LOC_
-- [ ] **Module documentation pass** -- Add docstrings, type hints, and architecture comments to all Python modules
-  - [ ] `p12.d2.t1` Add docstrings and type hints to all modules
+- [x] **Module documentation pass** -- Add docstrings, type hints, and architecture comments to all Python modules
+  - [x] `p12.d2.t1` Add docstrings and type hints to all modules
     > Add comprehensive docstrings to: dag.py (node types, pipeline parsing, validation), executor.py (execution flow, context handling, node executors), poller.py (API interaction, filtering), spawner.py (workspace setup, role assignment), roles.py (role loading, matching), orchestrator.py (main loop, state management). Add type hints to all function signatures. Add module-level docstrings explaining each file's purpose.
     _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/poller.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/roles.py, ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] All public functions have docstrings and type annotations
+  - [x] All public functions have docstrings and type annotations
     _Validation: python3 -c "import ast; ..." or manual review_
   _~200 LOC_
-- [ ] **Architecture decision record** -- Create an ADR or design doc explaining the orchestrator architecture for future agents
-  - [ ] `p12.d3.t1` Create ARCHITECTURE.md (depends: p12.d1.t1)
+- [x] **Architecture decision record** -- Create an ADR or design doc explaining the orchestrator architecture for future agents
+  - [x] `p12.d3.t1` Create ARCHITECTURE.md (depends: p12.d1.t1)
     > Create ~/zion/projects/agent-orchestration/ARCHITECTURE.md with: (1) ASCII system diagram showing poller -> spawner -> executor -> DAG flow, (2) Data flow description (GitHub Issues -> poller JSON -> spawner workdir -> executor pipeline -> results), (3) Key design decisions (why YAML DAGs, why role profiles, why filesystem-based state), (4) Extension points (how to add node types, roles, pipelines), (5) Comparison to Symphony/Gas Town architecture.
     _Files: ~/zion/projects/agent-orchestration/ARCHITECTURE.md_
-  - [ ] ARCHITECTURE.md exists with system diagram, data flow, and design decisions
+  - [x] ARCHITECTURE.md exists with system diagram, data flow, and design decisions
     _Validation: read ARCHITECTURE.md_
   _~120 LOC_
 
@@ -736,7 +736,7 @@ This is a meta-phase -- the orchestrator documenting itself so agents can mainta
 
 - Documentation may drift from code if not kept in sync -- consider adding a doc-check to the test suite
 
-## [ ] phase-13: Pull Request Automation (PLANNED)
+## [x] phase-13: Pull Request Automation (COMPLETE)
 
 **Goal:** Complete the issue-to-PR lifecycle by auto-creating pull requests after successful pipeline execution
 
@@ -745,32 +745,32 @@ Symphony's end-to-end flow is: issue -> workspace -> agent work -> PR. The orche
 
 ### Deliverables
 
-- [ ] **PR creator module** -- Python module that creates GitHub PRs after successful pipeline execution with orchestrator metadata
-  - [ ] `p13.d1.t1` Create pr_creator.py module
+- [x] **PR creator module** -- Python module that creates GitHub PRs after successful pipeline execution with orchestrator metadata
+  - [x] `p13.d1.t1` Create pr_creator.py module
     > Python module that: (1) reads workspace metadata (issue number, role, pipeline, duration from meta.json), (2) creates a feature branch from workspace changes, (3) pushes to remote, (4) creates a GitHub PR via gh CLI with structured body (issue link, role used, pipeline name, duration, test results), (5) labels the PR and links it to the issue. Include --draft flag for draft PRs.
     _Files: ~/zion/projects/agent-orchestration/pr_creator.py_
-  - [ ] Module can create a PR from a workspace branch with structured body
+  - [x] Module can create a PR from a workspace branch with structured body
     _Validation: python3 pr_creator.py --workspace workspaces/42 --repo owner/repo_
   _~150 LOC_
-- [ ] **PR integration with executor pipeline** -- Add a PR step to the standard and team pipelines that runs after successful commit
-  - [ ] `p13.d2.t1` Add PR step to pipeline templates (depends: p13.d1.t1)
+- [x] **PR integration with executor pipeline** -- Add a PR step to the standard and team pipelines that runs after successful commit
+  - [x] `p13.d2.t1` Add PR step to pipeline templates (depends: p13.d1.t1)
     > Add a conditional bash node to standard-pipeline.yaml and team-pipeline.yaml that calls pr_creator.py after commit. The step should be gated by a pipeline env var (CREATE_PR=true) so it can be toggled. Include the PR body template as a pipeline env variable.
     _Files: ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml, ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml_
-  - [ ] Pipeline YAMLs include an optional PR creation step after commit
+  - [x] Pipeline YAMLs include an optional PR creation step after commit
     _Validation: read pipeline YAML, trace nodes_
   _~60 LOC_
-- [ ] **PR lifecycle management** -- Track PR status and auto-close/update when the source issue changes state
-  - [ ] `p13.d3.t1` Add PR tracking to workspace metadata (depends: p13.d1.t1)
+- [x] **PR lifecycle management** -- Track PR status and auto-close/update when the source issue changes state
+  - [x] `p13.d3.t1` Add PR tracking to workspace metadata (depends: p13.d1.t1)
     > After PR creation, update workspace meta.json with: pr_number, pr_url, pr_state, created_at. Add a function to pr_creator.py that checks PR status (open/merged/closed) and can close a PR when the source issue is closed. Update orchestrator.py run_loop() to check for completed workspaces with open PRs and post a summary comment on the issue.
     _Files: ~/zion/projects/agent-orchestration/pr_creator.py, ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] PR metadata stored in workspace includes PR number and URL
+  - [x] PR metadata stored in workspace includes PR number and URL
     _Validation: check workspace meta.json after PR creation_
   _~80 LOC_
-- [ ] **Configurable PR settings** -- YAML config for PR behavior (draft mode, labels, reviewers, branch naming)
-  - [ ] `p13.d4.t1` Create pr_config.yaml
+- [x] **Configurable PR settings** -- YAML config for PR behavior (draft mode, labels, reviewers, branch naming)
+  - [x] `p13.d4.t1` Create pr_config.yaml
     > Create pr_config.yaml with: draft (bool, default false), auto_label (bool, default true), labels (list, e.g. ["auto-generated", "agent"]), reviewers (list, optional), branch_prefix (string, e.g. "orch/"), pr_body_template (multiline string with {{issue_url}}, {{role}}, {{pipeline}}, {{duration}} placeholders), close_on_issue_close (bool, default true).
     _Files: ~/zion/projects/agent-orchestration/pr_config.yaml_
-  - [ ] pr_config.yaml exists with sensible defaults
+  - [x] pr_config.yaml exists with sensible defaults
     _Validation: read YAML file_
   _~40 LOC_
 
@@ -784,7 +784,7 @@ Uses gh CLI for all GitHub operations (PR create, issue link, label). No GitHub 
 - Branch naming collisions if multiple workers create PRs for the same issue
 - Pushing to remote requires write access -- need to handle auth errors gracefully
 
-## [ ] phase-14: Agent Health Monitoring (Deacon Pattern) (PLANNED)
+## [x] phase-14: Agent Health Monitoring (Deacon Pattern) (COMPLETE)
 
 **Goal:** Implement the Gas Town Deacon pattern -- a health supervision daemon that monitors running workers, detects stuck agents, and manages resource usage
 
@@ -793,33 +793,33 @@ Gas Town's Deacon role is a "daemon beacon; central health supervisor" that moni
 
 ### Deliverables
 
-- [ ] **Health check module** -- Python module that checks the health of active worker workspaces
-  - [ ] `p14.d1.t1` Create health_check.py module
+- [x] **Health check module** -- Python module that checks the health of active worker workspaces
+  - [x] `p14.d1.t1` Create health_check.py module
     > Python module that: (1) scans all workspaces with status "in-progress", (2) checks last file modification time (stuck detection), (3) measures disk usage per workspace, (4) checks for zombie processes (optional, via ps), (5) reports health as JSON with per-worker status (healthy, stale, oversized, unknown). Configurable thresholds: stale_after_minutes (default 30), max_disk_mb (default 500). Support --watch flag for continuous monitoring.
     _Files: ~/zion/projects/agent-orchestration/health_check.py_
-  - [ ] Module can scan all active workspaces and report health status per worker
+  - [x] Module can scan all active workspaces and report health status per worker
     _Validation: python3 health_check.py --all_
-  - [ ] Detects stuck workers (no file changes in N minutes)
+  - [x] Detects stuck workers (no file changes in N minutes)
     _Validation: create a stale workspace, run health check_
   _~120 LOC_
-- [ ] **Auto-recovery for stuck workers** -- Automatically detect and handle stuck workers (timeout, escalation, or restart)
-  - [ ] `p14.d2.t1` Add auto-recovery logic to health_check.py (depends: p14.d1.t1)
+- [x] **Auto-recovery for stuck workers** -- Automatically detect and handle stuck workers (timeout, escalation, or restart)
+  - [x] `p14.d2.t1` Add auto-recovery logic to health_check.py (depends: p14.d1.t1)
     > Add to health_check.py: (1) when a worker is stale beyond threshold, update its meta.json status to "failed", (2) post a comment on the GitHub issue explaining the timeout, (3) optionally archive the workspace, (4) log the recovery event. Support --auto-recover flag and --escalate flag (create a new issue for human review). Recovery modes: mark-failed (default), archive, retry (re-spawn with reduced max_turns).
     _Files: ~/zion/projects/agent-orchestration/health_check.py_
-  - [ ] Stuck workers are detected and marked as failed after timeout
+  - [x] Stuck workers are detected and marked as failed after timeout
     _Validation: simulate stuck worker, verify detection_
   _~80 LOC_
-- [ ] **Health monitoring cron job** -- Scheduled cron job that runs health checks and auto-recovers unhealthy workers
-  - [ ] `p14.d3.t1` Create health monitoring cron job (depends: p14.d2.t1)
+- [x] **Health monitoring cron job** -- Scheduled cron job that runs health checks and auto-recovers unhealthy workers
+  - [x] `p14.d3.t1` Create health monitoring cron job (depends: p14.d2.t1)
     > Create a Hermes cron job that runs health_check.py --auto-recover every 15 minutes. Include config for thresholds, notification on failure, and escalation. The cron prompt should read health_config.yaml for settings.
-  - [ ] Cron job runs health checks every 15 minutes
+  - [x] Cron job runs health checks every 15 minutes
     _Validation: cronjob list_
   _~20 LOC_
-- [ ] **Health dashboard in status.sh** -- Show worker health status alongside the existing status dashboard
-  - [ ] `p14.d4.t1` Add health section to status.sh (depends: p14.d1.t1)
+- [x] **Health dashboard in status.sh** -- Show worker health status alongside the existing status dashboard
+  - [x] `p14.d4.t1` Add health section to status.sh (depends: p14.d1.t1)
     > Add a "Worker Health" section to status.sh that calls health_check.py and displays: per-worker status (healthy/stale/oversized), disk usage, last activity time, time since spawn. Use color coding if terminal supports it (green=healthy, yellow=stale, red=failed).
     _Files: ~/zion/projects/agent-orchestration/status.sh_
-  - [ ] status.sh shows health status per active worker
+  - [x] status.sh shows health status per active worker
     _Validation: run status.sh, check for health section_
   _~40 LOC_
 
@@ -833,7 +833,7 @@ Health checks are filesystem-based (no need for process monitoring). Stuck detec
 - Auto-recovery could lose work if a worker was actually making progress on a long task
 - File modification time may not accurately reflect agent activity (agent might be "thinking")
 
-## [ ] phase-15: Safety Policies and Approval Gates (PLANNED)
+## [x] phase-15: Safety Policies and Approval Gates (COMPLETE)
 
 **Goal:** Add configurable safety policies modeled on Symphony's approval_policy to control when human approval is required before agent actions proceed
 
@@ -842,32 +842,32 @@ Symphony supports three approval modes: untrusted (every action requires approva
 
 ### Deliverables
 
-- [ ] **Approval policy engine** -- Configurable approval modes that gate pipeline execution at defined checkpoints
-  - [ ] `p15.d1.t1` Create approval.py module
+- [x] **Approval policy engine** -- Configurable approval modes that gate pipeline execution at defined checkpoints
+  - [x] `p15.d1.t1` Create approval.py module
     > Python module implementing approval policies: (1) ApprovalMode enum (untrusted, on-failure, never), (2) check_approval() function that takes mode, node result, and policy config, returns (approved: bool, reason: str), (3) untrusted mode: every AI node requires approval before proceeding, (4) on-failure mode: only failed bash/test nodes require approval before retry, (5) never mode: no approval needed (current behavior). Include approval_context that captures what needs approval (diff, test output, prompt).
     _Files: ~/zion/projects/agent-orchestration/approval.py_
-  - [ ] Support for untrusted, on-failure, and never approval modes
+  - [x] Support for untrusted, on-failure, and never approval modes
     _Validation: configure each mode, verify behavior_
   _~100 LOC_
-- [ ] **APPROVAL node type for DAG** -- Add an APPROVAL node type that pauses pipeline execution until human approval
-  - [ ] `p15.d2.t1` Add APPROVAL node type to DAG executor (depends: p15.d1.t1)
+- [x] **APPROVAL node type for DAG** -- Add an APPROVAL node type that pauses pipeline execution until human approval
+  - [x] `p15.d2.t1` Add APPROVAL node type to DAG executor (depends: p15.d1.t1)
     > Add NodeType.APPROVAL to dag.py. The approval node takes: prompt (what the human is approving), timeout (how long to wait before failing), and on_timeout (fail or skip). In executor.py: when an approval node is reached, write a pending approval file to the workspace, post a GitHub comment requesting approval, and poll for an approval file or comment. If approval is granted, continue. If timeout, apply on_timeout behavior. Support --auto-approve flag to bypass for CI.
     _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
-  - [ ] Pipeline YAML can include approval nodes that block until approved
+  - [x] Pipeline YAML can include approval nodes that block until approved
     _Validation: create pipeline with approval node, execute it_
   _~120 LOC_
-- [ ] **Approval-safe pipeline template** -- Pipeline YAML that includes approval gates at critical checkpoints
-  - [ ] `p15.d3.t1` Create safe-pipeline.yaml with approval gates (depends: p15.d2.t1)
+- [x] **Approval-safe pipeline template** -- Pipeline YAML that includes approval gates at critical checkpoints
+  - [x] `p15.d3.t1` Create safe-pipeline.yaml with approval gates (depends: p15.d2.t1)
     > Create pipelines/safe-pipeline.yaml based on standard-pipeline.yaml but with APPROVAL nodes inserted: (1) after implement (approve code changes before testing), (2) after review (approve before commit). The approval nodes include context about what changed (file list, diff summary) so the approver can make an informed decision. Include a --mode flag that switches between untrusted and on-failure by changing which approval nodes are active.
     _Files: ~/zion/projects/agent-orchestration/pipelines/safe-pipeline.yaml_
-  - [ ] Pipeline template has approval nodes before commit and PR creation
+  - [x] Pipeline template has approval nodes before commit and PR creation
     _Validation: read pipeline YAML_
   _~80 LOC_
-- [ ] **Approval audit trail** -- Log all approval decisions with who approved, when, and why
-  - [ ] `p15.d4.t1` Add approval logging to approval.py (depends: p15.d1.t1, p8.d1.t1)
+- [x] **Approval audit trail** -- Log all approval decisions with who approved, when, and why
+  - [x] `p15.d4.t1` Add approval logging to approval.py (depends: p15.d1.t1, p8.d1.t1)
     > Append approval events to ~/.orchestrator/logs/approvals.jsonl. Each entry: timestamp, pipeline, node_id, issue_number, decision (approved/rejected/timeout), approver (auto or github_username), reason, context_snapshot (files changed, test results). Add a CLI subcommand to approval.py: audit (show recent approvals), stats (approval rate, average wait time).
     _Files: ~/zion/projects/agent-orchestration/approval.py_
-  - [ ] Approval events are logged with timestamp, approver, decision, and context
+  - [x] Approval events are logged with timestamp, approver, decision, and context
     _Validation: check log files after approval_
   _~60 LOC_
 

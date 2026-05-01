@@ -841,22 +841,22 @@ phases:
   test_target: 5
 - id: phase-9
   title: Inferential Sensor (LLM-as-Judge Post-Review)
-  status: planned
+  status: complete
   goal: Implement an LLM-based code review sensor that runs after pipeline completion to assess code quality
   description: 'The final high-value gap from the comparison page: inferential sensors. After a pipeline completes (code written, tests passing), an LLM-as-judge reviews the git diff for quality, security
     issues, and adherence to project conventions. This mirrors the Outer Harness inferential sensor pattern from Harness Engineering. The review runs as an optional pipeline node or standalone command.'
   deliverables:
   - name: LLM review sensor module
     description: Python module that runs an LLM review on a git diff and outputs structured feedback
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Module can review a git diff and output structured JSON with verdict
       validation: python3 review_sensor.py --diff <(git diff)
-      met: false
+      met: true
     tasks:
     - id: p9.d1.t1
       title: Create review_sensor.py
-      status: planned
+      status: done
       description: 'Create a Python module that reads a git diff, constructs a review prompt with project context (AI_GUIDE.md if available), calls an LLM via delegate_task or subprocess, parses the review
         response into structured JSON (summary, issues list with severity, verdict: approve/request_changes/block). Include configurable review criteria (security, performance, readability, convention adherence).'
       files:
@@ -866,15 +866,15 @@ phases:
     - ~/zion/projects/agent-orchestration/review_sensor.py
   - name: Review sensor as pipeline node type
     description: Add REVIEW node type to the DAG executor that runs the LLM review sensor
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Pipeline YAML can include a review node that runs LLM-as-judge
       validation: create pipeline with review node, execute it
-      met: false
+      met: true
     tasks:
     - id: p9.d2.t1
       title: Add REVIEW node type to DAG
-      status: planned
+      status: done
       description: 'Add NodeType.REVIEW to dag.py. The review node takes: diff_source (git diff command or file path), review_criteria (list), and threshold (minimum score to pass). Executor calls review_sensor.run_review().
         If verdict is block, node fails (stopping the pipeline).'
       files:
@@ -888,15 +888,15 @@ phases:
     - ~/zion/projects/agent-orchestration/executor.py
   - name: Review pipeline template
     description: Pipeline YAML that adds an LLM review gate before the final commit
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Pipeline template exists with review node before commit
       validation: read YAML, trace through nodes
-      met: false
+      met: true
     tasks:
     - id: p9.d3.t1
       title: Create review-pipeline.yaml
-      status: planned
+      status: done
       description: Create pipelines/review-pipeline.yaml based on standard-pipeline.yaml but with a REVIEW node inserted between review (AI) and commit (bash). The review node runs the LLM sensor on the
         git diff. If blocked, pipeline stops before commit.
       files:
@@ -908,15 +908,15 @@ phases:
     - ~/zion/projects/agent-orchestration/pipelines/review-pipeline.yaml
   - name: Review sensor configuration
     description: YAML config for review criteria, model selection, and thresholds
-    status: planned
+    status: done
     acceptance_criteria:
     - description: review_config.yaml exists with sensible defaults
       validation: read YAML file
-      met: false
+      met: true
     tasks:
     - id: p9.d4.t1
       title: Create review_config.yaml
-      status: planned
+      status: done
       description: 'Create review_config.yaml with: default_criteria (security, readability, performance, convention), model (claude-sonnet), max_tokens, threshold_score (0-100), custom_rules (project-specific
         review rules), and examples of good/bad patterns.'
       files:
@@ -939,7 +939,7 @@ phases:
   test_target: 5
 - id: phase-10
   title: Automated Garbage Collection and Remediation
-  status: planned
+  status: complete
   goal: Upgrade the convention-scanning cron from phase 3 into an automated remediation system that can fix convention drift, not just report it
   description: 'The research doc describes "Garbage Collection Loops" as weekly background tasks that scan for deviations
     from "golden principles" and open targeted refactoring PRs. Phase 3 created a reporting-only cron. This phase upgrades
@@ -949,18 +949,18 @@ phases:
   deliverables:
   - name: Convention scanner library
     description: Reusable Python module that reads AI_GUIDE.md and scans a codebase for convention violations
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Module can parse AI_GUIDE.md sections and extract rules
       validation: python3 gc_scanner.py --guide AI_GUIDE.md --scan .
-      met: false
+      met: true
     - description: Detects at least 5 violation types (naming, structure, imports, missing files, deprecated patterns)
       validation: run scanner on test fixtures
-      met: false
+      met: true
     tasks:
     - id: p10.d1.t1
       title: Create gc_scanner.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) parses AI_GUIDE.md for convention rules, (2) walks a codebase tree, (3) detects
         violations (naming patterns, file placement, missing tests, import style, deprecated APIs), (4) outputs structured JSON
         report with file:line:violation:severity. Support --guide flag and --rules flag for custom rule sets.'
@@ -971,15 +971,15 @@ phases:
     - ~/zion/projects/agent-orchestration/gc_scanner.py
   - name: Auto-fix engine
     description: Module that applies automated fixes for high-confidence violations detected by the scanner
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Can fix at least 3 violation types automatically (naming, imports, missing boilerplate)
       validation: run auto-fix on test fixtures, verify corrections
-      met: false
+      met: true
     tasks:
     - id: p10.d2.t1
       title: Create gc_autofix.py module
-      status: planned
+      status: done
       description: 'Python module that takes scanner output and applies fixes: rename files/functions to match naming conventions,
         sort/organize imports, add missing __init__.py, generate test stubs for untested modules. Only apply fixes with confidence
         >= threshold (default 0.9). Generate a git commit per fix batch with descriptive message. Support --dry-run flag.'
@@ -992,15 +992,15 @@ phases:
     - ~/zion/projects/agent-orchestration/gc_autofix.py
   - name: GC integration with orchestrator
     description: Add GC as a scheduled pipeline that the orchestrator can run on target repos
-    status: planned
+    status: done
     acceptance_criteria:
     - description: GC pipeline YAML exists that runs scan -> report -> optional auto-fix
       validation: read pipeline YAML
-      met: false
+      met: true
     tasks:
     - id: p10.d3.t1
       title: Create gc-pipeline.yaml
-      status: planned
+      status: done
       description: 'Create pipelines/gc-pipeline.yaml: Bash(scan) -> AI(triage findings) -> Loop(auto-fix, max=5) -> Bash(commit
         fixes). The triage node uses an AI to review scan results and decide which are safe to fix. Auto-fix only runs on
         approved items.'
@@ -1014,15 +1014,15 @@ phases:
     - ~/zion/projects/agent-orchestration/pipelines/gc-pipeline.yaml
   - name: Upgrade existing GC cron
     description: Update the phase 3 garbage collection cron to use the new scanner instead of ad-hoc checks
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Cron prompt references gc_scanner.py instead of manual grep/find commands
       validation: read cron prompt
-      met: false
+      met: true
     tasks:
     - id: p10.d4.t1
       title: Upgrade GC cron to use scanner module
-      status: planned
+      status: done
       description: 'Update the existing convention-gc cron job prompt to call gc_scanner.py with the target project''s AI_GUIDE.md.
         Keep the weekly schedule. Add optional auto-fix mode gated by a flag.'
       files: []
@@ -1055,7 +1055,7 @@ phases:
   test_target: 15
 - id: phase-11
   title: Workspace Lifecycle Management
-  status: planned
+  status: complete
   goal: Implement workspace cleanup, archival, and the "Dog" role pattern for maintaining orchestrator hygiene
   description: 'The orchestrator creates isolated workspaces per issue (~/zion/projects/agent-orchestration/workspaces/ISSUE-NUM)
     but never cleans them up. Over time, disk fills with stale workspaces. Gas Town''s "Dog" role handles town-level maintenance
@@ -1064,15 +1064,15 @@ phases:
   deliverables:
   - name: Workspace state machine
     description: Track workspace lifecycle states and enforce retention policies
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Workspaces have defined states (active, completed, archived, pruned)
       validation: check workspace metadata files
-      met: false
+      met: true
     tasks:
     - id: p11.d1.t1
       title: Add workspace state tracking to spawner.py
-      status: planned
+      status: done
       description: 'When spawner creates a workspace, write a .workspace.json metadata file with: issue_number, created_at,
         status (active), role, pipeline. When orchestrator marks an issue complete, update status to completed. Add archive()
         and prune() functions that move completed workspaces to an archive dir and delete old archives respectively.'
@@ -1085,15 +1085,15 @@ phases:
     - ~/zion/projects/agent-orchestration/workspace_manager.py
   - name: Dog role profile
     description: Add a maintenance role that handles cleanup, health checks, and housekeeping
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Dog role YAML exists with maintenance-focused prompts and toolsets
       validation: read roles/dog.yaml
-      met: false
+      met: true
     tasks:
     - id: p11.d2.t1
       title: Create Dog role profile
-      status: planned
+      status: done
       description: 'Create roles/dog.yaml: name=dog, description="Maintenance and cleanup agent", system_prompt focuses on
         hygiene tasks (archive old workspaces, check disk usage, verify orchestrator health, clean logs), allowed_toolsets=[bash,
         filesystem], max_turns=5 (short tasks). Include maintenance-specific prompts for common cleanup operations.'
@@ -1104,15 +1104,15 @@ phases:
     - ~/zion/projects/agent-orchestration/roles/dog.yaml
   - name: Cleanup cron job
     description: Scheduled job that archives completed workspaces and prunes old archives
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Cron job runs daily and archives workspaces older than N days
       validation: cronjob list
-      met: false
+      met: true
     tasks:
     - id: p11.d3.t1
       title: Create workspace cleanup cron
-      status: planned
+      status: done
       description: 'Create a daily cron that calls workspace_manager.py cleanup --archive-after 7 --prune-after 30. Archives
         completed workspaces older than 7 days, deletes archives older than 30 days. Reports stats (archived N, pruned N,
         freed X MB).'
@@ -1125,15 +1125,15 @@ phases:
     - ~/zion/projects/agent-orchestration/workspace_manager.py
   - name: Update status.sh with workspace hygiene
     description: Show workspace states and disk usage in the status dashboard
-    status: planned
+    status: done
     acceptance_criteria:
     - description: status.sh shows workspace counts by state and total disk usage
       validation: run status.sh
-      met: false
+      met: true
     tasks:
     - id: p11.d4.t1
       title: Add workspace section to status.sh
-      status: planned
+      status: done
       description: 'Add a "Workspaces" section to status.sh: active N, completed N, archived N, total disk usage. Call workspace_manager.py
         stats to get the data.'
       files:
@@ -1156,7 +1156,7 @@ phases:
   test_target: 5
 - id: phase-12
   title: Agent-Legible Self-Documentation
-  status: planned
+  status: complete
   goal: Make the orchestrator project itself follow agent.md best practices, enabling the orchestrator to be maintained and extended by autonomous agents
   description: 'The research emphasizes "Agent-Legible Software" -- code, tests, docs, and infrastructure all optimized for
     high-speed autonomous iteration. The orchestrator project has working code but no AI_GUIDE.md, no inline architecture docs,
@@ -1166,15 +1166,15 @@ phases:
   deliverables:
   - name: AI_GUIDE.md for orchestrator project
     description: Create a comprehensive agent.md/AI_GUIDE.md that enables autonomous agents to work on the orchestrator codebase
-    status: planned
+    status: done
     acceptance_criteria:
     - description: AI_GUIDE.md exists with tech stack, commands, architecture overview, and three-tier boundaries
       validation: read AI_GUIDE.md
-      met: false
+      met: true
     tasks:
     - id: p12.d1.t1
       title: Create AI_GUIDE.md for orchestrator
-      status: planned
+      status: done
       description: 'Create ~/zion/projects/agent-orchestration/AI_GUIDE.md following the agent.md spec from the research:
         (1) Tech Stack: Python 3, YAML, bash, gh CLI, (2) Executable Commands: python3 -m pytest, python3 dag.py --validate,
         python3 executor.py --pipeline, (3) Code Examples: how to add a new node type, how to add a new role, how to create a
@@ -1187,15 +1187,15 @@ phases:
     - ~/zion/projects/agent-orchestration/AI_GUIDE.md
   - name: Module documentation pass
     description: Add docstrings, type hints, and architecture comments to all Python modules
-    status: planned
+    status: done
     acceptance_criteria:
     - description: All public functions have docstrings and type annotations
       validation: python3 -c "import ast; ..." or manual review
-      met: false
+      met: true
     tasks:
     - id: p12.d2.t1
       title: Add docstrings and type hints to all modules
-      status: planned
+      status: done
       description: 'Add comprehensive docstrings to: dag.py (node types, pipeline parsing, validation), executor.py (execution
         flow, context handling, node executors), poller.py (API interaction, filtering), spawner.py (workspace setup, role
         assignment), roles.py (role loading, matching), orchestrator.py (main loop, state management). Add type hints to all
@@ -1217,15 +1217,15 @@ phases:
     - ~/zion/projects/agent-orchestration/orchestrator.py
   - name: Architecture decision record
     description: Create an ADR or design doc explaining the orchestrator architecture for future agents
-    status: planned
+    status: done
     acceptance_criteria:
     - description: ARCHITECTURE.md exists with system diagram, data flow, and design decisions
       validation: read ARCHITECTURE.md
-      met: false
+      met: true
     tasks:
     - id: p12.d3.t1
       title: Create ARCHITECTURE.md
-      status: planned
+      status: done
       description: 'Create ~/zion/projects/agent-orchestration/ARCHITECTURE.md with: (1) ASCII system diagram showing poller
         -> spawner -> executor -> DAG flow, (2) Data flow description (GitHub Issues -> poller JSON -> spawner workdir -> executor
         pipeline -> results), (3) Key design decisions (why YAML DAGs, why role profiles, why filesystem-based state), (4) Extension
@@ -1249,7 +1249,7 @@ phases:
   test_target: 0
 - id: phase-13
   title: Pull Request Automation
-  status: planned
+  status: complete
   goal: Complete the issue-to-PR lifecycle by auto-creating pull requests after successful pipeline execution
   description: 'Symphony''s end-to-end flow is: issue -> workspace -> agent work -> PR. The orchestrator currently
     stops at "workspace with commits" -- no PR is ever created. This phase closes that gap by adding PR creation
@@ -1261,15 +1261,15 @@ phases:
   deliverables:
   - name: PR creator module
     description: Python module that creates GitHub PRs after successful pipeline execution with orchestrator metadata
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Module can create a PR from a workspace branch with structured body
       validation: python3 pr_creator.py --workspace workspaces/42 --repo owner/repo
-      met: false
+      met: true
     tasks:
     - id: p13.d1.t1
       title: Create pr_creator.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) reads workspace metadata (issue number, role, pipeline,
         duration from meta.json), (2) creates a feature branch from workspace changes, (3) pushes
         to remote, (4) creates a GitHub PR via gh CLI with structured body (issue link, role used,
@@ -1282,15 +1282,15 @@ phases:
     - ~/zion/projects/agent-orchestration/pr_creator.py
   - name: PR integration with executor pipeline
     description: Add a PR step to the standard and team pipelines that runs after successful commit
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Pipeline YAMLs include an optional PR creation step after commit
       validation: read pipeline YAML, trace nodes
-      met: false
+      met: true
     tasks:
     - id: p13.d2.t1
       title: Add PR step to pipeline templates
-      status: planned
+      status: done
       description: 'Add a conditional bash node to standard-pipeline.yaml and team-pipeline.yaml
         that calls pr_creator.py after commit. The step should be gated by a pipeline env var
         (CREATE_PR=true) so it can be toggled. Include the PR body template as a pipeline env
@@ -1306,15 +1306,15 @@ phases:
     - ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml
   - name: PR lifecycle management
     description: Track PR status and auto-close/update when the source issue changes state
-    status: planned
+    status: done
     acceptance_criteria:
     - description: PR metadata stored in workspace includes PR number and URL
       validation: check workspace meta.json after PR creation
-      met: false
+      met: true
     tasks:
     - id: p13.d3.t1
       title: Add PR tracking to workspace metadata
-      status: planned
+      status: done
       description: 'After PR creation, update workspace meta.json with: pr_number, pr_url,
         pr_state, created_at. Add a function to pr_creator.py that checks PR status (open/merged/closed)
         and can close a PR when the source issue is closed. Update orchestrator.py run_loop()
@@ -1330,15 +1330,15 @@ phases:
     - ~/zion/projects/agent-orchestration/orchestrator.py
   - name: Configurable PR settings
     description: YAML config for PR behavior (draft mode, labels, reviewers, branch naming)
-    status: planned
+    status: done
     acceptance_criteria:
     - description: pr_config.yaml exists with sensible defaults
       validation: read YAML file
-      met: false
+      met: true
     tasks:
     - id: p13.d4.t1
       title: Create pr_config.yaml
-      status: planned
+      status: done
       description: 'Create pr_config.yaml with: draft (bool, default false), auto_label (bool,
         default true), labels (list, e.g. ["auto-generated", "agent"]), reviewers (list, optional),
         branch_prefix (string, e.g. "orch/"), pr_body_template (multiline string with {{issue_url}},
@@ -1365,7 +1365,7 @@ phases:
   test_target: 10
 - id: phase-14
   title: Agent Health Monitoring (Deacon Pattern)
-  status: planned
+  status: complete
   goal: Implement the Gas Town Deacon pattern -- a health supervision daemon that monitors running workers, detects
     stuck agents, and manages resource usage
   description: 'Gas Town''s Deacon role is a "daemon beacon; central health supervisor" that monitors
@@ -1379,18 +1379,18 @@ phases:
   deliverables:
   - name: Health check module
     description: Python module that checks the health of active worker workspaces
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Module can scan all active workspaces and report health status per worker
       validation: python3 health_check.py --all
-      met: false
+      met: true
     - description: Detects stuck workers (no file changes in N minutes)
       validation: create a stale workspace, run health check
-      met: false
+      met: true
     tasks:
     - id: p14.d1.t1
       title: Create health_check.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) scans all workspaces with status "in-progress", (2)
         checks last file modification time (stuck detection), (3) measures disk usage per workspace,
         (4) checks for zombie processes (optional, via ps), (5) reports health as JSON with per-worker
@@ -1403,15 +1403,15 @@ phases:
     - ~/zion/projects/agent-orchestration/health_check.py
   - name: Auto-recovery for stuck workers
     description: Automatically detect and handle stuck workers (timeout, escalation, or restart)
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Stuck workers are detected and marked as failed after timeout
       validation: simulate stuck worker, verify detection
-      met: false
+      met: true
     tasks:
     - id: p14.d2.t1
       title: Add auto-recovery logic to health_check.py
-      status: planned
+      status: done
       description: 'Add to health_check.py: (1) when a worker is stale beyond threshold, update
         its meta.json status to "failed", (2) post a comment on the GitHub issue explaining the
         timeout, (3) optionally archive the workspace, (4) log the recovery event. Support --auto-recover
@@ -1426,15 +1426,15 @@ phases:
     - ~/zion/projects/agent-orchestration/health_check.py
   - name: Health monitoring cron job
     description: Scheduled cron job that runs health checks and auto-recovers unhealthy workers
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Cron job runs health checks every 15 minutes
       validation: cronjob list
-      met: false
+      met: true
     tasks:
     - id: p14.d3.t1
       title: Create health monitoring cron job
-      status: planned
+      status: done
       description: 'Create a Hermes cron job that runs health_check.py --auto-recover every 15
         minutes. Include config for thresholds, notification on failure, and escalation. The cron
         prompt should read health_config.yaml for settings.'
@@ -1445,15 +1445,15 @@ phases:
     scope_files: []
   - name: Health dashboard in status.sh
     description: Show worker health status alongside the existing status dashboard
-    status: planned
+    status: done
     acceptance_criteria:
     - description: status.sh shows health status per active worker
       validation: run status.sh, check for health section
-      met: false
+      met: true
     tasks:
     - id: p14.d4.t1
       title: Add health section to status.sh
-      status: planned
+      status: done
       description: 'Add a "Worker Health" section to status.sh that calls health_check.py and
         displays: per-worker status (healthy/stale/oversized), disk usage, last activity time,
         time since spawn. Use color coding if terminal supports it (green=healthy, yellow=stale,
@@ -1481,7 +1481,7 @@ phases:
   test_target: 10
 - id: phase-15
   title: Safety Policies and Approval Gates
-  status: planned
+  status: complete
   goal: Add configurable safety policies modeled on Symphony's approval_policy to control when human approval
     is required before agent actions proceed
   description: 'Symphony supports three approval modes: untrusted (every action requires approval), on-failure
@@ -1496,15 +1496,15 @@ phases:
   deliverables:
   - name: Approval policy engine
     description: Configurable approval modes that gate pipeline execution at defined checkpoints
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Support for untrusted, on-failure, and never approval modes
       validation: configure each mode, verify behavior
-      met: false
+      met: true
     tasks:
     - id: p15.d1.t1
       title: Create approval.py module
-      status: planned
+      status: done
       description: 'Python module implementing approval policies: (1) ApprovalMode enum (untrusted,
         on-failure, never), (2) check_approval() function that takes mode, node result, and policy
         config, returns (approved: bool, reason: str), (3) untrusted mode: every AI node requires
@@ -1518,15 +1518,15 @@ phases:
     - ~/zion/projects/agent-orchestration/approval.py
   - name: APPROVAL node type for DAG
     description: Add an APPROVAL node type that pauses pipeline execution until human approval
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Pipeline YAML can include approval nodes that block until approved
       validation: create pipeline with approval node, execute it
-      met: false
+      met: true
     tasks:
     - id: p15.d2.t1
       title: Add APPROVAL node type to DAG executor
-      status: planned
+      status: done
       description: 'Add NodeType.APPROVAL to dag.py. The approval node takes: prompt (what the human
         is approving), timeout (how long to wait before failing), and on_timeout (fail or skip).
         In executor.py: when an approval node is reached, write a pending approval file to the workspace,
@@ -1544,15 +1544,15 @@ phases:
     - ~/zion/projects/agent-orchestration/executor.py
   - name: Approval-safe pipeline template
     description: Pipeline YAML that includes approval gates at critical checkpoints
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Pipeline template has approval nodes before commit and PR creation
       validation: read pipeline YAML
-      met: false
+      met: true
     tasks:
     - id: p15.d3.t1
       title: Create safe-pipeline.yaml with approval gates
-      status: planned
+      status: done
       description: 'Create pipelines/safe-pipeline.yaml based on standard-pipeline.yaml but with
         APPROVAL nodes inserted: (1) after implement (approve code changes before testing), (2) after
         review (approve before commit). The approval nodes include context about what changed (file
@@ -1567,15 +1567,15 @@ phases:
     - ~/zion/projects/agent-orchestration/pipelines/safe-pipeline.yaml
   - name: Approval audit trail
     description: Log all approval decisions with who approved, when, and why
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Approval events are logged with timestamp, approver, decision, and context
       validation: check log files after approval
-      met: false
+      met: true
     tasks:
     - id: p15.d4.t1
       title: Add approval logging to approval.py
-      status: planned
+      status: done
       description: 'Append approval events to ~/.orchestrator/logs/approvals.jsonl. Each entry:
         timestamp, pipeline, node_id, issue_number, decision (approved/rejected/timeout), approver
         (auto or github_username), reason, context_snapshot (files changed, test results). Add a
