@@ -1,0 +1,132 @@
+# Team Pipeline
+# Multi-role pipeline where specialized agents handle different stages:
+#   coordinator plans -> implementer writes code -> tester validates -> implementer fixes -> reviewer approves -> commit
+#
+# Usage:
+#   python3 dag.py pipelines/team-pipeline.yaml
+#   python3 executor.py pipelines/team-pipeline.yaml
+
+name: team-pipeline
+description: Multi-role development pipeline with coordinator planning, implementer coding, tester validation, and reviewer approval
+version: "1.0"
+
+nodes:
+  plan:
+    type: ai
+    name: Plan
+    description: Coordinator analyzes the task and creates an execution plan
+    role: coordinator
+    prompt: |
+      You are a coordinator agent. Analyze the task and create a structured execution plan.
+
+      Steps:
+      1. Read the relevant source files to understand the codebase
+      2. Identify what needs to change
+      3. List the files to modify and what changes to make
+      4. Consider edge cases and potential issues
+      5. Output the plan as a numbered list of concrete steps
+
+      Task: {{task}}
+    max_turns: 8
+
+  implement:
+    type: ai
+    name: Implement
+    description: Implementer writes the code based on the plan
+    role: implementer
+    prompt: |
+      You are an implementer agent. Execute the plan from the previous step.
+
+      1. Read the implementation plan from context
+      2. Make the code changes described in the plan
+      3. Follow existing code patterns and conventions
+      4. Write tests for new functionality
+      5. Commit your changes with a descriptive message
+
+      Task: {{task}}
+    depends_on: [plan]
+    max_turns: 20
+
+  test:
+    type: bash
+    name: Test
+    description: Run the test suite to verify changes
+    command: |
+      echo "=== Running tests ==="
+      if [ -f "pytest.ini" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+        python3 -m pytest --tb=short -q 2>&1
+      elif [ -f "package.json" ]; then
+        npm test 2>&1
+      elif [ -f "Cargo.toml" ]; then
+        cargo test -- --test-threads=2 2>&1
+      elif [ -f "Makefile" ]; then
+        make test 2>&1
+      else
+        echo "No recognized test framework. Skipping."
+        exit 0
+      fi
+    depends_on: [implement]
+    timeout_seconds: 120
+
+  fix:
+    type: loop
+    name: Fix Loop
+    description: Retry implementation if tests fail (up to 3 attempts)
+    depends_on: [test]
+    max_iterations: 3
+    until: "exit_code == 0"
+    children: [implement, test]
+
+  review:
+    type: ai
+    name: Review
+    description: Reviewer analyzes the completed implementation
+    role: reviewer
+    prompt: |
+      You are a reviewer agent. Review the changes made during this pipeline run.
+
+      1. Read the git diff to see all changes
+      2. Check for bugs, edge cases, and code quality issues
+      3. Verify the changes match the original task description
+      4. Check that tests adequately cover the changes
+      5. Output a brief review summary with any issues found
+
+      Output format:
+      ## Summary
+      One paragraph overall assessment.
+
+      ## Issues
+      - [CRITICAL] Description...
+      - [MINOR] Description...
+      - [SUGGESTION] Description...
+
+      ## Verdict
+      APPROVE or REQUEST_CHANGES
+
+      If critical issues are found, list them. If everything looks good, approve.
+
+      Do NOT modify any files. Do NOT run any commands. Only read and analyze.
+    depends_on: [fix]
+    max_turns: 10
+
+  commit:
+    type: bash
+    name: Commit
+    description: Final commit after review approval
+    command: |
+      echo "=== Final commit ==="
+      if git diff --quiet && git diff --cached --quiet; then
+        echo "No changes to commit."
+        exit 0
+      fi
+      git add -A
+      git commit -m "$(cat <<EOF
+      feat: implement task changes
+
+      Pipeline: team-pipeline
+      Roles: coordinator -> implementer -> tester -> reviewer
+      EOF
+      )"
+      echo "=== Committed successfully ==="
+    depends_on: [review]
+    timeout_seconds: 30
