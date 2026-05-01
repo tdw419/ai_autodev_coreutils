@@ -35,6 +35,7 @@ WORKSPACES_DIR = PROJECT_DIR / "workspaces"
 sys.path.insert(0, str(PROJECT_DIR))
 from poller import poll_issues
 from spawner import spawn_worker
+from execution_log import log_loop_iteration
 
 
 def load_config(config_path: str | None = None) -> dict:
@@ -176,6 +177,12 @@ def run_loop(config: dict, dry_run: bool = False) -> dict:
                 "issue_number": issue["number"],
                 "workspace": str(WORKSPACES_DIR / str(issue["number"])),
             })
+
+    # Log the loop iteration
+    try:
+        log_loop_iteration(summary)
+    except Exception:
+        pass
 
     return summary
 

@@ -27,6 +27,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 from dag import Pipeline, Node, NodeType, load_pipeline
+from execution_log import log_pipeline_run
 
 
 @dataclass
@@ -334,6 +335,12 @@ class DAGExecutor:
         exec_result.duration_seconds = round(time.time() - start, 2)
         if exec_result.failed_nodes > 0 and exec_result.status != "failed":
             exec_result.status = "partial"
+
+        # Log the run to persistent storage
+        try:
+            log_pipeline_run(exec_result.to_dict())
+        except Exception:
+            pass  # Don't let logging failures break the pipeline
 
         return exec_result
 
