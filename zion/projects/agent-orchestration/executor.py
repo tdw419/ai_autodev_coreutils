@@ -235,6 +235,92 @@ class DAGExecutor:
             iterations=iterations_used,
         )
 
+    def _execute_review(self, node: Node) -> NodeResult:
+        """
+        Execute a Review node by evaluating the current pipeline state.
+
+        Uses the review_sensor module to assess output quality.
+        """
+        start = time.time()
+
+        try:
+            from review_sensor import evaluate_run, DEFAULT_CRITERIA
+        except ImportError:
+            # If review_sensor not available, pass with warning
+            return NodeResult(
+                node_id=node.id,
+                node_type=node.type.value,
+                status="completed",
+                output="[REVIEW] review_sensor not available, skipping review gate",
+                duration_seconds=round(time.time() - start, 2),
+            )
+
+        # Build a synthetic run from current results for evaluation
+        synthetic_run = {
+            "pipeline_name": self.pipeline.name,
+            "status": "completed",
+            "total_nodes": len(self.results) + 1,
+            "completed_nodes": len(self.results),
+            "duration_seconds": round(time.time() - start, 2),
+            "results": [asdict(r) for r in self.results],
+        }
+
+        # Build criteria from node config or use defaults
+        criteria = DEFAULT_CRITERIA
+        if node.criteria:
+            # Map criteria names to default criteria objects
+            criteria = [c for c in DEFAULT_CRITERIA if c["name"] in node.criteria]
+
+        # Evaluate using a temporary run ID
+        import hashlib
+        run_hash = hashlib.md5(json.dumps(synthetic_run, sort_keys=True).encode()).hexdigest()[:16]
+        temp_run_id = f"review-{run_hash}"
+
+        # Save temp run for review_sensor to read
+        from execution_log import RUNS_DIR
+        RUNS_DIR.mkdir(parents=True, exist_ok=True)
+        temp_run_path = RUNS_DIR / f"{temp_run_id}.json"
+        temp_run_path.write_text(json.dumps(synthetic_run, indent=2))
+
+        try:
+            result = evaluate_run(temp_run_id, criteria)
+        finally:
+            # Clean up temp run
+            if temp_run_path.exists():
+                temp_run_path.unlink()
+
+        score = result.get("weighted_score", 0)
+        verdict = result.get("verdict", "needs_review")
+        threshold = node.review_threshold
+
+        if score < threshold:
+            if node.on_review_fail == "continue":
+                status = "completed"
+            elif node.on_review_fail == "warn":
+                status = "completed"
+                print(f"  [REVIEW WARNING] Score {score} below threshold {threshold}", file=sys.stderr)
+            else:  # stop
+                status = "failed"
+        else:
+            status = "completed"
+
+        output = json.dumps({
+            "score": score,
+            "threshold": threshold,
+            "verdict": verdict,
+            "summary": result.get("summary", ""),
+            "concerns": result.get("concerns", []),
+        }, indent=2)
+
+        self.node_outputs[node.id] = f"[REVIEW] score={score}, verdict={verdict}"
+        return NodeResult(
+            node_id=node.id,
+            node_type=node.type.value,
+            status=status,
+            output=output,
+            duration_seconds=round(time.time() - start, 2),
+        )
+
     def _execute_dependency(self, node: Node) -> NodeResult:
         """Dependency nodes are no-ops that just enforce ordering."""
         return NodeResult(
@@ -259,6 +345,7 @@ class DAGExecutor:
             NodeType.BASH: self._execute_bash,
             NodeType.LOOP: self._execute_loop,
             NodeType.DEPENDENCY: self._execute_dependency,
+            NodeType.REVIEW: self._execute_review,
         }
 
         executor = executors.get(node.type)

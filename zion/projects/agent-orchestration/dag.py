@@ -27,6 +27,7 @@ class NodeType(str, Enum):
     BASH = "bash"
     LOOP = "loop"
     DEPENDENCY = "dependency"
+    REVIEW = "review"
 
 
 @dataclass
@@ -47,6 +48,10 @@ class Node:
     max_iterations: int = 3
     until: str = ""  # condition expression
     children: list[str] = field(default_factory=list)
+    # Review node fields
+    criteria: list[str] = field(default_factory=list)
+    review_threshold: float = 7.0
+    on_review_fail: str = "stop"  # stop, continue, warn
     # Common fields
     depends_on: list[str] = field(default_factory=list)
     timeout_seconds: int = 300
@@ -118,6 +123,9 @@ def parse_node(node_id: str, raw: dict) -> Node:
         max_iterations=raw.get("max_iterations", 3),
         until=raw.get("until", ""),
         children=raw.get("children", []),
+        criteria=raw.get("criteria", []),
+        review_threshold=raw.get("review_threshold", 7.0),
+        on_review_fail=raw.get("on_review_fail", "stop"),
         depends_on=raw.get("depends_on", []),
         timeout_seconds=raw.get("timeout_seconds", 300),
         env=raw.get("env", {}),
