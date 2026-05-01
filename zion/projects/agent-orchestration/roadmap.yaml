@@ -744,22 +744,22 @@ phases:
   test_target: 30
 - id: phase-8
   title: Execution History and Observability
-  status: planned
+  status: complete
   goal: Add persistent execution logging so past orchestrator runs can be inspected, debugged, and analyzed
   description: 'The current system has no execution history. When a pipeline runs, results are printed to stdout and lost. This phase adds a JSON-based execution log that records every pipeline run, every
     node execution, and every orchestrator loop iteration. Includes a CLI to query past runs. This addresses gap #7 from the comparison page (observability) and is essential for production use.'
   deliverables:
   - name: Execution log storage
     description: JSON-based log that records every pipeline run with timestamps, node results, and context
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Executor writes results to a persistent log file after each run
       validation: run executor, check log file exists and contains run data
-      met: false
+      met: true
     tasks:
     - id: p8.d1.t1
       title: Add execution logging to DAGExecutor
-      status: planned
+      status: done
       description: Create execution_log.py module that creates ~/.orchestrator/logs/ directory, writes one JSON file per run (named by timestamp), stores pipeline name, all node results, duration, context,
         and final status. Integrate into executor.py run() method.
       files:
@@ -771,15 +771,15 @@ phases:
     - ~/zion/projects/agent-orchestration/executor.py
   - name: Orchestrator loop logging
     description: Log each orchestrator loop iteration (poll results, spawn decisions, worker state)
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Orchestrator appends loop summaries to a daily log file
       validation: run orchestrator, check daily log file
-      met: false
+      met: true
     tasks:
     - id: p8.d2.t1
       title: Add loop logging to orchestrator.py
-      status: planned
+      status: done
       description: 'Append each run_loop() summary to ~/.orchestrator/logs/loops/YYYY-MM-DD.jsonl (one JSON line per iteration). Include: timestamp, polled count, spawned issues, active workers, skipped
         reasons.'
       files:
@@ -791,15 +791,15 @@ phases:
     - ~/zion/projects/agent-orchestration/orchestrator.py
   - name: History query CLI
     description: CLI command to list and inspect past execution runs
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Can list past runs and show details of a specific run
       validation: python3 orch_history.py list && python3 orch_history.py show RUN_ID
-      met: false
+      met: true
     tasks:
     - id: p8.d3.t1
       title: Create orch_history.py CLI
-      status: planned
+      status: done
       description: 'Python CLI with subcommands: list (show recent runs with status, pipeline name, duration), show RUN_ID (display full node-by-node results), failed (show only failed runs), stats (summary
         statistics). Output as formatted terminal table or JSON.'
       files:
@@ -811,15 +811,15 @@ phases:
     - ~/zion/projects/agent-orchestration/orch_history.py
   - name: Update status.sh to show recent history
     description: Enhance the status dashboard with last N runs summary
-    status: planned
+    status: done
     acceptance_criteria:
     - description: status.sh shows recent execution history alongside worker status
       validation: run status.sh, check for history section
-      met: false
+      met: true
     tasks:
     - id: p8.d4.t1
       title: Update status.sh with history section
-      status: planned
+      status: done
       description: Add a "Recent Runs" section to status.sh that calls orch_history.py list --last 5 and displays it. Keep the existing worker status section.
       files:
       - ~/zion/projects/agent-orchestration/status.sh

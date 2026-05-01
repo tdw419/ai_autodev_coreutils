@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 7/19 phases complete, 0 in progress
+**Progress:** 8/19 phases complete, 0 in progress
 
-**Deliverables:** 28/75 complete
+**Deliverables:** 32/75 complete
 
-**Tasks:** 28/75 complete
+**Tasks:** 32/75 complete
 
 ## Scope Summary
 
@@ -19,7 +19,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-5 Archon-Style Deterministic DAG for Hermes | COMPLETE | 4/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | COMPLETE | 3/3 | 1,780 | - |
 | phase-7 Testing and Hardening | COMPLETE | 4/4 | 550 | 30 |
-| phase-8 Execution History and Observability | PLANNED | 0/4 | 310 | 5 |
+| phase-8 Execution History and Observability | COMPLETE | 4/4 | 310 | 5 |
 | phase-9 Inferential Sensor (LLM-as-Judge Post-Review) | PLANNED | 0/4 | 340 | 5 |
 | phase-10 Automated Garbage Collection and Remediation | PLANNED | 0/4 | 350 | 15 |
 | phase-11 Workspace Lifecycle Management | PLANNED | 0/4 | 200 | 5 |
@@ -441,7 +441,7 @@ Use pytest with subprocess mocking for gh CLI. Use tmp_path fixture for filesyst
 - The executor AI node preparation may be hard to unit test since it outputs delegate_task params rather than executing
 - Loop executor has a known variable scoping issue (iteration variable in except clause)
 
-## [ ] phase-8: Execution History and Observability (PLANNED)
+## [x] phase-8: Execution History and Observability (COMPLETE)
 
 **Goal:** Add persistent execution logging so past orchestrator runs can be inspected, debugged, and analyzed
 
@@ -449,32 +449,32 @@ The current system has no execution history. When a pipeline runs, results are p
 
 ### Deliverables
 
-- [ ] **Execution log storage** -- JSON-based log that records every pipeline run with timestamps, node results, and context
-  - [ ] `p8.d1.t1` Add execution logging to DAGExecutor
+- [x] **Execution log storage** -- JSON-based log that records every pipeline run with timestamps, node results, and context
+  - [x] `p8.d1.t1` Add execution logging to DAGExecutor
     > Create execution_log.py module that creates ~/.orchestrator/logs/ directory, writes one JSON file per run (named by timestamp), stores pipeline name, all node results, duration, context, and final status. Integrate into executor.py run() method.
     _Files: ~/zion/projects/agent-orchestration/execution_log.py, ~/zion/projects/agent-orchestration/executor.py_
-  - [ ] Executor writes results to a persistent log file after each run
+  - [x] Executor writes results to a persistent log file after each run
     _Validation: run executor, check log file exists and contains run data_
   _~100 LOC_
-- [ ] **Orchestrator loop logging** -- Log each orchestrator loop iteration (poll results, spawn decisions, worker state)
-  - [ ] `p8.d2.t1` Add loop logging to orchestrator.py (depends: p8.d1.t1)
+- [x] **Orchestrator loop logging** -- Log each orchestrator loop iteration (poll results, spawn decisions, worker state)
+  - [x] `p8.d2.t1` Add loop logging to orchestrator.py (depends: p8.d1.t1)
     > Append each run_loop() summary to ~/.orchestrator/logs/loops/YYYY-MM-DD.jsonl (one JSON line per iteration). Include: timestamp, polled count, spawned issues, active workers, skipped reasons.
     _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] Orchestrator appends loop summaries to a daily log file
+  - [x] Orchestrator appends loop summaries to a daily log file
     _Validation: run orchestrator, check daily log file_
   _~50 LOC_
-- [ ] **History query CLI** -- CLI command to list and inspect past execution runs
-  - [ ] `p8.d3.t1` Create orch_history.py CLI (depends: p8.d1.t1)
+- [x] **History query CLI** -- CLI command to list and inspect past execution runs
+  - [x] `p8.d3.t1` Create orch_history.py CLI (depends: p8.d1.t1)
     > Python CLI with subcommands: list (show recent runs with status, pipeline name, duration), show RUN_ID (display full node-by-node results), failed (show only failed runs), stats (summary statistics). Output as formatted terminal table or JSON.
     _Files: ~/zion/projects/agent-orchestration/orch_history.py_
-  - [ ] Can list past runs and show details of a specific run
+  - [x] Can list past runs and show details of a specific run
     _Validation: python3 orch_history.py list && python3 orch_history.py show RUN_ID_
   _~120 LOC_
-- [ ] **Update status.sh to show recent history** -- Enhance the status dashboard with last N runs summary
-  - [ ] `p8.d4.t1` Update status.sh with history section (depends: p8.d3.t1)
+- [x] **Update status.sh to show recent history** -- Enhance the status dashboard with last N runs summary
+  - [x] `p8.d4.t1` Update status.sh with history section (depends: p8.d3.t1)
     > Add a "Recent Runs" section to status.sh that calls orch_history.py list --last 5 and displays it. Keep the existing worker status section.
     _Files: ~/zion/projects/agent-orchestration/status.sh_
-  - [ ] status.sh shows recent execution history alongside worker status
+  - [x] status.sh shows recent execution history alongside worker status
     _Validation: run status.sh, check for history section_
   _~40 LOC_
 

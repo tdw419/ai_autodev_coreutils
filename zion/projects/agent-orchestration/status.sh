@@ -96,3 +96,12 @@ if [ $failed -gt 0 ]; then
     echo "Failed:"
     echo -e "$failed_list"
 fi
+
+# Recent execution history
+echo ""
+echo "─── Recent Pipeline Runs ───"
+if [ -x "$ORCH_DIR/orch_history.py" ]; then
+    python3 "$ORCH_DIR/orch_history.py" list --last 5 2>/dev/null || echo "  (no run history yet)"
+else
+    echo "  (orch_history.py not found)"
+fi
