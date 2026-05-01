@@ -5195,6 +5195,500 @@ phases:
     once -- need backpressure
   scope_lines_total: 470
   test_target: 10
+- id: phase-42
+  title: External Application Observability Integration
+  status: planned
+  goal: Enable agents to access target application logs, metrics, and traces during pipeline
+    execution for effective debugging and verification
+  description: 'The Harness Engineering research explicitly identifies "Integrated Observability:
+    Providing agents with local access to logs, metrics, and traces so they can reason about
+    the behavior of the code they have just written" as a core pillar of Application Legibility.
+    Currently, agents can run tests and lint but cannot inspect the target application''s runtime
+    behavior. This creates a significant blind spot: agents can write code that passes unit tests
+    but fails in production due to runtime issues they cannot observe. This phase adds an observability
+    bridge that: (1) discovers and reads application log files from the target project, (2) parses
+    common log formats (structured JSON, unstructured text, common frameworks), (3) surfaces relevant
+    log entries as context in AI node prompts when debugging or verifying changes, (4) supports
+    reading metrics from local metrics endpoints (Prometheus, /health, /metrics), (5) adds an OBSERVE
+    node type to the DAG executor for explicit observability checks. This closes the Application
+    Legibility gap for runtime behavior.'
+  deliverables:
+  - name: Log discovery and parsing module
+    description: Python module that discovers, reads, and parses application log files from target
+      projects
+    status: planned
+    acceptance_criteria:
+    - description: Module can discover log files in common locations (logs/, var/log, stdout captures)
+      validation: python3 observability.py discover --project /path/to/project
+      met: false
+    - description: Supports structured JSON logs and common unstructured formats
+      validation: feed sample log files, verify parsed output
+      met: false
+    tasks:
+    - id: p42.d1.t1
+      title: Create observability.py log discovery module
+      status: planned
+      description: 'Create observability.py: (1) discover_logs(project_dir) -- scan for log files
+        in common locations: logs/, var/log/, *.log, docker-compose stdout captures, CI artifacts,
+        (2) parse_logs(log_path, format="auto") -- detect format (JSON, key=value, common frameworks
+        like Django/Flask/Express), return structured list of log entries, (3) search_logs(entries,
+        query) -- filter by level (ERROR, WARN), time range, message pattern, (4) tail_logs(log_path,
+        n=50) -- return the last N entries for recent error context, (5) summarize_logs(entries)
+        -- produce a concise summary suitable for agent context (error counts by type, recent errors,
+        warnings). Auto-detect log rotation (compressed files, numbered suffixes).'
+      files:
+      - ~/zion/projects/agent-orchestration/observability.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/observability.py
+  - name: Metrics endpoint reader
+    description: Module that reads metrics from local application endpoints (Prometheus, /health,
+      /metrics)
+    status: planned
+    acceptance_criteria:
+    - description: Can read metrics from a running local application endpoint
+      validation: start a test server with /metrics, run reader, verify output
+      met: false
+    - description: Extracts key metrics (request counts, error rates, latency percentiles)
+      validation: check parsed output for expected metric names
+      met: false
+    tasks:
+    - id: p42.d2.t1
+      title: Add metrics reader to observability.py
+      status: planned
+      description: 'Add metrics reading to observability.py: (1) read_metrics(url, format="auto")
+        -- fetch metrics from a local endpoint, auto-detect format (Prometheus text, JSON, health
+        check), (2) parse_prometheus(text) -- parse Prometheus exposition format into structured
+        metrics, (3) extract_key_metrics(metrics) -- pull out common signals: request_total, error_total,
+        latency_p50/p95/p99, up status, (4) diff_metrics(before, after) -- compare metric snapshots
+        before and after a code change to detect regressions, (5) --wait-for-ready flag to poll
+        until an endpoint responds (useful after starting a dev server). Timeout after 30 seconds.'
+      dependencies:
+      - p42.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/observability.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/observability.py
+  - name: OBSERVE node type for DAG executor
+    description: Add an OBSERVE node type that reads logs/metrics during pipeline execution and
+      surfaces findings to subsequent AI nodes
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline YAML can include OBSERVE nodes for log and metric checks
+      validation: create pipeline with OBSERVE node, execute it
+      met: false
+    - description: AI nodes after OBSERVE receive log/metric context in their prompts
+      validation: check AI node prompt includes observability data
+      met: false
+    tasks:
+    - id: p42.d3.t1
+      title: Add OBSERVE node type to DAG executor
+      status: planned
+      description: 'Add NodeType.OBSERVE to dag.py. The observe node takes: logs (list of log file
+        glob patterns or "auto" for discovery), metrics_url (optional endpoint URL), filters (error
+        level, time range, patterns), assert (optional: "no_errors", "error_count < N", "latency_p95
+        < 500ms"). Executor calls observability.py to read logs/metrics, formats findings as a
+        structured summary, and injects it into the pipeline context for subsequent AI nodes. If
+        assert fails, node fails with details. This lets agents see runtime behavior without manual
+        log diving.'
+      dependencies:
+      - p42.d1.t1
+      - p42.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dag.py
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dag.py
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Debug-aware pipeline template
+    description: Pipeline YAML that integrates observability checks for debugging and verification
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline template includes OBSERVE nodes for log-based debugging
+      validation: read pipeline YAML, trace through nodes
+      met: false
+    tasks:
+    - id: p42.d4.t1
+      title: Create debug-pipeline.yaml
+      status: planned
+      description: 'Create pipelines/debug-pipeline.yaml: AI(analyze issue) -> OBSERVE(read logs
+        before change, assert no pre-existing errors) -> AI(implement fix) -> Bash(test) -> OBSERVE(read
+        logs after change, assert no new errors) -> AI(review, with log context) -> Bash(commit).
+        This pipeline gives agents full visibility into runtime behavior. Include env vars for log
+        paths and metrics URL. The before/after OBSERVE comparison catches regressions that unit
+        tests miss.'
+      dependencies:
+      - p42.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/debug-pipeline.yaml
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/debug-pipeline.yaml
+  dependencies:
+  - source: phase-5
+    target: phase-42
+    type: soft
+    reason: OBSERVE node type extends the DAG executor from phase 5
+  - source: phase-7
+    target: phase-42
+    type: soft
+    reason: Tests should cover observability integration before production use
+  - source: phase-33
+    target: phase-42
+    type: soft
+    reason: Application legibility analysis from phase 33 identifies which projects need log integration
+  - source: phase-39
+    target: phase-42
+    type: soft
+    reason: Browser verification from phase 39 and log observability from phase 42 are complementary
+      UI vs backend observability
+  technical_notes: 'Observability integration is the bridge between "agent writes code" and "agent
+    understands the system." The key insight from Harness Engineering is that agents need to be
+    able to verify their own work at the application level, not just the unit test level. Log discovery
+    is heuristic-based -- check common locations, don''t require configuration. Metrics reading
+    requires the target app to be running -- the OBSERVE node should gracefully degrade if the
+    app is not running (skip, don''t fail). Log injection into AI prompts must be size-limited
+    to avoid context bloat -- summarize, don''t dump raw logs.'
+  risks:
+  - Log files may be large -- need tailing and summarization, not full reads
+  - Log formats vary wildly across projects -- auto-detection will have blind spots
+  - Metrics endpoints may not exist or use non-standard formats -- need graceful degradation
+  - Reading logs could expose sensitive information -- filter out secrets, PII before injection
+  - OBSERVE nodes add pipeline latency (waiting for app startup, reading logs) -- keep them focused
+  scope_lines_total: 430
+  test_target: 10
+- id: phase-43
+  title: Automated Refactoring Pipeline (Self-Healing Codebase)
+  status: planned
+  goal: Combine garbage collection scanning with automated fix generation and PR creation into
+    an autonomous self-healing pipeline
+  description: 'The research describes the future outlook: "codebases are inherently self-correcting.
+    Garbage Collection Loops run weekly as background tasks, scanning for deviations from golden
+    principles and opening targeted refactoring pull requests." Phase 10 (GC) scans for convention
+    violations and reports them. Phase 13 (PR automation) creates PRs from workspace branches.
+    But these two capabilities are not connected -- GC findings require manual action to fix. This
+    phase closes the loop by creating an automated refactoring pipeline that: (1) runs GC scanning
+    to detect violations, (2) categorizes findings by severity and effort, (3) delegates each
+    fix to an AI worker with the violation as context, (4) runs tests to verify the fix doesn''t
+    break anything, (5) creates a PR for each batch of fixes. This is the "Self-Correcting Codebase"
+    from the research made real: the orchestrator not only detects drift but actively repairs it.'
+  deliverables:
+  - name: Refactoring job generator
+    description: Module that takes GC scan results and generates prioritized refactoring jobs
+    status: planned
+    acceptance_criteria:
+    - description: Can take GC findings and produce a prioritized list of fix jobs
+      validation: run GC scan, feed results to generator, verify job list
+      met: false
+    - description: Jobs are grouped by file/area to minimize PR size
+      validation: check that related findings are grouped
+      met: false
+    tasks:
+    - id: p43.d1.t1
+      title: Create refactoring.py job generator
+      status: planned
+      description: 'Create refactoring.py: (1) generate_jobs(gc_findings) -- take output from garbage_collector.py
+        --conventions, categorize by: severity (error > warning > style), fix_effort (simple rename
+        > moderate refactor > complex restructure), file_group (group findings in same file/directory),
+        (2) prioritize_jobs(jobs) -- sort by severity * confidence, then group into PR-sized batches
+        (max 10 files per PR), (3) estimate_tokens(jobs) -- estimate tokens needed for each job
+        (for budget awareness from phase 32), (4) filter_jobs(jobs, scope) -- allow filtering by
+        category, file pattern, or severity threshold, (5) --dry-run to preview what refactoring
+        PRs would be created without actually making changes. Output as structured JSON.'
+      files:
+      - ~/zion/projects/agent-orchestration/refactoring.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/refactoring.py
+  - name: Autonomous fix execution pipeline
+    description: Pipeline YAML that autonomously fixes detected violations and creates PRs
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline takes a GC finding, fixes it, tests the fix, and creates a PR
+      validation: create a test violation, run pipeline, verify fix and PR
+      met: false
+    - description: Multiple violations are batched into a single PR when related
+      validation: create 3 violations in same file, verify single PR
+      met: false
+    tasks:
+    - id: p43.d2.t1
+      title: Create auto-refactor-pipeline.yaml
+      status: planned
+      description: 'Create pipelines/auto-refactor-pipeline.yaml: OBSERVE(scan logs for context)
+        -> AI(analyze GC findings, plan fixes) -> Loop(fix violations, max=5 per iteration) ->
+        Bash(run tests) -> Loop(retry on test failure, max=3) -> REVIEW(LLM judge for fix quality)
+        -> Bash(create branch, commit fixes) -> Bash(create PR with detailed description of what
+        was fixed and why). The pipeline is designed to be run by the orchestrator as a cron job,
+        creating refactoring PRs that humans can review and merge.'
+      dependencies:
+      - p43.d1.t1
+      - p42.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/auto-refactor-pipeline.yaml
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/auto-refactor-pipeline.yaml
+  - name: Refactoring cron job integration
+    description: 'Weekly cron job that runs the full refactoring cycle: scan, fix, PR'
+    status: planned
+    acceptance_criteria:
+    - description: Cron job runs the refactoring pipeline weekly
+      validation: cronjob list
+      met: false
+    - description: Respects token budget limits (from phase 32)
+      validation: check cron prompt for budget check
+      met: false
+    tasks:
+    - id: p43.d3.t1
+      title: Create refactoring cron job
+      status: planned
+      description: 'Create a weekly Hermes cron job that: (1) runs garbage_collector.py --conventions
+        on target projects, (2) feeds findings to refactoring.py generate_jobs, (3) for each job
+        batch, runs the auto-refactor pipeline, (4) creates PRs for each batch, (5) reports summary
+        (violations found, fixes attempted, fixes succeeded, PRs created). Include budget check:
+        skip refactoring if weekly token budget is nearly exhausted (from phase 32). Respect safety
+        policies from phase 15 (no auto-merge for refactoring PRs -- always human review).'
+      dependencies:
+      - p43.d2.t1
+      files: []
+    scope_lines: 40
+    scope_files: []
+  - name: Refactoring effectiveness tracking
+    description: Track the long-term impact of automated refactoring on codebase health
+    status: planned
+    acceptance_criteria:
+    - description: 'Can report refactoring trends: violations fixed over time, recurrence rate'
+      validation: python3 refactoring.py --report --period month
+      met: false
+    tasks:
+    - id: p43.d4.t1
+      title: Add effectiveness tracking to refactoring.py
+      status: planned
+      description: 'Add --report mode to refactoring.py: (1) track refactoring history in ~/.orchestrator/logs/refactoring/
+        (jobs generated, fixes attempted, tests passed/failed, PRs created, PRs merged), (2) compute
+        recurrence rate -- do fixed violations come back? (indicates the GC rules or agent fixes
+        need improvement), (3) track violation trend -- is the total violation count decreasing
+        over time? (4) track fix quality -- what percentage of refactoring PRs pass review without
+        changes? (5) output weekly/monthly summary. This closes the feedback loop: measure the
+        impact of self-healing on codebase health.'
+      dependencies:
+      - p43.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/refactoring.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/refactoring.py
+  dependencies:
+  - source: phase-10
+    target: phase-43
+    type: soft
+    reason: Refactoring pipeline consumes GC scan results from phase 10
+  - source: phase-13
+    target: phase-43
+    type: soft
+    reason: Refactoring PRs use PR creation from phase 13
+  - source: phase-15
+    target: phase-43
+    type: soft
+    reason: Refactoring PRs should always require human review per safety policies
+  - source: phase-32
+    target: phase-43
+    type: soft
+    reason: Refactoring consumes tokens -- respect budget limits from phase 32
+  - source: phase-42
+    target: phase-43
+    type: soft
+    reason: OBSERVE nodes from phase 42 provide log context for understanding violations
+  technical_notes: 'The self-healing pipeline is the realization of the "Self-Correcting Codebase"
+    vision from the research. The key design decision is that refactoring PRs always require human
+    review (never auto-merge) -- this is a safety boundary. The pipeline batches related fixes into
+    single PRs to avoid PR fatigue. Recurrence tracking is critical: if the same violation keeps
+    coming back, either the GC rule is wrong or the agent fix is insufficient. The refactoring cron
+    should run weekly (not daily) to avoid overwhelming reviewers with PRs.'
+  risks:
+  - Automated fixes could introduce bugs -- always run tests and require human review
+  - Refactoring PRs could conflict with active development -- merge queue from phase 21 helps
+  - GC findings may be noisy (false positives) -- need confidence threshold before auto-fixing
+  - Weekly refactoring PRs could accumulate if not reviewed -- track stale PRs
+  - Token costs for refactoring scale with codebase size -- need per-project budget limits
+  scope_lines_total: 320
+  test_target: 10
+- id: phase-44
+  title: System Health Scorecard and Effectiveness Trends
+  status: planned
+  goal: Track and report the orchestrator''s overall effectiveness over time with historical trend
+    analysis and a health scorecard
+  description: 'The research cites specific effectiveness metrics: "500% increase in landed pull
+    requests within the first three weeks" and "10x increase in development velocity." These are
+    system-level metrics that measure the orchestrator''s overall impact, not just individual run
+    outcomes. Phase 8 (execution history) logs individual pipeline runs. Phase 27 (live dashboard)
+    shows real-time state. But no phase aggregates historical data into effectiveness trends or
+    produces a health scorecard that answers: "Is the orchestrator getting better or worse over
+    time?" This phase adds: (1) a metrics aggregation engine that computes weekly/monthly KPIs
+    from execution logs, (2) a health scorecard that summarizes system health in a single score
+    (0-100), (3) trend analysis that detects improvements and regressions in orchestrator effectiveness,
+    (4) automated reporting that surfaces actionable insights. This is essential for the Dark Factory
+    model (phase 35) -- you cannot trust an autonomous system without measuring its effectiveness.'
+  deliverables:
+  - name: Metrics aggregation engine
+    description: Module that computes KPIs from execution history logs
+    status: planned
+    acceptance_criteria:
+    - description: 'Computes weekly KPIs: PRs landed, issues resolved, success rate, avg time-to-resolution'
+      validation: python3 health_scorecard.py --kpi --period week
+      met: false
+    - description: Reads from execution history created by phase 8
+      validation: generate test execution logs, verify KPI computation
+      met: false
+    tasks:
+    - id: p44.d1.t1
+      title: Create health_scorecard.py aggregation engine
+      status: planned
+      description: 'Create health_scorecard.py: (1) compute_kpis(period="week"|"month", repo=None)
+        -- aggregate execution logs from phase 8 into KPIs: issues_resolved, prs_landed, prs_created,
+        success_rate (pipeline runs that complete without failure), avg_time_to_resolution (issue
+        open to PR merged), avg_pipeline_duration, test_pass_rate, cost_per_issue, agent_turns_per_issue,
+        (2) compare_periods(current, previous) -- compute week-over-week or month-over-month changes
+        for each KPI, (3) detect_anomalies(kpis) -- flag KPIs that deviate significantly from
+        historical baseline (>2 standard deviations), (4) --format table|json|markdown for different
+        output modes. Store computed KPIs in ~/.orchestrator/metrics/kpis-YYYY-MM-DD.jsonl for
+        historical analysis.'
+      dependencies:
+      - p8.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/health_scorecard.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/health_scorecard.py
+  - name: Health scorecard computation
+    description: Composite health score (0-100) derived from multiple effectiveness signals
+    status: planned
+    acceptance_criteria:
+    - description: Outputs a single health score with breakdown by signal
+      validation: python3 health_scorecard.py --score
+      met: false
+    - description: Score weights are configurable
+      validation: read scorecard_config.yaml
+      met: false
+    tasks:
+    - id: p44.d2.t1
+      title: Add health score computation to health_scorecard.py
+      status: planned
+      description: 'Add health score to health_scorecard.py: (1) compute_health_score(kpis) --
+        weighted composite score from: success_rate (weight 0.30), test_pass_rate (0.20), cost_efficiency
+        (issues per $1 of tokens, 0.15), time_efficiency (avg resolution time vs SLA, 0.15), quality_score
+        (from review sensor phase 9, 0.10), coverage (fraction of repo issues handled, 0.10), (2)
+        health_level(score) -- map to: excellent (85+), good (70-84), fair (55-69), poor (40-54),
+        critical (<40), (3) trend_direction(score_history) -- is the score improving, stable, or
+        declining over the last N periods?, (4) scorecard_config.yaml defines weights, thresholds,
+        and anomaly detection parameters. Output as a visual scorecard with emoji indicators for
+        each signal.'
+      dependencies:
+      - p44.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/health_scorecard.py
+      - ~/zion/projects/agent-orchestration/scorecard_config.yaml
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/health_scorecard.py
+    - ~/zion/projects/agent-orchestration/scorecard_config.yaml
+  - name: Trend analysis and regression detection
+    description: Detect long-term trends in orchestrator effectiveness and flag regressions
+    status: planned
+    acceptance_criteria:
+    - description: Can identify when success rate or cost efficiency is declining over time
+      validation: generate test data with declining trend, verify detection
+      met: false
+    - description: Produces actionable recommendations for improving declining metrics
+      validation: check trend report for recommendations
+      met: false
+    tasks:
+    - id: p44.d3.t1
+      title: Add trend analysis to health_scorecard.py
+      status: planned
+      description: 'Add trend analysis to health_scorecard.py: (1) analyze_trends(kpi_history,
+        periods=8) -- compute linear regression slope for each KPI over the last N weeks, classify
+        as: improving (slope > threshold), stable (near zero), declining (slope < -threshold),
+        (2) correlate_metrics(kpis) -- find correlations between metrics (e.g., does higher agent_turns
+        correlate with higher success rate?), (3) generate_recommendations(trends) -- based on declining
+        metrics, suggest actions: "Success rate declining -- check if recent issues are harder
+        (more complex labels)" or "Cost per issue increasing -- review routing rules from phase
+        40", (4) --trend-report produces a markdown summary with tables and recommendations. Store
+        trend analysis in ~/.orchestrator/metrics/trends.jsonl.'
+      dependencies:
+      - p44.d1.t1
+      - p44.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/health_scorecard.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/health_scorecard.py
+  - name: Weekly effectiveness report cron job
+    description: Automated weekly report that surfaces orchestrator health and actionable insights
+    status: planned
+    acceptance_criteria:
+    - description: Cron job generates and delivers a weekly effectiveness report
+      validation: cronjob list
+      met: false
+    tasks:
+    - id: p44.d4.t1
+      title: Create weekly effectiveness report cron job
+      status: planned
+      description: 'Create a weekly Hermes cron job that: (1) runs health_scorecard.py to compute
+        KPIs and health score, (2) runs trend analysis to detect regressions, (3) generates a
+        markdown report with: health scorecard (with breakdown), KPI table (current vs previous
+        period), trend indicators, actionable recommendations, top issues by resolution time, cost
+        summary, (4) saves report to ~/zion/projects/agent-orchestration/reports/weekly-YYYY-MM-DD.md.
+        The report is designed for human consumption -- a weekly "orchestrator health check" that
+        answers "how is the system doing?" in one page.'
+      dependencies:
+      - p44.d2.t1
+      - p44.d3.t1
+      files: []
+    scope_lines: 40
+    scope_files: []
+  dependencies:
+  - source: phase-8
+    target: phase-44
+    type: soft
+    reason: Health scorecard reads execution history logs from phase 8
+  - source: phase-9
+    target: phase-44
+    type: soft
+    reason: Review sensor scores from phase 9 feed into the quality signal of the health score
+  - source: phase-14
+    target: phase-44
+    type: soft
+    reason: Health monitoring data from phase 14 provides system uptime and reliability signals
+  - source: phase-27
+    target: phase-44
+    type: soft
+    reason: Dashboard from phase 27 provides real-time state that complements historical trends
+  - source: phase-32
+    target: phase-44
+    type: soft
+    reason: Cost tracking from phase 32 provides the cost efficiency signal for the health score
+  - source: phase-35
+    target: phase-44
+    type: soft
+    reason: Dark factory confidence scores from phase 35 are a key effectiveness signal
+  technical_notes: 'The health scorecard is the "instrument panel" for the orchestrator. The key
+    insight from the research is that effective systems are measured systems -- you cannot improve
+    what you cannot measure. The score is a composite of multiple signals, not a single metric,
+    to avoid gaming any one number. Trend analysis uses simple linear regression -- no ML needed.
+    The weekly report is designed for quick human scanning: one page, clear signals, actionable
+    recommendations. Historical KPI data should be retained indefinitely for long-term trend analysis
+    (JSONL files are compact).'
+  risks:
+  - KPI definitions may not capture what matters -- need iteration based on real usage
+  - Health score could mask individual metric regressions if weights are wrong -- show full breakdown
+  - Trend analysis on small datasets (first few weeks) will be noisy -- require minimum data before
+    flagging
+  - Weekly reports add noise if the system is stable -- include "no significant changes" summary
+  scope_lines_total: 410
+  test_target: 8
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
 - delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
@@ -5209,6 +5703,9 @@ global_risks:
 - Browser automation (phase 39) requires Chrome/Chromium -- adds a heavy runtime dependency and may not work in all CI environments
 - Multi-model routing (phase 40) could route complex tasks to underpowered models if scoring is wrong -- need conservative defaults
 - Priority scheduling (phase 41) could starve complex tasks if urgency weights favor simple fast completions -- need starvation prevention
+- External observability (phase 42) could expose sensitive data from logs -- need PII/secrets filtering before injecting into agent context
+- Automated refactoring (phase 43) could make incorrect fixes that pass tests but change semantics -- always require human review for refactoring PRs
+- Health scorecard (phase 44) KPIs may not capture what matters initially -- need iteration based on real usage patterns
 conventions:
 - Python scripts use python3 (no bare python command on this system)
 - GitHub API via gh CLI, not raw curl
@@ -5219,8 +5716,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 41
-  estimated_weeks: 42-50
+  phases_total: 44
+  estimated_weeks: 46-55
   updated: '2026-05-01'
-  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41]
-  phases_added_from: 'Phase 39-41: Browser-Based UI Verification (Harness Engineering "Direct UI Manipulation" via Chrome DevTools Protocol -- closing the Application Legibility gap for visual/UI verification), Multi-Model Agent Backend Abstraction (Inner Harness pluggable backends with intelligent routing for cost optimization -- from the research noting Inner Harness is "increasingly commoditized"), and Intelligent Scheduling with GUPP Enforcement (Gas Town Universal Propulsion Principle -- priority queue, urgency scoring, SLA tracking replacing simple cron polling order). Added based on gap analysis against research doc sections on Application Legibility, Inner Harness commoditization, and GUPP scheduling principle.'
+  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+  phases_added_from: 'Phase 42-44: External Application Observability Integration (Harness Engineering "Integrated Observability" -- connecting agents to target application logs, metrics, and traces for runtime behavior verification), Automated Refactoring Pipeline (Self-Correcting Codebase from research future outlook -- combining GC scanning with autonomous fix generation and PR creation), and System Health Scorecard (measuring orchestrator effectiveness over time with KPIs, composite health scores, and trend analysis -- essential for Dark Factory trust). Added based on gap analysis against research doc sections on Application Legibility, Self-Correcting Codebase, and system effectiveness measurement.'
