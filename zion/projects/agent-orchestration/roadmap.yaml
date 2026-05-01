@@ -1035,6 +1035,18 @@ phases:
     target: phase-10
     type: soft
     reason: LLM review sensor from phase 9 can be used to validate auto-fix quality
+  - source: phase-20
+    target: phase-21
+    type: soft
+    reason: Context budgeting ensures merge conflict reports fit in AI node prompts
+  - source: phase-20
+    target: phase-9
+    type: soft
+    reason: Context budgeting ensures review prompts don't exceed smart zone limits
+  - source: phase-22
+    target: phase-21
+    type: soft
+    reason: Config hot-reload allows merge queue settings to be tuned without restart
   technical_notes: 'The scanner should be project-agnostic -- it reads AI_GUIDE.md for rules rather than hardcoding conventions. Auto-fix should be conservative: only fix things that are mechanically verifiable (naming, imports, structure), never touch logic.'
   risks:
   - Auto-fix could introduce subtle bugs if confidence threshold is too low
@@ -2148,6 +2160,397 @@ phases:
   - Analysis quality depends on having enough execution history -- needs a minimum of 20-30 runs to be meaningful
   scope_lines_total: 380
   test_target: 5
+- id: phase-20
+  title: Context Window Optimization (Smart Zone)
+  status: planned
+  goal: Implement context budget management for AI nodes so agents stay in the 'smart zone' and avoid reasoning decay
+  description: 'The Ralph Wiggum pattern from the research emphasizes that AI models exhibit reasoning quality
+    decay after reaching 30-60% of their context window. The current DAG executor constructs prompts for
+    AI nodes without any awareness of context budget -- a large issue body + AI_GUIDE.md + pipeline context
+    could easily exceed the optimal range. This phase adds a context_budget module that: (1) estimates token
+    count for prompt components, (2) prioritizes which context to include when budget is tight, (3) truncates
+    or summarizes context that exceeds budget, (4) tracks actual context usage per AI node run for tuning.
+    This ensures agents always operate in the "smart zone" for maximum reasoning quality, directly applying
+    the research''s key insight about context management.'
+  deliverables:
+  - name: Context budget estimator
+    description: Python module that estimates token counts for prompt components and manages context budgets
+    status: planned
+    acceptance_criteria:
+    - description: Module can estimate token count for a string with reasonable accuracy (within 10%)
+      validation: python3 context_budget.py --estimate --text "test string"
+      met: false
+    - description: Supports configurable budget with per-component priority weights
+      validation: test with different budget limits and priorities
+      met: false
+    tasks:
+    - id: p20.d1.t1
+      title: Create context_budget.py module
+      status: planned
+      description: 'Python module that: (1) estimates token count using tiktoken or a simple word*1.3 heuristic,
+        (2) accepts a list of prompt components with priorities (issue_body=high, ai_guide=medium, previous_context=low),
+        (3) when total exceeds budget, truncates lowest-priority components first, (4) supports summarize mode
+        that extracts key points from truncated sections, (5) logs actual vs estimated token usage per run.
+        Default budget: 80% of model context window (leaving 20% for response).'
+      files:
+      - ~/zion/projects/agent-orchestration/context_budget.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/context_budget.py
+  - name: Budget-aware prompt builder in executor
+    description: Update the DAG executor to use context budgeting when constructing AI node prompts
+    status: planned
+    acceptance_criteria:
+    - description: AI node prompts are constructed with budget awareness
+      validation: run executor with large issue body, check prompt is truncated appropriately
+      met: false
+    - description: Budget usage is logged per AI node execution
+      validation: check execution log for budget fields
+      met: false
+    tasks:
+    - id: p20.d2.t1
+      title: Integrate context_budget into executor AI node builder
+      status: planned
+      description: 'Modify executor.py build_ai_prompt() to: (1) pass prompt components (issue body, AI_GUIDE.md,
+        role prompt, pipeline context, previous results) to context_budget.fit_to_budget(), (2) include budget
+        stats (estimated_tokens, budget, truncation_applied) in the execution log, (3) support a --budget flag
+        on the executor CLI to override default budget, (4) warn in logs when more than 30% of context is
+        truncated.'
+      dependencies:
+      - p20.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Context budget configuration
+    description: YAML config for per-pipeline and per-role context budgets
+    status: planned
+    acceptance_criteria:
+    - description: context_config.yaml exists with per-role and per-pipeline budget overrides
+      validation: read YAML file
+      met: false
+    tasks:
+    - id: p20.d3.t1
+      title: Create context_config.yaml
+      status: planned
+      description: 'Create context_config.yaml with: default_budget_tokens (80000 for claude models),
+        per_role_overrides (reviewer gets more context, coordinator gets less), per_pipeline_overrides
+        (review-pipeline gets more budget for diff context), component_priorities (ordered list of
+        prompt components with priority weights), summarize_threshold (at what truncation level to
+        switch from truncation to summarization).'
+      files:
+      - ~/zion/projects/agent-orchestration/context_config.yaml
+      dependencies:
+      - p20.d1.t1
+    scope_lines: 40
+    scope_files:
+    - ~/zion/projects/agent-orchestration/context_config.yaml
+  - name: Context usage analytics
+    description: Track and report context window usage patterns across pipeline runs
+    status: planned
+    acceptance_criteria:
+    - description: Can report average context usage per node type and role
+      validation: python3 context_budget.py --stats --last 20
+      met: false
+    tasks:
+    - id: p20.d4.t1
+      title: Add context usage analytics to context_budget.py
+      status: planned
+      description: 'Add --stats mode to context_budget.py that: (1) reads execution logs for budget fields,
+        (2) computes average context usage per node type, per role, per pipeline, (3) identifies nodes
+        that frequently hit budget limits (sign of oversized prompts), (4) suggests budget adjustments
+        based on usage patterns. Output as table or JSON.'
+      dependencies:
+      - p20.d1.t1
+      - p8.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/context_budget.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/context_budget.py
+  dependencies:
+  - source: phase-5
+    target: phase-20
+    type: soft
+    reason: Context budgeting modifies the executor AI node prompt construction from phase 5
+  - source: phase-8
+    target: phase-20
+    type: soft
+    reason: Context budget stats are stored in execution logs from phase 8
+  technical_notes: 'Token estimation can use a simple heuristic (chars / 3.5) to avoid external dependencies,
+    or tiktoken if available. The "smart zone" concept means keeping prompt under 60% of model context window.
+    Truncation should preserve the most informative parts: issue title + first paragraph, AI_GUIDE commands
+    section, role system prompt.'
+  risks:
+  - Token estimation is inherently imprecise -- different models have different tokenizers
+  - Over-aggressive truncation could remove critical context that the agent needs
+  - Budget tuning requires experimentation with real workloads
+  scope_lines_total: 300
+  test_target: 5
+- id: phase-21
+  title: Merge Queue and Conflict Prevention (Refinery Pattern)
+  status: planned
+  goal: Implement Gas Town''s Refinery pattern to manage concurrent agent PRs and prevent merge conflicts
+  description: 'Gas Town''s Refinery role "manages merge queues to prevent collisions" -- when multiple
+    agents work on the same codebase simultaneously, their PRs can conflict. The current orchestrator
+    can spawn multiple workers but has no merge coordination. This phase adds a merge queue system that:
+    (1) sequences PR merges to avoid conflicts, (2) detects potential conflicts before agents start work,
+    (3) rebases branches when the base has moved, (4) provides merge order recommendations. This is essential
+    for running the orchestrator at scale with concurrent workers, directly implementing the Refinery pattern
+    from the research.'
+  deliverables:
+  - name: Conflict detector
+    description: Python module that predicts merge conflicts between workspace branches and the main branch
+    status: planned
+    acceptance_criteria:
+    - description: Module can check if workspace changes would conflict with main branch
+      validation: create conflicting changes, run detector
+      met: false
+    - description: Reports conflict probability and affected files
+      validation: check output includes file list and confidence score
+      met: false
+    tasks:
+    - id: p21.d1.t1
+      title: Create conflict_detector.py module
+      status: planned
+      description: 'Python module that: (1) runs git diff on workspace branch vs main, (2) for each changed
+        file, checks if main branch has concurrent changes (git log --oneline main..HEAD), (3) uses git
+        merge-tree --write-tree to dry-run merge and detect conflicts, (4) outputs conflict report as JSON
+        with: workspace, branch, conflict_files, conflict_type (content vs structural), severity, suggested_action
+        (rebase, wait, or proceed). Support --batch flag to check all workspaces.'
+      files:
+      - ~/zion/projects/agent-orchestration/conflict_detector.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/conflict_detector.py
+  - name: Merge queue manager
+    description: Ordered queue that sequences PR merges to minimize conflicts
+    status: planned
+    acceptance_criteria:
+    - description: Can enqueue multiple PRs and determine safe merge order
+      validation: enqueue 3 PRs with overlapping files, verify order minimizes conflicts
+      met: false
+    - description: Queue state persists across orchestrator restarts
+      validation: check queue file exists and is valid after restart
+      met: false
+    tasks:
+    - id: p21.d2.t1
+      title: Create merge_queue.py module
+      status: planned
+      description: 'Python module implementing a priority merge queue: (1) PRs are added to a JSON-backed
+        queue file (~/.orchestrator/merge-queue.jsonl), (2) queue is ordered by: no-conflict PRs first,
+        then by fewest conflicts, then by oldest, (3) supports enqueue, dequeue, reorder, and status commands,
+        (4) before merging, runs conflict_detector to verify merge is still safe, (5) if new conflict detected,
+        moves PR to "needs-rebase" state. CLI: python3 merge_queue.py enqueue --pr 42, dequeue, status, reorder.'
+      dependencies:
+      - p21.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/merge_queue.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/merge_queue.py
+  - name: Auto-rebase on conflict
+    description: Automatically rebase workspace branches when main branch has advanced
+    status: planned
+    acceptance_criteria:
+    - description: Can rebase a workspace branch onto latest main
+      validation: create diverged branch, run rebase, verify clean merge
+      met: false
+    - description: Rebase failure triggers workspace notification
+      validation: simulate unresolvable conflict, check notification
+      met: false
+    tasks:
+    - id: p21.d3.t1
+      title: Add auto-rebase to merge_queue.py
+      status: planned
+      description: 'Add rebase function to merge_queue.py: (1) when a PR is next in queue but has conflicts,
+        attempt git rebase main, (2) if rebase succeeds, re-run tests (configurable), (3) if tests pass,
+        mark as ready to merge, (4) if rebase fails, mark as "needs-manual-intervention" and post a comment
+        on the PR explaining the conflict. Support --auto-rebase flag and --test-after-rebase flag.'
+      dependencies:
+      - p21.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/merge_queue.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/merge_queue.py
+  - name: Merge coordination in orchestrator loop
+    description: Integrate merge queue into the orchestrator main loop
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator checks merge queue before spawning new workers
+      validation: run orchestrator with pending queue, verify new workers wait
+      met: false
+    tasks:
+    - id: p21.d4.t1
+      title: Add merge queue check to orchestrator.py
+      status: planned
+      description: 'Modify orchestrator.py run_loop() to: (1) before spawning new workers, check if any
+        workspaces have pending PRs in the merge queue, (2) skip spawning workers for issues that would
+        conflict with pending merges, (3) after successful pipeline completion, auto-enqueue the PR in
+        the merge queue, (4) report merge queue status in the loop summary. This ensures the orchestrator
+        is conflict-aware when scheduling work.'
+      dependencies:
+      - p21.d2.t1
+      - p4.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  dependencies:
+  - source: phase-13
+    target: phase-21
+    type: soft
+    reason: Merge queue manages PRs created by the PR automation from phase 13
+  - source: phase-14
+    target: phase-21
+    type: soft
+    reason: Health monitoring from phase 14 should cover merge queue operations
+  technical_notes: 'The merge queue is file-backed (JSON Lines) for simplicity, no external service needed.
+    Git merge-tree --write-tree is available in git 2.36+ for dry-run merge detection. The Refinery pattern
+    is about preventing collisions, not resolving them -- the goal is to sequence merges so conflicts are
+    rare, not to auto-resolve complex merge conflicts.'
+  risks:
+  - Auto-rebase can introduce subtle bugs if the rebase changes semantics
+  - Merge queue ordering is NP-hard in the general case -- heuristic ordering is good enough
+  - Concurrent orchestrator instances could race on the queue file -- need file locking
+  scope_lines_total: 410
+  test_target: 10
+- id: phase-22
+  title: Config Hot-Reload and Live Tuning
+  status: planned
+  goal: Enable the orchestrator to pick up config changes without restart, supporting live parameter tuning
+  description: 'Symphony''s Elixir implementation features hot code reloading, allowing system updates without
+    interrupting active agent sessions. The Hermes orchestrator reads its config (orchestrator.yaml, role
+    profiles, pipeline YAMLs) once at startup. If you change max_concurrent or swap a pipeline template, you
+    must restart the cron job. This phase adds file-watching that detects config changes and reloads them
+    on the fly. Combined with the self-improvement loop (phase 19) and context budgeting (phase 20), this
+    enables the orchestrator to be tuned in real-time -- adjust parameters, swap pipelines, modify role
+    prompts -- all without interrupting running workers. This is a small but critical operational improvement
+    that makes the orchestrator production-ready for continuous operation.'
+  deliverables:
+  - name: Config watcher module
+    description: Python module that watches config files for changes and triggers reload
+    status: planned
+    acceptance_criteria:
+    - description: Module detects changes to YAML config files within 5 seconds
+      validation: modify config file, check reload is triggered
+      met: false
+    - description: Supports watching orchestrator.yaml, role profiles, and pipeline YAMLs
+      validation: modify each type, verify detection
+      met: false
+    tasks:
+    - id: p22.d1.t1
+      title: Create config_watcher.py module
+      status: planned
+      description: 'Python module that: (1) watches specified config files using filesystem modification
+        time (polling every 5s, no inotify dependency), (2) on change, reloads the config and validates it,
+        (3) calls registered callbacks for each config type (on_orchestrator_config_change, on_role_change,
+        on_pipeline_change), (4) logs all config reloads with before/after diff, (5) supports --watch flag
+        for standalone operation and programmatic API for integration. Use file hashing to avoid spurious
+        reloads.'
+      files:
+      - ~/zion/projects/agent-orchestration/config_watcher.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/config_watcher.py
+  - name: Hot-reload integration in orchestrator
+    description: Integrate config watcher into the orchestrator main loop
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator picks up config changes mid-loop without restart
+      validation: change max_concurrent while orchestrator is running, verify new limit applies
+      met: false
+    - description: Role profile changes are picked up for new workers
+      validation: modify a role YAML, spawn new worker, verify new prompts used
+      met: false
+    tasks:
+    - id: p22.d2.t1
+      title: Integrate config_watcher into orchestrator.py
+      status: planned
+      description: 'Modify orchestrator.py to: (1) instantiate config_watcher at startup with callbacks
+        for each config type, (2) on orchestrator.yaml change: reload max_concurrent, repo, labels, pipeline
+        path, (3) on role YAML change: reload affected role profile (roles.py already loads from disk, just
+        need cache invalidation), (4) on pipeline YAML change: next execution uses updated pipeline, (5)
+        add --no-watch flag to disable hot-reload for debugging. Log all reloads to execution history.'
+      dependencies:
+      - p22.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Config change audit trail
+    description: Log all config changes with diffs and timestamps for debugging
+    status: planned
+    acceptance_criteria:
+    - description: All config changes are logged with before/after values
+      validation: change config, check audit log
+      met: false
+    tasks:
+    - id: p22.d3.t1
+      title: Add config audit logging
+      status: planned
+      description: 'Append config change events to ~/.orchestrator/logs/config-changes.jsonl. Each entry:
+        timestamp, config_type (orchestrator/role/pipeline), file_path, change_type (modified/added/deleted),
+        diff_summary (what changed in human-readable form), reloaded_successfully (bool). Add a CLI subcommand
+        to config_watcher.py: audit (show recent changes), rollback (restore previous config version if
+        backed up).'
+      dependencies:
+      - p22.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/config_watcher.py
+    scope_lines: 50
+    scope_files:
+    - ~/zion/projects/agent-orchestration/config_watcher.py
+  - name: Live tuning CLI
+    description: CLI command to inspect and modify orchestrator config at runtime
+    status: planned
+    acceptance_criteria:
+    - description: Can view current config and modify parameters without editing files
+      validation: python3 config_watcher.py get max_concurrent && python3 config_watcher.py set max_concurrent 5
+      met: false
+    tasks:
+    - id: p22.d4.t1
+      title: Add live tuning CLI to config_watcher.py
+      status: planned
+      description: 'Add CLI subcommands to config_watcher.py: get KEY (show current value), set KEY VALUE
+        (modify config and trigger reload), reset (restore defaults), validate (check config health). The
+        set command writes the change to the YAML file and triggers the watcher callback. Support --dry-run
+        to preview changes without applying. This enables operators to tune the orchestrator from the command
+        line without editing files.'
+      dependencies:
+      - p22.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/config_watcher.py
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/config_watcher.py
+  dependencies:
+  - source: phase-4
+    target: phase-22
+    type: soft
+    reason: Config hot-reload modifies the orchestrator loop from phase 4
+  - source: phase-6
+    target: phase-22
+    type: soft
+    reason: Role profile hot-reload requires the role system from phase 6
+  - source: phase-19
+    target: phase-22
+    type: soft
+    reason: Self-improvement auto-tuning benefits from hot-reload to apply changes immediately
+  technical_notes: 'Polling-based file watching (every 5s) is sufficient and avoids platform-specific
+    dependencies (inotify, FSEvents, ReadDirectoryChangesW). File hashing (SHA256 of first 4KB) is fast
+    enough for small YAML configs. The orchestrator''s cron-based execution model means "hot reload" really
+    means "pick up changes on next loop iteration" -- no need for true in-process hot reload.'
+  risks:
+  - Bad config changes could break the orchestrator mid-operation -- need validation before applying
+  - Race condition if config file is being written while being read -- use atomic file reads
+  - Config drift between what''s on disk and what''s in memory if validation rejects a change
+  scope_lines_total: 270
+  test_target: 5
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
 - delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
@@ -2163,8 +2566,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 19
-  estimated_weeks: 16-18
+  phases_total: 22
+  estimated_weeks: 18-21
   updated: '2026-05-01'
-  phases_added: [13, 14, 15, 16, 17, 18, 19]
-  phases_added_from: 'OpenAI Symphony research analysis - advanced orchestration patterns (17-19: Harness Engineering structural invariants, agent observability, self-improvement loop)'
+  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+  phases_added_from: 'Phase 20-22: Ralph Wiggum smart zone context management, Gas Town Refinery merge coordination, Symphony hot-reload pattern'
