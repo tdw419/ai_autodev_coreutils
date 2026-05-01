@@ -1,0 +1,136 @@
+# Standard Development Pipeline
+# AI(plan) -> AI(implement) -> Bash(lint) -> Bash(test) -> Loop(fix) -> AI(review) -> Bash(commit)
+#
+# Usage:
+#   python3 dag.py pipelines/standard-pipeline.yaml
+#   python3 executor.py pipelines/standard-pipeline.yaml
+
+name: standard-dev-pipeline
+description: Full development lifecycle with deterministic gates - plan, implement, lint, test, fix loop, review, commit
+version: "1.0"
+
+nodes:
+  plan:
+    type: ai
+    name: Plan
+    description: Analyze the task and create an implementation plan
+    prompt: |
+      You are a planning agent. Given the task description below, create a detailed implementation plan.
+
+      Steps:
+      1. Read the relevant source files to understand the codebase
+      2. Identify what needs to change
+      3. List the files to modify and what changes to make
+      4. Consider edge cases and potential issues
+      5. Output the plan as a numbered list of concrete steps
+
+      Task: {{task}}
+    max_turns: 10
+
+  implement:
+    type: ai
+    name: Implement
+    description: Execute the implementation plan and write the code
+    prompt: |
+      You are an implementation agent. Execute the plan from the previous step.
+
+      1. Read the implementation plan from context
+      2. Make the code changes described in the plan
+      3. Follow existing code patterns and conventions
+      4. Write tests for new functionality
+      5. Commit your changes with a descriptive message
+
+      Task: {{task}}
+    depends_on: [plan]
+    max_turns: 20
+
+  lint:
+    type: bash
+    name: Lint
+    description: Run linters to check code quality
+    command: |
+      echo "=== Running linters ==="
+      # Try common linters, don't fail if not available
+      if command -v ruff &> /dev/null; then
+        ruff check . --output-format=text 2>&1 || true
+      fi
+      if command -v eslint &> /dev/null; then
+        find . -name '*.js' -o -name '*.ts' | head -20 | xargs eslint 2>&1 || true
+      fi
+      if command -v cargo &> /dev/null; then
+        cargo clippy -- -W clippy::all 2>&1 || true
+      fi
+      echo "=== Lint complete ==="
+    depends_on: [implement]
+    timeout_seconds: 60
+
+  test:
+    type: bash
+    name: Test
+    description: Run the test suite to verify changes
+    command: |
+      echo "=== Running tests ==="
+      # Detect test framework and run
+      if [ -f "pytest.ini" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+        python3 -m pytest --tb=short -q 2>&1
+      elif [ -f "package.json" ]; then
+        npm test 2>&1
+      elif [ -f "Cargo.toml" ]; then
+        cargo test -- --test-threads=2 2>&1
+      elif [ -f "Makefile" ]; then
+        make test 2>&1
+      else
+        echo "No recognized test framework. Skipping."
+        exit 0
+      fi
+    depends_on: [lint]
+    timeout_seconds: 120
+
+  fix:
+    type: loop
+    name: Fix Loop
+    description: Retry implementation if tests fail (up to 3 attempts)
+    depends_on: [test]
+    max_iterations: 3
+    until: "exit_code == 0"
+    children: [implement, test]
+
+  review:
+    type: ai
+    name: Review
+    description: Review the completed implementation for quality and correctness
+    prompt: |
+      You are a code reviewer. Review the changes made during this pipeline run.
+
+      1. Read the git diff to see all changes
+      2. Check for bugs, edge cases, and code quality issues
+      3. Verify the changes match the original task description
+      4. Check that tests adequately cover the changes
+      5. Output a brief review summary with any issues found
+
+      If critical issues are found, list them. If everything looks good, approve.
+    depends_on: [fix]
+    max_turns: 10
+
+  commit:
+    type: bash
+    name: Commit
+    description: Final commit with review approval
+    command: |
+      echo "=== Final commit ==="
+      # Check if there are uncommitted changes
+      if git diff --quiet && git diff --cached --quiet; then
+        echo "No changes to commit."
+        exit 0
+      fi
+      git add -A
+      git commit -m "$(cat <<EOF
+      feat: implement task changes
+
+      Pipeline: standard-dev-pipeline
+      Reviewer: ai-review
+      EOF
+      )"
+      echo "=== Committed successfully ==="
+    depends_on: [review]
+    timeout_seconds: 30
