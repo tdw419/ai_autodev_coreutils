@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 8/30 phases complete, 0 in progress
+**Progress:** 8/35 phases complete, 0 in progress
 
-**Deliverables:** 32/119 complete
+**Deliverables:** 32/139 complete
 
-**Tasks:** 32/119 complete
+**Tasks:** 32/139 complete
 
 ## Scope Summary
 
@@ -42,6 +42,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-28 Speculative Execution and Parallel Exploration | PLANNED | 0/4 | 400 | 10 |
 | phase-29 Agent Strategy A/B Testing and Analytics | PLANNED | 0/4 | 350 | 10 |
 | phase-30 Inter-Agent Communication and Shared State (Beads Pattern) | PLANNED | 0/4 | 380 | 15 |
+| phase-31 Self-Verifying Agent Toolkit | PLANNED | 0/4 | 370 | 10 |
+| phase-32 Token Cost Tracking and Budget Enforcement | PLANNED | 0/4 | 370 | 10 |
+| phase-33 Application Legibility Toolkit | PLANNED | 0/4 | 420 | 10 |
+| phase-34 Agent-Generated Tooling | PLANNED | 0/4 | 400 | 10 |
+| phase-35 Dark Factory Mode (Full Autonomous Operation) | PLANNED | 0/4 | 410 | 10 |
 
 ## Dependencies
 
@@ -111,6 +116,26 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-21 | phase-30 | soft | Merge queue from phase 21 handles post-completion conflicts; shared state handles pre-completion coordination |
 | phase-14 | phase-30 | soft | Health monitoring from phase 14 can use shared state to detect stale workers |
 | phase-16 | phase-30 | soft | Multi-repo orchestration from phase 16 needs cross-repo coordination |
+| phase-5 | phase-31 | soft | VERIFY node type extends the DAG executor from phase 5 |
+| phase-7 | phase-31 | soft | Verification tests should be covered by the test suite from phase 7 |
+| phase-8 | phase-32 | soft | Cost data should be stored alongside execution logs from phase 8 |
+| phase-22 | phase-32 | soft | Budget limits should be configurable via hot-reload from phase 22 |
+| phase-28 | phase-32 | soft | Speculative execution from phase 28 multiplies costs -- budget enforcement is critical |
+| phase-10 | phase-33 | soft | Legibility checks complement convention scanning from phase 10 GC |
+| phase-17 | phase-33 | soft | Structural invariants from phase 17 and architecture linting from phase 33 are complementary -- invariants check rules, legibility checks understandability |
+| phase-24 | phase-33 | soft | Project onboarding from phase 24 benefits from architecture analysis |
+| phase-5 | phase-34 | soft | GENERATED_TOOL node type extends the DAG executor from phase 5 |
+| phase-10 | phase-34 | soft | GC findings from phase 10 can inform what custom tools to generate |
+| phase-19 | phase-34 | soft | Self-improvement analysis from phase 19 can identify which generated tools are most effective |
+| phase-33 | phase-34 | soft | Legibility analysis from phase 33 identifies patterns that need custom tooling |
+| phase-9 | phase-35 | soft | Inferential sensor from phase 9 provides the LLM review signal for confidence scoring |
+| phase-15 | phase-35 | soft | Safety policies from phase 15 define the approval gates that confidence scoring replaces or augments |
+| phase-17 | phase-35 | soft | Structural invariants from phase 17 provide the architecture compliance signal |
+| phase-23 | phase-35 | soft | E2E validation from phase 23 should validate the dark factory pipeline |
+| phase-31 | phase-35 | soft | Self-verification toolkit from phase 31 provides the verification gates |
+| phase-32 | phase-35 | soft | Cost tracking from phase 32 provides the cost efficiency signal |
+| phase-33 | phase-35 | soft | Legibility scoring from phase 33 provides the codebase quality signal |
+| phase-34 | phase-35 | soft | Agent-generated tooling from phase 34 provides custom validation signals |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -1594,6 +1619,245 @@ This is a deliberately simple implementation of Beads -- filesystem-based rather
 - Notification delivery adds latency to AI node startup
 - Shared state file could become a bottleneck with many workers -- consider sharding
 
+## [ ] phase-31: Self-Verifying Agent Toolkit (PLANNED)
+
+**Goal:** Enable agents to verify their own work through automated UI testing, CLI output validation, and integration checks -- the 'agents drive application-level tools' pattern from Symphony
+
+The Symphony research emphasizes that agents should be able to "drive application-level tools, such as Chrome DevTools or CLI scripts, to verify their own work before submitting a pull request." Currently, our pipeline relies on bash nodes running tests and linters, but agents cannot perform higher-order verification like checking UI output, API responses, or end-to-end behavior. This phase adds a verification toolkit that provides reusable verification primitives agents can call to self-validate their changes before pipeline completion.
+
+### Deliverables
+
+- [ ] **Verification primitives library** -- Python module with reusable verification functions for common self-check patterns
+  - [ ] `p31.d1.t1` Create verify.py module
+    > Create verify.py with verification primitives: (1) assert_file_exists(path, pattern), (2) assert_output_contains(cmd, expected), (3) assert_api_responds(url, status, body_contains), (4) assert_command_succeeds(cmd, timeout), (5) assert_config_valid(yaml_path, schema), (6) assert_no_regression(baseline_path, current_output). Each returns structured JSON result. Add --baseline flag to capture expected outputs for regression testing.
+    _Files: ~/zion/projects/agent-orchestration/verify.py_
+  - [ ] Module provides at least 6 verification primitives (file exists, output contains, API responds, command succeeds, config valid, no regressions)
+    _Validation: python3 verify.py --list_
+  _~150 LOC_
+- [ ] **VERIFY node type for DAG executor** -- Add a VERIFY node type that runs verification primitives from the pipeline
+  - [ ] `p31.d2.t1` Add VERIFY node type to DAG (depends: p31.d1.t1)
+    > Add NodeType.VERIFY to dag.py. The verify node takes: checks (list of verification primitives with args), baseline_dir (directory for baseline files), and on_fail (stop/warn/continue). Executor calls verify.run_checks(). Each check result is logged. If any check fails and on_fail=stop, the node fails (stopping the pipeline).
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Pipeline YAML can include VERIFY nodes that run verification checks
+    _Validation: create pipeline with verify node, execute it_
+  _~80 LOC_
+- [ ] **Self-verification pipeline template** -- Pipeline YAML that adds verification gates before the commit step
+  - [ ] `p31.d3.t1` Create verify-pipeline.yaml (depends: p31.d2.t1)
+    > Create pipelines/verify-pipeline.yaml based on standard-pipeline.yaml but with VERIFY nodes after implementation and after tests: AI(implement) -> VERIFY(output structure) -> Bash(test) -> VERIFY(test results) -> AI(review) -> VERIFY(no regressions) -> Bash(commit). Verification gates ensure agents self-validate before committing.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/verify-pipeline.yaml_
+  - [ ] Pipeline template exists with VERIFY nodes before commit
+    _Validation: read YAML, trace through nodes_
+  _~60 LOC_
+- [ ] **Baseline management CLI** -- CLI to capture, update, and compare verification baselines
+  - [ ] `p31.d4.t1` Add baseline management to verify.py (depends: p31.d1.t1)
+    > Add baseline subcommands to verify.py: capture (save current output as baseline), compare (run checks against baselines), update (update baselines with new expected values), diff (show differences between current and baseline). Baselines stored as JSON files in a configurable directory. Include --auto-update flag for non-interactive baseline refresh.
+    _Files: ~/zion/projects/agent-orchestration/verify.py_
+  - [ ] Can capture baselines, compare against them, and update them
+    _Validation: python3 verify.py --baseline capture --dir baselines/_
+  _~80 LOC_
+
+### Technical Notes
+
+Verification primitives are the "self-verifying agent" concept from Symphony. They differ from bash test nodes in that they are structured assertions with baseline tracking, not raw shell commands. This makes them composable and agent-readable.
+
+### Risks
+
+- Baselines can become stale if the project evolves -- need a refresh strategy
+- Some verifications (API responses, UI) may be flaky in CI environments
+- Over-verification can slow down pipelines -- keep verification fast and focused
+
+## [ ] phase-32: Token Cost Tracking and Budget Enforcement (PLANNED)
+
+**Goal:** Add cost visibility and token budget enforcement to the orchestrator so autonomous operation doesn''t escalate costs unexpectedly
+
+The Harness Engineering research highlights extreme token consumption: "over one billion output tokens per day" at $2,000-3,000 daily. The Symphony config includes agent.max_turns and agent.max_concurrent to control costs. Our orchestrator has no cost tracking -- we don't know how many tokens each pipeline run consumes, and there's no way to set a budget ceiling. This phase adds token estimation, cost tracking per pipeline run, configurable budget limits, and alerts when spending approaches thresholds. Essential for running the orchestrator autonomously without financial surprises.
+
+### Deliverables
+
+- [ ] **Token cost estimator** -- Module that estimates token usage and cost for pipeline runs based on model, context size, and node count
+  - [ ] `p32.d1.t1` Create cost_tracker.py module
+    > Create cost_tracker.py: (1) estimate_tokens(prompt, model) -- rough token count based on character length and model tokenizer, (2) estimate_cost(tokens, model) -- lookup table for per-token costs (claude-sonnet, claude-opus, gpt-4, etc.), (3) record_usage(run_id, node_id, model, input_tokens, output_tokens) -- persist to ~/.orchestrator/logs/costs/, (4) get_run_cost(run_id) -- sum costs for a pipeline run, (5) get_daily_cost(date) -- aggregate daily spending. Include a model_pricing.yaml config with current model prices.
+    _Files: ~/zion/projects/agent-orchestration/cost_tracker.py, ~/zion/projects/agent-orchestration/model_pricing.yaml_
+  - [ ] Can estimate token cost for a pipeline before execution
+    _Validation: python3 cost_tracker.py --estimate --pipeline pipelines/standard-pipeline.yaml_
+  _~150 LOC_
+- [ ] **Cost tracking integration with executor** -- Record token usage after each AI node execution in the pipeline
+  - [ ] `p32.d2.t1` Add cost tracking to executor AI nodes (depends: p32.d1.t1)
+    > After each AI node execution in executor.py, estimate token usage from the prompt size and output size. Record the usage via cost_tracker.record_usage(). Include the cost in the NodeResult output. Add total_cost to the execution log run summary.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Executor records estimated token usage for each AI node
+    _Validation: run pipeline, check cost logs_
+  _~60 LOC_
+- [ ] **Budget enforcement** -- Configurable budget limits that prevent pipelines from exceeding cost thresholds
+  - [ ] `p32.d3.t1` Add budget enforcement to executor (depends: p32.d1.t1, p32.d2.t1)
+    > Add budget enforcement to DAGExecutor: (1) check budget before each AI node execution, (2) if remaining budget < estimated node cost, skip or fail the node, (3) support per-run budget (--budget 5.00) and daily budget (cost_tracker.get_remaining_daily_budget()), (4) log budget exceeded events. Add budget field to pipeline YAML env vars.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/cost_tracker.py_
+  - [ ] Pipeline stops when budget limit is reached
+    _Validation: set low budget, run pipeline, verify it stops_
+  _~80 LOC_
+- [ ] **Cost reporting in status and history** -- Show cost data in status.sh and orch_history.py
+  - [ ] `p32.d4.t1` Add cost section to status.sh and orch_history.py (depends: p32.d1.t1)
+    > Add a "Costs" section to status.sh showing: today's spend, this week's spend, remaining daily budget, most expensive runs. Update orch_history.py show command to include cost per run. Add orch_history.py cost subcommand for cost analytics (daily, weekly, per-pipeline, per-role).
+    _Files: ~/zion/projects/agent-orchestration/status.sh, ~/zion/projects/agent-orchestration/orch_history.py_
+  - [ ] status.sh shows daily cost and remaining budget
+    _Validation: run status.sh, check for cost section_
+  _~80 LOC_
+
+### Technical Notes
+
+Token estimation is inherently approximate since we don't have access to actual tokenizer counts from the LLM provider. Use character-based heuristics (1 token ~ 4 chars for English) as a reasonable estimate. Model pricing should be updated periodically as providers change prices.
+
+### Risks
+
+- Token estimation accuracy varies by model and content type
+- Budget enforcement based on estimates may be too aggressive or too lenient
+- Model pricing changes frequently -- need a way to update without code changes
+- Daily budget may not account for shared infrastructure costs
+
+## [ ] phase-33: Application Legibility Toolkit (PLANNED)
+
+**Goal:** Build automated tools that make codebases directly understandable and verifiable by agents -- the "Application Legibility" principle from Harness Engineering
+
+The Harness Engineering research emphasizes "Application Legibility" -- making software directly understandable and verifiable by the agent. This includes: integrated observability (local access to logs/metrics/traces), rigid architecture enforcement (strict layering limits agent search space), and constraints enforced mechanically via structural tests. Phase 17 covers structural invariants but focuses on checking existing code. This phase goes further: it provides tools that help agents UNDERSTAND a codebase quickly (architecture maps, dependency graphs, entry point discovery) and tools that help projects BECOME more legible (architecture linter, module boundary checker).
+
+### Deliverables
+
+- [ ] **Codebase comprehension module** -- Module that generates agent-readable summaries of a codebase''s architecture and structure
+  - [ ] `p33.d1.t1` Create legibility.py module
+    > Create legibility.py: (1) analyze_architecture(project_dir) -- scan directory structure, detect layers (types, config, repo, service), identify entry points, map dependencies, output as structured JSON, (2) generate_architecture_doc(project_dir) -- create a markdown architecture overview suitable for AI_GUIDE.md, (3) find_entry_points(project_dir) -- detect main files, API routes, CLI entry points, (4) map_dependencies(project_dir) -- build an import dependency graph, detect circular dependencies, identify unused modules. Output agent-readable summaries that help autonomous agents quickly understand a new codebase.
+    _Files: ~/zion/projects/agent-orchestration/legibility.py_
+  - [ ] Module can analyze a codebase and output an architecture summary
+    _Validation: python3 legibility.py --analyze /path/to/project_
+  _~180 LOC_
+- [ ] **Architecture linter** -- Linter that enforces architectural rules (layer boundaries, dependency direction, module isolation)
+  - [ ] `p33.d2.t1` Add architecture linting to legibility.py (depends: p33.d1.t1)
+    > Add linting rules to legibility.py: (1) layer_boundary_check -- ensure modules in "service" layer don't import from "types" layer directly (configurable layer rules), (2) dependency_direction_check -- enforce allowed import directions, (3) module_isolation_check -- detect circular imports and unintended cross-module dependencies, (4) entry_point_check -- verify entry points follow project conventions. Rules configured via arch_rules.yaml. Output violations as structured JSON with file:line:rule:severity format compatible with the GC scanner.
+    _Files: ~/zion/projects/agent-orchestration/legibility.py, ~/zion/projects/agent-orchestration/arch_rules.yaml_
+  - [ ] Linter can check at least 4 architectural rules
+    _Validation: python3 legibility.py --lint /path/to/project_
+  _~120 LOC_
+- [ ] **Legibility scoring** -- Quantitative score measuring how agent-legible a codebase is
+  - [ ] `p33.d3.t1` Add legibility scoring to legibility.py (depends: p33.d1.t1, p33.d2.t1)
+    > Add scoring to legibility.py: (1) architecture_score -- how well-organized the directory structure is, (2) documentation_score -- presence of AI_GUIDE.md, README, docstrings, (3) test_score -- test coverage estimate, (4) convention_score -- naming consistency, import style, (5) overall score as weighted average. Track scores over time in ~/.orchestrator/logs/legibility/ to detect drift. Include --compare flag to compare current score against a baseline.
+    _Files: ~/zion/projects/agent-orchestration/legibility.py_
+  - [ ] Module outputs a legibility score (0-100) with breakdown by category
+    _Validation: python3 legibility.py --score /path/to/project_
+  _~80 LOC_
+- [ ] **Integration with GC and onboarding** -- Wire legibility checks into the GC scanner and project onboarding bootstrap
+  - [ ] `p33.d4.t1` Integrate legibility into GC and onboarding (depends: p33.d1.t1, p33.d2.t1, p33.d3.t1)
+    > Add a legibility check to gc-pipeline.yaml as a Bash node that runs legibility.py --lint and --score. If score drops below threshold, flag for remediation. Update the project onboarding bootstrap (phase 24) to run legibility.py --analyze and include the architecture summary in the generated AI_GUIDE.md. This closes the loop: onboarding creates legible projects, GC ensures they stay legible.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/gc-pipeline.yaml_
+  - [ ] GC pipeline includes legibility score check, onboarding generates architecture doc
+    _Validation: read pipeline YAML, check onboarding prompt_
+  _~40 LOC_
+
+### Technical Notes
+
+Application legibility is the key insight from Harness Engineering: "code is free, but attention is scarce." Making codebases legible reduces the attention (tokens) agents need to understand them, directly reducing costs. The scoring system creates a measurable proxy for "how easy is this codebase for an AI to work with?"
+
+### Risks
+
+- Architecture analysis may be slow for large codebases -- need caching
+- Layer detection heuristics may not match all project structures
+- Legibility score could be gamed (e.g., adding docstrings without content) -- need quality weighting
+
+## [ ] phase-34: Agent-Generated Tooling (PLANNED)
+
+**Goal:** Enable the orchestrator to generate its own quality tools (linters, tests, validators) as part of the development pipeline -- the "structural tests and custom linters often generated by agents" pattern from Harness Engineering
+
+The Harness Engineering research notes that "structural tests and custom linters (often generated by agents)" enforce application legibility mechanically. This is a powerful meta-pattern: agents not only write code but also create the tools that verify code quality. Currently, our orchestrator runs pre-defined pipelines with fixed test/lint commands. This phase adds the ability for the orchestrator to: (1) detect when a project needs custom validation rules, (2) generate linters/tests/checks for those rules, (3) integrate the generated tools into subsequent pipeline runs. This creates a self-improving quality loop where the harness gets better as the codebase grows.
+
+### Deliverables
+
+- [ ] **Tool generation module** -- Module that generates custom linters, tests, and validators from project patterns
+  - [ ] `p34.d1.t1` Create tool_gen.py module
+    > Create tool_gen.py: (1) detect_patterns(project_dir) -- analyze codebase for recurring patterns (naming conventions, error handling patterns, import styles, API patterns), (2) generate_linter(patterns) -- create a Python linter script that checks for pattern adherence, (3) generate_tests(project_dir) -- generate test stubs for untested modules based on function signatures and docstrings, (4) generate_validator(schema) -- create a validation script from a JSON/YAML schema. Output generated tools to a tools/ directory in the project. Include --dry-run to preview without writing.
+    _Files: ~/zion/projects/agent-orchestration/tool_gen.py_
+  - [ ] Module can analyze a project and generate a custom linter
+    _Validation: python3 tool_gen.py --analyze /path/to/project --generate linter_
+  _~180 LOC_
+- [ ] **Generated tool integration with pipelines** -- Pipeline node type that runs agent-generated tools alongside standard checks
+  - [ ] `p34.d2.t1` Add GENERATED_TOOL node type to DAG (depends: p34.d1.t1)
+    > Add NodeType.GENERATED_TOOL to dag.py. The generated_tool node takes: tool_path (path to generated linter/test/validator), args (command-line arguments), and auto_generate (bool, if true run tool_gen.py before executing). Executor runs the generated tool as a bash subprocess with configurable timeout. If auto_generate=true, first runs tool_gen.py to ensure the tool is up-to-date with current project patterns.
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Pipeline YAML can include GENERATED_TOOL nodes
+    _Validation: create pipeline with generated tool node, execute it_
+  _~80 LOC_
+- [ ] **Self-improving quality loop** -- Pipeline that generates tools, runs them, and updates the toolset based on findings
+  - [ ] `p34.d3.t1` Create self-improving pipeline YAML (depends: p34.d2.t1)
+    > Create pipelines/self-improve-pipeline.yaml: AI(analyze patterns) -> Bash(generate linter) -> Bash(run generated linter) -> AI(review findings, update rules) -> Bash(generate updated linter) -> Bash(run updated linter) -> Bash(commit tools). This pipeline creates a feedback loop where quality tools evolve with the codebase.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/self-improve-pipeline.yaml_
+  - [ ] Pipeline YAML exists that generates and runs custom tools
+    _Validation: read pipeline YAML_
+  _~60 LOC_
+- [ ] **Tool registry and versioning** -- Track generated tools, their version, and effectiveness over time
+  - [ ] `p34.d4.t1` Add tool registry to tool_gen.py (depends: p34.d1.t1)
+    > Add a tool registry to tool_gen.py stored in ~/.orchestrator/tools/registry.json. Track: tool name, project, generated_at, version, pattern_count (number of patterns detected), effectiveness (violation count trend), last_run, last_updated. Support --registry list, --registry update, --registry retire (mark old tools as deprecated). Include a version suffix on generated tools (linter_v1.py, linter_v2.py) to track evolution.
+    _Files: ~/zion/projects/agent-orchestration/tool_gen.py_
+  - [ ] Generated tools are tracked in a registry with version history
+    _Validation: python3 tool_gen.py --registry list_
+  _~80 LOC_
+
+### Technical Notes
+
+Agent-generated tooling is the "harness builds the harness" concept. The key insight is that agents are better at detecting patterns in code than humans writing static rules. By generating linters from observed patterns, the tools stay in sync with the codebase evolution. Generated tools should be treated as disposable -- they can be regenerated at any time from the current codebase state.
+
+### Risks
+
+- Generated linters may be too strict or too lenient -- need human review for critical rules
+- Tool regeneration could break existing pipelines if the interface changes
+- Generated tools may have bugs themselves -- need to test the tools
+- Auto-generation on every pipeline run could be slow -- cache and only regenerate when patterns change
+
+## [ ] phase-35: Dark Factory Mode (Full Autonomous Operation) (PLANNED)
+
+**Goal:** Enable fully autonomous "dark factory" operation where the orchestrator manages a codebase with zero human code review, using the complete harness (sensors, gates, budgets, verification) to ensure quality
+
+The Harness Engineering research describes the "Dark Factory" model: "a small team built an internal software product with zero manually-written code" and "moved toward a Dark Factory model where no human reviewed the code before it was merged into the main branch." This is the endgame of the orchestrator: combining all previous phases into a mode where the orchestrator can autonomously develop a codebase end-to-end. Phases 1-34 build individual capabilities; this phase integrates them into a cohesive autonomous operation mode with confidence scoring, progressive trust escalation, and emergency stops. This is NOT about removing humans from the loop entirely -- it is about giving humans the option to operate in "review only" mode instead of "approve every change" mode.
+
+### Deliverables
+
+- [ ] **Confidence scoring engine** -- Module that computes a composite confidence score for each pipeline run based on all available signals
+  - [ ] `p35.d1.t1` Create confidence.py module
+    > Create confidence.py: (1) evaluate_run(run_id) -- compute composite confidence from: test pass rate (phase 7), review sensor score (phase 9), structural invariant compliance (phase 17), legibility score (phase 33), cost efficiency (phase 32), historical success rate for similar tasks. (2) weighted_score(signals) -- configurable weights for each signal, (3) trust_level(score) -- map score to trust tier: auto-merge (95+), draft-PR (80+), human-review (60+), block (<60). Store confidence history for trend analysis.
+    _Files: ~/zion/projects/agent-orchestration/confidence.py, ~/zion/projects/agent-orchestration/confidence_config.yaml_
+  - [ ] Module outputs a confidence score (0-100) with breakdown by signal
+    _Validation: python3 confidence.py --evaluate --run RUN_ID_
+  _~150 LOC_
+- [ ] **Progressive trust escalation** -- System that gradually increases autonomy as the orchestrator demonstrates reliability
+  - [ ] `p35.d2.t1` Add trust escalation to confidence.py (depends: p35.d1.t1)
+    > Add trust escalation logic: (1) track rolling success rate (last N runs), (2) escalate trust tier after sustained high confidence (e.g., 10 consecutive auto-merge quality runs -> upgrade from draft-PR to auto-merge), (3) de-escalate on failures (any blocked run -> drop one tier), (4) trust_levels.yaml stores current trust level per repo/pipeline. Include --trust-status and --trust-reset commands. Trust escalation is the mechanism that enables the Dark Factory: start conservative, earn autonomy through consistent quality.
+    _Files: ~/zion/projects/agent-orchestration/confidence.py_
+  - [ ] Trust level increases after consecutive successful runs
+    _Validation: simulate 10 successful runs, check trust level escalation_
+  _~100 LOC_
+- [ ] **Dark factory mode pipeline** -- End-to-end autonomous pipeline that combines all quality gates into a single self-governing workflow
+  - [ ] `p35.d3.t1` Create dark-factory-pipeline.yaml (depends: p35.d1.t1, p35.d2.t1)
+    > Create pipelines/dark-factory-pipeline.yaml: AI(plan) -> AI(implement) -> VERIFY(output) -> Bash(test) -> REVIEW(LLM judge) -> VERIFY(no regression) -> BASH(structural invariants) -> BASH(architecture lint) -> AI(confidence evaluate) -> CONDITIONAL(auto-merge OR draft-PR OR human-review based on confidence score). This is the complete Dark Factory pipeline combining phases 5, 9, 17, 31, 32, 33, and 35.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/dark-factory-pipeline.yaml_
+  - [ ] Pipeline exists that runs the full autonomous workflow with confidence-gated decisions
+    _Validation: read pipeline YAML_
+  _~80 LOC_
+- [ ] **Emergency stop and human override** -- Mechanism for humans to immediately halt autonomous operation and take manual control
+  - [ ] `p35.d4.t1` Add emergency stop to orchestrator (depends: p35.d1.t1)
+    > Add emergency stop mechanism: (1) confidence.py --emergency-stop creates a kill file (~/.orchestrator/EMERGENCY_STOP), (2) orchestrator.py checks for kill file before each loop iteration, (3) if kill file exists, stop spawning new workers and gracefully shut down active ones, (4) --emergency-resume removes the kill file, (5) --status shows emergency stop state. This is the safety valve for Dark Factory mode -- humans can always pull the plug.
+    _Files: ~/zion/projects/agent-orchestration/confidence.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Can immediately stop all active workers and prevent new spawns
+    _Validation: python3 confidence.py --emergency-stop_
+  _~80 LOC_
+
+### Technical Notes
+
+Dark Factory Mode is the culmination of the entire roadmap. It does not mean "no humans ever" -- it means "humans review outcomes, not process." The confidence scoring engine is the key innovation: it aggregates all quality signals into a single number that determines the level of autonomy. Progressive trust escalation means the system starts conservative and earns autonomy. The emergency stop ensures humans always have the final say.
+
+### Risks
+
+- Confidence scoring weights may be wrong for specific projects -- need per-project tuning
+- Progressive trust escalation could be too slow or too fast -- need configurable rates
+- Emergency stop must be truly immediate -- cannot wait for the next cron cycle
+- Dark factory mode should only be enabled for projects with comprehensive test coverage
+- Legal/compliance requirements may prevent fully autonomous merges in some organizations
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -1602,6 +1866,8 @@ This is a deliberately simple implementation of Beads -- filesystem-based rather
 - Token costs for autonomous loops can escalate quickly (Symphony team uses 1B tokens/day) -- need cost awareness in the orchestrator
 - Speculative execution (phase 28) can multiply costs if not carefully budgeted
 - Inter-agent coordination (phase 30) adds complexity that may not be needed at low concurrency levels
+- Dark factory mode (phase 35) should only be enabled for well-tested projects with comprehensive safety gates
+- Token budget enforcement (phase 32) relies on estimates -- actual costs may differ significantly
 
 ## Conventions
 
