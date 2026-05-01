@@ -11,6 +11,9 @@ Supports role-based specialization: when a role is matched (from issue
 labels or heuristics), the role's system prompt is prepended and its
 allowed toolsets / max_turns are applied.
 
+Multi-repo support: workspaces are organized as workspaces/{repo_name}/{issue_number}
+to avoid collisions between repos. Pass repo_name to select the layout.
+
 The orchestrator (Hermes cron agent) reads this output and calls
 delegate_task with the prepared workspace and prompt.
 """
@@ -27,14 +30,24 @@ PROJECT_DIR = Path(os.environ.get("ORCH_PROJECT_DIR", os.path.expanduser("~/zion
 WORKSPACES_DIR = PROJECT_DIR / "workspaces"
 
 
+def get_workspace_dir(issue_number: int, repo_name: str | None = None) -> Path:
+    """
+    Get workspace directory path for an issue.
+
+    Multi-repo layout: workspaces/{repo_name}/{issue_number}
+    Single-repo layout: workspaces/{issue_number}
+    """
+    if repo_name:
+        return WORKSPACES_DIR / repo_name / str(issue_number)
+    return WORKSPACES_DIR / str(issue_number)
+
+
 def find_project_dir(issue: dict) -> Path | None:
     """Try to determine the target project directory from issue context."""
-    # Check if issue body mentions a project path
     body = issue.get("body", "")
     if not body:
         return None
 
-    # Look for patterns like ~/zion/projects/NAME or project: NAME
     import re
     # Match ~/zion/projects/something
     m = re.search(r'~/zion/projects/([a-zA-Z0-9_-]+)', body)
@@ -49,11 +62,16 @@ def find_project_dir(issue: dict) -> Path | None:
     return None
 
 
-def read_ai_guide(project_dir: Path) -> str:
-    """Read AI_GUIDE.md from a project directory if it exists."""
-    guide_path = project_dir / "AI_GUIDE.md"
-    if guide_path.exists():
-        return guide_path.read_text()
+def read_ai_guide(project_dir: Path | None = None, ai_guide_path: str = "") -> str:
+    """Read AI_GUIDE.md from a project directory or explicit path."""
+    if ai_guide_path:
+        p = Path(os.path.expanduser(ai_guide_path))
+        if p.exists():
+            return p.read_text()
+    if project_dir:
+        guide_path = project_dir / "AI_GUIDE.md"
+        if guide_path.exists():
+            return guide_path.read_text()
     return ""
 
 
@@ -101,6 +119,8 @@ def spawn_worker(
     project_dir: Path | None = None,
     pipeline: str | None = None,
     role_name: str | None = None,
+    repo_name: str | None = None,
+    ai_guide_path: str = "",
     dry_run: bool = False,
 ) -> dict:
     """
@@ -113,11 +133,14 @@ def spawn_worker(
     If role_name is provided (or matched from issue labels), the role's
     system prompt is prepended and its toolsets/max_turns are applied.
 
+    If repo_name is provided, workspace is organized under
+    workspaces/{repo_name}/{issue_number}.
+
     Returns a dict with workspace_path, prompt_path, prompt, and
     project_dir that the orchestrator can use.
     """
     issue_num = issue["number"]
-    workspace = WORKSPACES_DIR / str(issue_num)
+    workspace = get_workspace_dir(issue_num, repo_name)
 
     if workspace.exists():
         print(f"Warning: workspace {workspace} already exists (issue may be in-progress)", file=sys.stderr)
@@ -142,13 +165,14 @@ def spawn_worker(
             "status": "in-progress",
             "pipeline": pipeline,
             "role": role.name if role else None,
+            "repo_name": repo_name,
             "spawned_at": __import__("datetime").datetime.now().isoformat(),
         }
         (workspace / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
 
     # Find project directory for AI_GUIDE.md context
     resolved_project = project_dir or find_project_dir(issue)
-    ai_guide = read_ai_guide(resolved_project) if resolved_project else ""
+    ai_guide = read_ai_guide(resolved_project, ai_guide_path)
 
     # Build the task description
     task_desc = build_prompt(issue, ai_guide)
@@ -199,6 +223,7 @@ def spawn_worker(
         "execution_mode": execution_mode,
         "project_dir": str(resolved_project) if resolved_project else None,
         "role": role.to_dict() if role else None,
+        "repo_name": repo_name,
         "exec_instructions": exec_instructions,
     }
 
@@ -230,6 +255,16 @@ def main():
         help="Role profile to use (e.g. implementer, reviewer, tester, coordinator). Default: auto-match from labels",
     )
     parser.add_argument(
+        "--repo-name",
+        default=None,
+        help="Repo name for workspace organization (workspaces/{repo_name}/{issue})",
+    )
+    parser.add_argument(
+        "--ai-guide",
+        default="",
+        help="Explicit path to AI_GUIDE.md (overrides project dir lookup)",
+    )
+    parser.add_argument(
         "--dry-run", "-n",
         action="store_true",
         help="Show what would be done without creating files",
@@ -259,9 +294,10 @@ def main():
             parser.error(f"Issue missing required field: {field}")
 
     if args.prompt_only:
-        ai_guide = ""
-        if args.project_dir:
-            ai_guide = read_ai_guide(Path(args.project_dir))
+        ai_guide = read_ai_guide(
+            Path(args.project_dir) if args.project_dir else None,
+            args.ai_guide,
+        )
         print(build_prompt(issue, ai_guide))
         return
 
@@ -270,6 +306,8 @@ def main():
         project_dir=Path(args.project_dir) if args.project_dir else None,
         pipeline=args.pipeline or None,
         role_name=args.role or None,
+        repo_name=args.repo_name or None,
+        ai_guide_path=args.ai_guide,
         dry_run=args.dry_run,
     )
 

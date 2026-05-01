@@ -349,7 +349,7 @@ class TestOrchestrator:
 
     def test_run_loop_skips_when_full(self, tmp_path):
         from orchestrator import run_loop, WORKSPACES_DIR
-        # Create 2 in-progress workers
+        # Create 2 in-progress workers (single-repo flat layout)
         for i in [1, 2]:
             ws = tmp_path / str(i)
             ws.mkdir()
@@ -357,9 +357,14 @@ class TestOrchestrator:
                 "issue_number": i, "title": f"Issue {i}", "status": "in-progress"
             }))
         with patch("orchestrator.WORKSPACES_DIR", tmp_path):
-            result = run_loop({"repo": "test/repo", "label": "agent-ready", "max_concurrent": 2})
+            result = run_loop({
+                "repos": [{"name": "test__repo", "url": "test/repo", "labels": ["agent-ready"],
+                            "pipeline": "", "max_concurrent": 2, "budget_daily": None,
+                            "roles_dir": "roles/", "ai_guide_path": "", "approval_mode": "never"}],
+                "max_concurrent": 2,
+            })
         assert result["skipped_full"] is True
-        assert result["available_slots"] == 0
+        assert result["global_available_slots"] == 0
 
     def test_run_loop_dry_run(self, tmp_path):
         from orchestrator import run_loop, WORKSPACES_DIR
@@ -368,12 +373,15 @@ class TestOrchestrator:
                  {"number": 1, "title": "New issue", "body": "Fix", "labels": ["agent-ready"], "url": "http://x"}
              ]):
             result = run_loop({
-                "repo": "test/repo", "label": "agent-ready",
-                "max_concurrent": 2, "project_dir": str(tmp_path),
+                "repos": [{"name": "test__repo", "url": "test/repo", "labels": ["agent-ready"],
+                            "pipeline": "", "max_concurrent": 2, "budget_daily": None,
+                            "roles_dir": "roles/", "ai_guide_path": "", "approval_mode": "never"}],
+                "max_concurrent": 2,
+                "project_dir": str(tmp_path),
             }, dry_run=True)
-        assert result["polled"] == 1
-        assert len(result["spawned"]) == 1
-        assert result["spawned"][0]["issue_number"] == 1
+        assert result["repos"]["test__repo"]["polled"] == 1
+        assert len(result["repos"]["test__repo"]["spawned"]) == 1
+        assert result["repos"]["test__repo"]["spawned"][0]["issue_number"] == 1
 
 
 if __name__ == "__main__":

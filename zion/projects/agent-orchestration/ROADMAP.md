@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 15/35 phases complete, 0 in progress
+**Progress:** 16/35 phases complete, 0 in progress
 
-**Deliverables:** 59/139 complete
+**Deliverables:** 63/139 complete
 
-**Tasks:** 59/139 complete
+**Tasks:** 63/139 complete
 
 ## Scope Summary
 
@@ -27,7 +27,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-13 Pull Request Automation | COMPLETE | 4/4 | 330 | 10 |
 | phase-14 Agent Health Monitoring (Deacon Pattern) | COMPLETE | 4/4 | 260 | 10 |
 | phase-15 Safety Policies and Approval Gates | COMPLETE | 4/4 | 360 | 15 |
-| phase-16 Multi-Repo Orchestration | PLANNED | 0/4 | 320 | 10 |
+| phase-16 Multi-Repo Orchestration | COMPLETE | 4/4 | 320 | 10 |
 | phase-17 Structural Invariants Engine | PLANNED | 0/4 | 390 | 10 |
 | phase-18 Agent Self-Debugging and Trace Tools | PLANNED | 0/4 | 320 | 5 |
 | phase-19 Continuous Self-Improvement Loop | PLANNED | 0/4 | 380 | 5 |
@@ -881,7 +881,7 @@ Approval is filesystem-based for simplicity: pending approvals are JSON files in
 - Different approval modes for different repos/tasks adds configuration complexity
 - Human approval defeats the purpose of autonomous orchestration -- needs to be optional and off by default
 
-## [ ] phase-16: Multi-Repo Orchestration (PLANNED)
+## [x] phase-16: Multi-Repo Orchestration (COMPLETE)
 
 **Goal:** Extend the orchestrator to manage tasks across multiple GitHub repositories with per-repo configuration
 
@@ -890,32 +890,32 @@ Symphony and Gas Town both manage multiple repositories simultaneously. The curr
 
 ### Deliverables
 
-- [ ] **Multi-repo configuration** -- Extend orchestrator.yaml to support multiple repos with per-repo settings
-  - [ ] `p16.d1.t1` Extend orchestrator.yaml for multi-repo support
+- [x] **Multi-repo configuration** -- Extend orchestrator.yaml to support multiple repos with per-repo settings
+  - [x] `p16.d1.t1` Extend orchestrator.yaml for multi-repo support
     > Redesign orchestrator.yaml to support: repos (list of repo configs), each with: name, url, labels, pipeline, roles_dir, ai_guide_path, approval_mode, max_concurrent, budget_daily. Keep backward compatibility: if "repo" (singular) is set, treat as single-repo mode. Add a validate_config() function to orchestrator.py that checks all repo configs are valid and accessible.
     _Files: ~/zion/projects/agent-orchestration/orchestrator.yaml, ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] Config supports repos as a list with per-repo pipeline, roles, labels, and policies
+  - [x] Config supports repos as a list with per-repo pipeline, roles, labels, and policies
     _Validation: read config YAML_
   _~80 LOC_
-- [ ] **Per-repo workspace organization** -- Organize workspaces by repo to avoid collisions and enable repo-specific cleanup
-  - [ ] `p16.d2.t1` Update spawner.py for per-repo workspace layout (depends: p16.d1.t1)
+- [x] **Per-repo workspace organization** -- Organize workspaces by repo to avoid collisions and enable repo-specific cleanup
+  - [x] `p16.d2.t1` Update spawner.py for per-repo workspace layout (depends: p16.d1.t1)
     > Change workspace path from workspaces/{issue_number} to workspaces/{repo_name}/{issue_number}. Update spawner.py spawn_worker() to accept repo_name parameter. Update orchestrator.py to pass repo_name when spawning. Update status.sh, health_check.py, and workspace_manager.py to handle the new layout. Add a migration function that moves existing workspaces to the new layout.
     _Files: ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/status.sh_
-  - [ ] Workspaces are organized as workspaces/{repo_name}/{issue_number}
+  - [x] Workspaces are organized as workspaces/{repo_name}/{issue_number}
     _Validation: spawn a worker, check workspace path_
   _~60 LOC_
-- [ ] **Multi-repo poller** -- Poll all configured repos and aggregate results into a unified task queue
-  - [ ] `p16.d3.t1` Add multi-repo polling to orchestrator.py (depends: p16.d1.t1)
+- [x] **Multi-repo poller** -- Poll all configured repos and aggregate results into a unified task queue
+  - [x] `p16.d3.t1` Add multi-repo polling to orchestrator.py (depends: p16.d1.t1)
     > Update orchestrator.py run_loop() to iterate over all configured repos, poll each, and aggregate results. Apply per-repo max_concurrent limits. Report per-repo stats in the summary output. Handle repo-specific errors gracefully (one repo failing shouldn't block others). Add --repo flag to filter to a single repo for debugging.
     _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] Single orchestrator loop polls all repos and reports per-repo task counts
+  - [x] Single orchestrator loop polls all repos and reports per-repo task counts
     _Validation: run orchestrator with multi-repo config_
   _~80 LOC_
-- [ ] **Per-repo cost tracking** -- Track estimated costs per repo and alert when approaching budget limits
-  - [ ] `p16.d4.t1` Add cost tracking to orchestrator (depends: p16.d1.t1)
+- [x] **Per-repo cost tracking** -- Track estimated costs per repo and alert when approaching budget limits
+  - [x] `p16.d4.t1` Add cost tracking to orchestrator (depends: p16.d1.t1)
     > Create cost_tracker.py module: (1) estimate token usage per pipeline execution based on node types and turns (AI nodes cost ~10K tokens/turn, bash nodes are free), (2) accumulate daily costs per repo, (3) compare against per-repo budget_daily limit, (4) alert (print warning) when approaching 80% of budget, (5) stop spawning workers when budget is exceeded. Store daily costs in ~/.orchestrator/costs/{repo}/{date}.json. CLI: python3 cost_tracker.py report --period week.
     _Files: ~/zion/projects/agent-orchestration/cost_tracker.py_
-  - [ ] Cost report shows per-repo estimated spend with daily totals
+  - [x] Cost report shows per-repo estimated spend with daily totals
     _Validation: run cost report command_
   _~100 LOC_
 

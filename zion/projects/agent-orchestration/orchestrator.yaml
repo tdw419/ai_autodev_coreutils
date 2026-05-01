@@ -2,19 +2,45 @@
 #
 # Override any setting via environment variables:
 #   ORCH_REPO, ORCH_LABEL, ORCH_MAX_CONCURRENT, ORCH_PROJECT_DIR, ORCH_PIPELINE
+#
+# Multi-repo mode: use "repos" list instead of singular "repo".
+# Single-repo mode: set "repo" (string) for backward compatibility.
+# If both are set, "repos" takes precedence.
 
+# --- Single-repo mode (backward compatible) ---
 # GitHub repo to poll for issues
 repo: ""
 
 # Label that marks issues as ready for agent work
 label: agent-ready
 
-# Maximum number of parallel workers
+# Maximum number of parallel workers (global, applies across all repos)
 max_concurrent: 2
 
 # Base project directory
 project_dir: ~/zion/projects/agent-orchestration
 
 # Pipeline YAML for DAG mode (empty = direct delegate_task mode)
-# Set to "pipelines/standard-pipeline.yaml" to enable the full dev pipeline
 pipeline: ""
+
+# --- Multi-repo mode ---
+# repos:
+#   - name: geometry-os
+#     url: jericho/geometry-os
+#     labels: [agent-ready]
+#     pipeline: pipelines/standard-pipeline.yaml
+#     roles_dir: roles/
+#     ai_guide_path: ~/zion/projects/geometry-os/AI_GUIDE.md
+#     approval_mode: on-failure
+#     max_concurrent: 2
+#     budget_daily: 10.0
+#   - name: agent-orchestration
+#     url: jericho/agent-orchestration
+#     labels: [agent-ready]
+#     pipeline: ""
+#     roles_dir: roles/
+#     ai_guide_path: ""
+#     approval_mode: never
+#     max_concurrent: 1
+#     budget_daily: 5.0
+repos: []

@@ -1610,7 +1610,7 @@ phases:
   test_target: 15
 - id: phase-16
   title: Multi-Repo Orchestration
-  status: planned
+  status: complete
   goal: Extend the orchestrator to manage tasks across multiple GitHub repositories with per-repo configuration
   description: 'Symphony and Gas Town both manage multiple repositories simultaneously. The current Hermes
     orchestrator is hardcoded to a single repo (ORCH_REPO). This phase extends it to support multiple repos
@@ -1623,15 +1623,15 @@ phases:
   deliverables:
   - name: Multi-repo configuration
     description: Extend orchestrator.yaml to support multiple repos with per-repo settings
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Config supports repos as a list with per-repo pipeline, roles, labels, and policies
       validation: read config YAML
-      met: false
+      met: true
     tasks:
     - id: p16.d1.t1
       title: Extend orchestrator.yaml for multi-repo support
-      status: planned
+      status: done
       description: 'Redesign orchestrator.yaml to support: repos (list of repo configs), each with:
         name, url, labels, pipeline, roles_dir, ai_guide_path, approval_mode, max_concurrent, budget_daily.
         Keep backward compatibility: if "repo" (singular) is set, treat as single-repo mode. Add a
@@ -1645,15 +1645,15 @@ phases:
     - ~/zion/projects/agent-orchestration/orchestrator.py
   - name: Per-repo workspace organization
     description: Organize workspaces by repo to avoid collisions and enable repo-specific cleanup
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Workspaces are organized as workspaces/{repo_name}/{issue_number}
       validation: spawn a worker, check workspace path
-      met: false
+      met: true
     tasks:
     - id: p16.d2.t1
       title: Update spawner.py for per-repo workspace layout
-      status: planned
+      status: done
       description: 'Change workspace path from workspaces/{issue_number} to workspaces/{repo_name}/{issue_number}.
         Update spawner.py spawn_worker() to accept repo_name parameter. Update orchestrator.py to
         pass repo_name when spawning. Update status.sh, health_check.py, and workspace_manager.py
@@ -1672,15 +1672,15 @@ phases:
     - ~/zion/projects/agent-orchestration/status.sh
   - name: Multi-repo poller
     description: Poll all configured repos and aggregate results into a unified task queue
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Single orchestrator loop polls all repos and reports per-repo task counts
       validation: run orchestrator with multi-repo config
-      met: false
+      met: true
     tasks:
     - id: p16.d3.t1
       title: Add multi-repo polling to orchestrator.py
-      status: planned
+      status: done
       description: 'Update orchestrator.py run_loop() to iterate over all configured repos, poll
         each, and aggregate results. Apply per-repo max_concurrent limits. Report per-repo stats
         in the summary output. Handle repo-specific errors gracefully (one repo failing shouldn''t
@@ -1694,15 +1694,15 @@ phases:
     - ~/zion/projects/agent-orchestration/orchestrator.py
   - name: Per-repo cost tracking
     description: Track estimated costs per repo and alert when approaching budget limits
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Cost report shows per-repo estimated spend with daily totals
       validation: run cost report command
-      met: false
+      met: true
     tasks:
     - id: p16.d4.t1
       title: Add cost tracking to orchestrator
-      status: planned
+      status: done
       description: 'Create cost_tracker.py module: (1) estimate token usage per pipeline execution
         based on node types and turns (AI nodes cost ~10K tokens/turn, bash nodes are free), (2)
         accumulate daily costs per repo, (3) compare against per-repo budget_daily limit, (4) alert
