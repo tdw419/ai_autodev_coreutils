@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 8/25 phases complete, 0 in progress
+**Progress:** 8/30 phases complete, 0 in progress
 
-**Deliverables:** 32/99 complete
+**Deliverables:** 32/119 complete
 
-**Tasks:** 32/99 complete
+**Tasks:** 32/119 complete
 
 ## Scope Summary
 
@@ -37,6 +37,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-23 End-to-End Integration and Real-World Validation | PLANNED | 0/4 | 550 | 15 |
 | phase-24 Project Onboarding Bootstrap | PLANNED | 0/4 | 400 | 10 |
 | phase-25 Orchestrator Resilience and State Recovery | PLANNED | 0/4 | 380 | 10 |
+| phase-26 Work Item Decomposition (Mayor Pattern) | PLANNED | 0/4 | 400 | 10 |
+| phase-27 Live Terminal Dashboard (Witness Pattern) | PLANNED | 0/4 | 380 | 5 |
+| phase-28 Speculative Execution and Parallel Exploration | PLANNED | 0/4 | 400 | 10 |
+| phase-29 Agent Strategy A/B Testing and Analytics | PLANNED | 0/4 | 350 | 10 |
+| phase-30 Inter-Agent Communication and Shared State (Beads Pattern) | PLANNED | 0/4 | 380 | 15 |
 
 ## Dependencies
 
@@ -88,6 +93,24 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-11 | phase-25 | soft | Workspace lifecycle from phase 11 provides the state tracking that resilience builds on |
 | phase-8 | phase-25 | soft | Execution history from phase 8 should record checkpoint and recovery events |
 | phase-23 | phase-25 | soft | Integration validation from phase 23 ensures resilience works with the full system |
+| phase-4 | phase-26 | soft | Decomposition extends the orchestrator poller-spawner loop from phase 4 |
+| phase-6 | phase-26 | soft | Sub-issues may benefit from different role assignments based on sub-task type |
+| phase-13 | phase-26 | soft | Sub-issue PRs should link back to parent issue for end-to-end traceability |
+| phase-8 | phase-27 | soft | Dashboard reads execution history from phase 8 for the recent panel |
+| phase-14 | phase-27 | soft | Health check data from phase 14 feeds the system panel |
+| phase-25 | phase-27 | soft | Pipeline checkpoints from phase 25 enable DAG progress visualization |
+| phase-6 | phase-28 | soft | Role specialization from phase 6 provides the different agent profiles for each strategy |
+| phase-16 | phase-28 | soft | Per-repo cost tracking from phase 16 is needed to budget speculative execution |
+| phase-19 | phase-28 | soft | Self-improvement data from phase 19 helps identify which strategies perform best over time |
+| phase-11 | phase-28 | soft | Workspace lifecycle from phase 11 handles archival of non-winning speculative workspaces |
+| phase-8 | phase-29 | informs | Analytics reads execution logs created by phase 8 |
+| phase-19 | phase-29 | soft | Self-improvement analysis from phase 19 can incorporate A/B testing data |
+| phase-27 | phase-29 | soft | Dashboard from phase 27 provides the visualization surface for analytics |
+| phase-28 | phase-29 | soft | Speculative execution from phase 28 generates the A/B comparison data |
+| phase-4 | phase-30 | soft | Shared state extends the orchestrator''s worker management from phase 4 |
+| phase-21 | phase-30 | soft | Merge queue from phase 21 handles post-completion conflicts; shared state handles pre-completion coordination |
+| phase-14 | phase-30 | soft | Health monitoring from phase 14 can use shared state to detect stale workers |
+| phase-16 | phase-30 | soft | Multi-repo orchestration from phase 16 needs cross-repo coordination |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -1328,12 +1351,257 @@ Checkpoints are simple JSON files in the workspace -- no database needed. The ke
 - Resume could produce different results if external state changed between runs (e.g., main branch advanced)
 - Signal handling in Python is tricky -- need to test on both foreground and background processes
 
+## [ ] phase-26: Work Item Decomposition (Mayor Pattern) (PLANNED)
+
+**Goal:** Enable the orchestrator to break down large or complex issues into smaller, independently executable sub-tasks
+
+Gas Town's Mayor role acts as a concierge that distributes work, often decomposing complex tasks into sub-tasks for specialized workers. The current orchestrator treats each issue as a single unit of work -- a large feature request or refactoring issue gets assigned to one worker that must handle everything. This phase adds issue decomposition: an AI-powered analysis step that breaks complex issues into sub-tasks, creates sub-issues on GitHub, and orchestrates them through the pipeline. This directly implements the Mayor pattern and enables the "speculative ticket filing" workflow described in the research where engineers file high-level intent and the system decomposes into executable units.
+
+
+### Deliverables
+
+- [ ] **Issue complexity analyzer** -- Python module that analyzes an issue and determines if it needs decomposition
+  - [ ] `p26.d1.t1` Create decomposer.py complexity analyzer
+    > Python module that: (1) reads an issue's title, body, labels, and comments via gh CLI, (2) estimates complexity based on heuristics (body length, mentions of multiple files/components, keywords like "refactor", "migration", "redesign"), (3) uses a lightweight LLM call (via delegate_task) to assess if the issue spans multiple concerns, (4) outputs a classification: simple (pass through as-is) or complex (needs decomposition) with a confidence score. Threshold configurable in orchestrator.yaml.
+    _Files: ~/zion/projects/agent-orchestration/decomposer.py_
+  - [ ] Can classify issues as simple (single task) or complex (needs decomposition)
+    _Validation: python3 decomposer.py --analyze ISSUE_NUM_
+  _~120 LOC_
+- [ ] **Sub-issue generator** -- AI-powered decomposition of complex issues into independently executable sub-tasks
+  - [ ] `p26.d2.t1` Implement sub-issue generation
+    > Add --decompose mode to decomposer.py: (1) call an LLM with the issue body and project context (AI_GUIDE.md, file tree), (2) prompt the LLM to produce sub-tasks with: title, body, affected files, dependencies between sub-tasks, estimated complexity, (3) validate sub-tasks are independently executable (no circular dependencies), (4) create sub-issues on GitHub via gh CLI with parent/child linking, (5) label sub-issues as agent-ready and link back to parent. Include --dry-run to preview decomposition without creating issues.
+    _Files: ~/zion/projects/agent-orchestration/decomposer.py_
+  - [ ] Can break a complex issue into 2-6 sub-issues with clear scope boundaries
+    _Validation: python3 decomposer.py --decompose ISSUE_NUM --max-parts 6_
+  _~150 LOC_
+- [ ] **Decomposition integration with orchestrator** -- Wire decomposition into the orchestrator loop so complex issues are auto-decomposed before worker assignment
+  - [ ] `p26.d3.t1` Integrate decomposer into orchestrator loop
+    > Modify orchestrator.py run_loop() to: (1) after polling, run complexity analysis on each new issue, (2) for simple issues, proceed to spawner as before, (3) for complex issues, run decomposition, create sub-issues, label parent as "decomposed", (4) on next loop iteration, poll sub-issues as normal tasks, (5) when all sub-issues are complete, auto-close parent issue with summary comment. Add decompose_threshold and auto_decompose config options to orchestrator.yaml.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator automatically decomposes complex issues before spawning workers
+    _Validation: create a complex test issue, run orchestrator, verify sub-issues created_
+  _~80 LOC_
+- [ ] **Decomposition pipeline template** -- Pipeline YAML that includes a decomposition step for complex tasks
+  - [ ] `p26.d4.t1` Create decompose-pipeline.yaml
+    > Create pipelines/decompose-pipeline.yaml: AI(analyze complexity) -> CONDITIONAL(simple: AI(implement) -> Bash(test) -> Bash(commit), complex: AI(decompose) -> Bash(create sub-issues) -> END). Requires a CONDITIONAL node type or equivalent branching logic. If CONDITIONAL is too complex, create two separate pipeline templates and let the orchestrator select based on complexity analysis.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/decompose-pipeline.yaml_
+  - [ ] Pipeline template exists with a decomposition-aware flow
+    _Validation: read pipeline YAML_
+  _~50 LOC_
+
+### Technical Notes
+
+Decomposition quality depends on the LLM prompt. Start conservative: only decompose issues with high confidence scores. The sub-issue creation via gh CLI is the key mechanism -- it mirrors how Gas Town's Mayor distributes work. Keep sub-issues small enough to complete in a single pipeline run.
+
+### Risks
+
+- LLM decomposition may produce overlapping or poorly scoped sub-tasks -- need validation
+- Sub-issue creation rate could hit GitHub API limits for large batches
+- Parent issue tracking gets complex if sub-issues are reassigned or closed manually
+
+## [ ] phase-27: Live Terminal Dashboard (Witness Pattern) (PLANNED)
+
+**Goal:** Build a real-time terminal dashboard that displays orchestrator state, worker activity, and pipeline progress
+
+Gas Town's Witness role provides "observation and logging" as a first-class concern. Symphony's reference implementation includes a Phoenix live dashboard. The current orchestrator has status.sh (static snapshot) and orch_history.py (post-hoc queries) but no live view. This phase builds a terminal-based dashboard using rich/textual that auto-refreshes and shows: active workers with real-time progress, pipeline execution state, queue depth, recent completions/failures, and system health. This is the "Status Surface" component from the Symphony architecture, making the orchestrator's state visible at a glance without running CLI commands.
+
+
+### Deliverables
+
+- [ ] **Dashboard framework** -- Terminal dashboard with auto-refreshing panels for orchestrator state
+  - [ ] `p27.d1.t1` Create dashboard.py with rich/textual layout
+    > Python script using the rich library (already commonly available) that renders a terminal dashboard with panels: (1) Workers panel -- list of active workspaces with status, role, elapsed time, (2) Queue panel -- pending issues count, labels breakdown, (3) Recent panel -- last 10 completed/failed pipeline runs with status indicators, (4) System panel -- disk usage, log sizes, uptime. Auto-refresh every 5 seconds. Use rich.layout.Table and rich.live.Live for rendering. Fall back to plain text if rich is not installed.
+    _Files: ~/zion/projects/agent-orchestration/dashboard.py_
+  - [ ] Dashboard renders in terminal with multiple panels showing live data
+    _Validation: python3 dashboard.py_
+  _~150 LOC_
+- [ ] **Real-time workspace monitoring** -- Watch workspace filesystem for changes and update dashboard in real-time
+  - [ ] `p27.d2.t1` Add filesystem watcher to dashboard
+    > Add filesystem monitoring to dashboard.py: (1) watch workspace directories for file changes (creation, modification, deletion), (2) display last N file events per workspace, (3) compute "activity score" based on recent file operations, (4) highlight inactive workers (no file changes in N minutes) in yellow/red. Use simple polling (os.scandir + mtime) rather than inotify for cross-platform compatibility.
+    _Files: ~/zion/projects/agent-orchestration/dashboard.py_
+  - [ ] Dashboard shows live file modification timestamps per active workspace
+    _Validation: create files in workspace, observe dashboard update_
+  _~80 LOC_
+- [ ] **Pipeline execution visualization** -- Show active pipeline DAGs with node-by-node progress highlighting
+  - [ ] `p27.d3.t1` Add DAG visualization to dashboard
+    > Add pipeline visualization to dashboard.py: (1) read checkpoint files from active workspaces, (2) render the pipeline DAG as an ASCII tree showing node names with status icons (checkmark for completed, spinner for active, dot for pending, X for failed), (3) show current node duration and total pipeline elapsed time, (4) allow selecting a workspace to view its pipeline detail.
+    _Files: ~/zion/projects/agent-orchestration/dashboard.py_
+  - [ ] Dashboard renders the current pipeline DAG with completed/active/pending nodes
+    _Validation: run a pipeline, observe dashboard shows DAG progress_
+  _~100 LOC_
+- [ ] **Dashboard launcher and cron integration** -- Easy launch command and optional integration with orchestrator cron
+  - [ ] `p27.d4.t1` Add dashboard CLI and update status.sh
+    > Add CLI arguments to dashboard.py: --watch (auto-refresh interval), --focus (specific workspace or panel), --export (save snapshot as text). Update status.sh to mention the dashboard as an alternative to the static status view. Add a note to the orchestrator cron prompt that the dashboard can be run in a separate terminal to monitor orchestrator activity.
+    _Files: ~/zion/projects/agent-orchestration/dashboard.py, ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Single command launches the dashboard; can be run alongside orchestrator
+    _Validation: python3 dashboard.py starts and updates_
+  _~50 LOC_
+
+### Technical Notes
+
+Use rich (pip install rich) for terminal rendering -- it's lightweight, widely available, and produces beautiful output. If rich is not installed, fall back to plain-text tables. The dashboard is read-only -- it never modifies orchestrator state. Keep refresh interval configurable to balance responsiveness with resource usage.
+
+### Risks
+
+- rich library may not be installed -- need graceful fallback to plain text
+- Terminal rendering may be slow with many workspaces -- need pagination or filtering
+- Dashboard could consume noticeable CPU if refresh interval is too aggressive
+
+## [ ] phase-28: Speculative Execution and Parallel Exploration (PLANNED)
+
+**Goal:** Enable the orchestrator to run multiple solution strategies in parallel and select the best outcome
+
+The Harness Engineering research describes running "100 parallel Ralph Wiggum loops to explore different architectural approaches, only keeping the one that passes the most rigorous quality gates." The current orchestrator assigns one worker per issue with one pipeline. This phase adds speculative execution: for complex issues, spawn multiple workers with different strategies (different roles, different prompts, different pipeline templates), run them in parallel, evaluate outcomes against quality gates, and keep the best result. This transforms the orchestrator from a single-path executor into a multi-strategy optimizer, directly applying the "code is disposable" philosophy from the Dark Factory model.
+
+
+### Deliverables
+
+- [ ] **Strategy definition system** -- Define multiple solution strategies per issue type that the orchestrator can execute in parallel
+  - [ ] `p28.d1.t1` Create strategy YAML schema and loader
+    > Define strategies/ directory with YAML files. Each strategy specifies: name, applicable_labels (which issue types it handles), role_override (different role than default), prompt_additions (extra context for this strategy), pipeline (which pipeline template to use), weight (priority for resource allocation), quality_threshold (minimum score to be considered). Create a strategies.py loader that matches issues to applicable strategies. Default strategies: conservative (implementer + standard pipeline), aggressive (implementer + team pipeline), exploratory (coordinator plan first, then implement).
+    _Files: ~/zion/projects/agent-orchestration/strategies/, ~/zion/projects/agent-orchestration/strategies.py_
+  - [ ] Can define 2+ strategies for a given issue type with different roles, prompts, and pipelines
+    _Validation: read strategy YAML configs_
+  _~120 LOC_
+- [ ] **Parallel execution manager** -- Spawn and manage multiple workers for the same issue using different strategies
+  - [ ] `p28.d2.t1` Add speculative execution to orchestrator
+    > Add --speculative mode to orchestrator.py: (1) for a given issue, create N workspaces (one per strategy), (2) spawn workers in parallel using existing concurrency limits, (3) each worker runs its strategy's pipeline independently, (4) track speculative runs in workspace metadata (strategy_name, parent_issue, is_speculative=true), (5) report speculative run status alongside normal runs. Add max_speculative config option (default 3) to prevent resource exhaustion.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Can spawn N workers for the same issue, each with a different strategy
+    _Validation: python3 orchestrator.py --speculative ISSUE_NUM --strategies conservative,aggressive_
+  _~100 LOC_
+- [ ] **Outcome evaluator** -- Evaluate completed speculative runs against quality gates and select the best outcome
+  - [ ] `p28.d3.t1` Create outcome evaluator module
+    > Create evaluator.py module: (1) read execution logs from all speculative runs for an issue, (2) compute quality score per run based on: test pass rate, lint violations, code coverage delta, execution time, pipeline completion (did all nodes succeed), (3) weight factors configurable in strategies.yaml, (4) output ranked list of runs with scores, (5) select winner and mark its workspace as the primary result, (6) archive non-winning workspaces. Add --compare flag to compare two specific runs.
+    _Files: ~/zion/projects/agent-orchestration/evaluator.py_
+  - [ ] Can compare multiple completed runs and select the one with the highest quality score
+    _Validation: run two strategies, verify evaluator picks the better one_
+  _~120 LOC_
+- [ ] **Speculative pipeline template** -- Pipeline YAML that orchestrates parallel strategy execution and evaluation
+  - [ ] `p28.d4.t1` Create speculative-pipeline.yaml
+    > Create pipelines/speculative-pipeline.yaml documenting the speculative flow. Since true parallel execution requires orchestrator-level coordination (not pipeline-level), this is a meta-pipeline template that the orchestrator uses as a blueprint: (1) select applicable strategies, (2) spawn parallel workers, (3) wait for all to complete, (4) run evaluator, (5) commit winner, (6) archive losers, (7) post summary to issue. Include cost estimate per speculative run.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/speculative-pipeline.yaml_
+  - [ ] Pipeline template exists for the full speculative flow (decompose -> parallel execute -> evaluate -> commit)
+    _Validation: read pipeline YAML_
+  _~60 LOC_
+
+### Technical Notes
+
+Speculative execution is resource-intensive. Default to off. Only enable for issues labeled "explore" or when explicitly requested. The evaluator should be deterministic (test results, lint) not inferential (LLM review) to avoid adding cost. Consider a "tournament mode" that runs strategies head-to-head on the same issue and tracks win rates over time.
+
+### Risks
+
+- Speculative execution multiplies token costs -- need strict budgeting and opt-in
+- Workspace proliferation -- N strategies per issue means N workspaces to manage
+- Evaluator may pick the wrong winner if quality metrics don''t capture the right signals
+- Not all issues benefit from exploration -- simple bugs should use the standard path
+
+## [ ] phase-29: Agent Strategy A/B Testing and Analytics (PLANNED)
+
+**Goal:** Track the performance of different agent strategies, roles, and pipeline configurations over time to optimize orchestrator effectiveness
+
+The Dark Factory model treats code as disposable and experiments with approaches. The research mentions that "when an agent failed, the team analyzed the environment for missing capabilities rather than refining prompts." The current orchestrator has no mechanism to compare different configurations or track which strategies lead to successful outcomes. This phase adds experiment tracking: label pipeline runs with their configuration (role, pipeline, prompt version, model), compute success metrics per configuration, and provide statistical analysis to identify which configurations perform best for different issue types. This enables data-driven optimization of the orchestrator's harness, moving from "guess and check" to "measure and improve."
+
+
+### Deliverables
+
+- [ ] **Experiment tracking schema** -- Extend execution logs to capture configuration metadata for each run
+  - [ ] `p29.d1.t1` Extend execution_log.py with config tracking
+    > Modify execution_log.py to: (1) accept config_metadata parameter with role, pipeline_name, strategy, model, prompt_version, orchestrator_version, (2) compute a config_hash (SHA256 of key config fields) for grouping, (3) store config_metadata alongside execution results, (4) add config_metadata to the run JSON output. Backward compatible -- if metadata is missing, use defaults.
+    _Files: ~/zion/projects/agent-orchestration/execution_log.py_
+  - [ ] Execution logs include role, pipeline, strategy, and config hash for each run
+    _Validation: run a pipeline, check execution log includes config metadata_
+  _~60 LOC_
+- [ ] **Performance analytics engine** -- Compute per-configuration success rates, average durations, and quality scores
+  - [ ] `p29.d2.t1` Create analytics.py module
+    > Create analytics.py that: (1) reads execution logs with config metadata, (2) groups runs by config_hash, role, pipeline, strategy, issue_type, (3) computes per-group metrics: success_rate, avg_duration, avg_test_pass_rate, total_runs, (4) identifies statistical significance (is strategy A significantly better than strategy B?), (5) outputs as formatted table or JSON. Support --by flag to group by different dimensions, --period for time windowing, --top N to show best/worst performers.
+    _Files: ~/zion/projects/agent-orchestration/analytics.py_
+  - [ ] Can report success rate and average duration grouped by role, pipeline, and strategy
+    _Validation: python3 analytics.py --by-role --period week_
+  _~150 LOC_
+- [ ] **Configuration recommendation engine** -- Suggest optimal role/pipeline/strategy combinations based on historical performance for each issue type
+  - [ ] `p29.d3.t1` Add recommendation engine to analytics.py
+    > Add --recommend mode to analytics.py: (1) for a given issue type (determined by labels or title keywords), look up historical performance of all configurations, (2) rank configurations by success_rate * (1 / avg_duration) -- balancing quality and speed, (3) require minimum N runs (default 5) before making a recommendation, (4) output recommendation with confidence level and supporting data, (5) if no sufficient data, recommend the default configuration. This feeds into the orchestrator's strategy selection in phase 28.
+    _Files: ~/zion/projects/agent-orchestration/analytics.py_
+  - [ ] Can recommend the best configuration for a given issue type based on historical data
+    _Validation: python3 analytics.py --recommend --issue-type bug_
+  _~80 LOC_
+- [ ] **Analytics dashboard integration** -- Add analytics panels to the live dashboard from phase 27
+  - [ ] `p29.d4.t1` Add analytics panel to dashboard.py
+    > Add an "Analytics" panel to dashboard.py from phase 27: (1) show per-role success rate for last 50 runs, (2) show per-pipeline success rate, (3) show top 3 performing configurations, (4) show trend indicator (improving/declining) compared to previous period. Panel updates on each refresh cycle by calling analytics.py.
+    _Files: ~/zion/projects/agent-orchestration/dashboard.py_
+  - [ ] Dashboard shows per-role success rates and recent performance trends
+    _Validation: run dashboard, check analytics panel renders_
+  _~60 LOC_
+
+### Technical Notes
+
+A/B testing requires a sufficient volume of runs to be meaningful. The recommendation engine should be conservative -- only recommend when there's enough data (minimum 5 runs per configuration per issue type). Use simple statistical tests (proportion z-test for success rates) rather than complex ML. The analytics module should be fast enough to run on every dashboard refresh.
+
+### Risks
+
+- Low run volume makes statistics unreliable -- need clear confidence indicators
+- Issue type classification may be noisy (labels are often inconsistent)
+- Recommendations could lead to configuration lock-in if one strategy dominates early
+- Analytics queries could be slow on large log histories -- need indexing or aggregation
+
+## [ ] phase-30: Inter-Agent Communication and Shared State (Beads Pattern) (PLANNED)
+
+**Goal:** Implement lightweight shared state between concurrent workers so agents can coordinate on related tasks
+
+Gas Town's Beads database enables agents to share state -- when one worker modifies a file that another worker depends on, the system coordinates. The current orchestrator runs workers in complete isolation with no awareness of each other. This phase adds a lightweight coordination layer: a shared state file that tracks which files each worker is modifying, a notification mechanism so workers can learn about related changes, and conflict-aware scheduling that prevents workers from stepping on each other. This is a simpler alternative to Gas Town's full Dolt-based Beads system, using filesystem-based coordination instead of a version-controlled SQL database. This enables the "pull-based" work distribution pattern where workers can react to each other's progress rather than operating in silos.
+
+
+### Deliverables
+
+- [ ] **Shared state registry** -- File-backed registry that tracks which files are being modified by which workers
+  - [ ] `p30.d1.t1` Create shared_state.py module
+    > Create shared_state.py: (1) maintain a JSON-backed registry at ~/.orchestrator/state/shared-state.json, (2) register(worker_id, files_list) -- claim files for a worker, (3) unregister(worker_id) -- release all claimed files, (4) query(file_path) -- check if a file is locked and by whom, (5) query_conflicts(worker_id, files_list) -- check if any of the proposed files conflict with existing locks, (6) auto-expire locks after configurable timeout (default 2 hours) to handle crashed workers. Use file locking (fcntl.flock) for concurrent access safety.
+    _Files: ~/zion/projects/agent-orchestration/shared_state.py_
+  - [ ] Workers can register and unregister file locks; other workers can query active locks
+    _Validation: python3 shared_state.py register --worker 42 --files src/main.py_
+  _~120 LOC_
+- [ ] **Conflict-aware scheduling** -- Modify orchestrator to check shared state before spawning workers and skip file-conflicting tasks
+  - [ ] `p30.d2.t1` Add conflict checking to orchestrator spawner
+    > Modify orchestrator.py and spawner.py: (1) before spawning a worker, estimate which files the issue will touch (parse issue body for file mentions, check issue labels for component hints), (2) call shared_state.query_conflicts() to check for active locks, (3) if conflicts found, skip this issue and log "deferred due to file conflict with worker N", (4) on next loop iteration, re-check deferred issues. Add conflict_strategy config: skip (default), queue (wait until clear), warn (proceed but log warning).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Orchestrator delays spawning a worker if its target files conflict with an active worker
+    _Validation: create two issues touching the same file, verify second is delayed_
+  _~80 LOC_
+- [ ] **Worker notification channel** -- Simple notification mechanism so workers can learn about related changes from other workers
+  - [ ] `p30.d3.t1` Add notification channel to shared_state.py
+    > Extend shared_state.py with notifications: (1) post_notification(worker_id, message, related_files) -- write a notification to ~/.orchestrator/state/notifications.jsonl, (2) get_notifications(since_timestamp, related_files) -- retrieve notifications relevant to a worker, (3) auto-clean notifications older than 24 hours. In executor.py, when an AI node starts, check for notifications about files in its workspace and include them in the prompt as "Related changes by other workers: ..." This enables agents to be aware of concurrent activity.
+    _Files: ~/zion/projects/agent-orchestration/shared_state.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Worker A can post a notification that Worker B reads when it starts
+    _Validation: post notification, start worker, verify it reads the notification_
+  _~80 LOC_
+- [ ] **Integration tests for coordination** -- Test concurrent worker coordination, conflict detection, and notification delivery
+  - [ ] `p30.d4.t1` Create test_shared_state.py
+    > Create test_shared_state.py: (1) test register/unregister with concurrent access (multiple threads), (2) test conflict detection with overlapping file sets, (3) test lock expiration after timeout, (4) test notification post/retrieve lifecycle, (5) test file locking safety under concurrent writes, (6) test orchestrator conflict-aware scheduling with mocked workers. Use threading for concurrency tests.
+    _Files: ~/zion/projects/agent-orchestration/test_shared_state.py_
+  - [ ] Tests verify that concurrent workers coordinate correctly and conflicts are detected
+    _Validation: python3 -m pytest test_shared_state.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+This is a deliberately simple implementation of Beads -- filesystem-based rather than database-backed. The shared state JSON file is the coordination point. File locking (fcntl.flock on Linux) ensures safe concurrent access. For production scale, this could be upgraded to SQLite or Dolt, but JSON files are sufficient for the Hermes orchestrator's expected workload (10-20 concurrent workers).
+
+### Risks
+
+- File locking may not work on all filesystems (NFS, FUSE) -- document limitations
+- File conflict estimation from issue body is imprecise -- workers may touch more files than expected
+- Notification delivery adds latency to AI node startup
+- Shared state file could become a bottleneck with many workers -- consider sharding
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
 - delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
 - GitHub Issues as control plane requires a public or accessible repo -- private repo token management adds complexity
 - Token costs for autonomous loops can escalate quickly (Symphony team uses 1B tokens/day) -- need cost awareness in the orchestrator
+- Speculative execution (phase 28) can multiply costs if not carefully budgeted
+- Inter-agent coordination (phase 30) adds complexity that may not be needed at low concurrency levels
 
 ## Conventions
 
