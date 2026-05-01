@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 7/16 phases complete, 0 in progress
+**Progress:** 7/19 phases complete, 0 in progress
 
-**Deliverables:** 28/63 complete
+**Deliverables:** 28/75 complete
 
-**Tasks:** 28/63 complete
+**Tasks:** 28/75 complete
 
 ## Scope Summary
 
@@ -28,6 +28,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-14 Agent Health Monitoring (Deacon Pattern) | PLANNED | 0/4 | 260 | 10 |
 | phase-15 Safety Policies and Approval Gates | PLANNED | 0/4 | 360 | 15 |
 | phase-16 Multi-Repo Orchestration | PLANNED | 0/4 | 320 | 10 |
+| phase-17 Structural Invariants Engine | PLANNED | 0/4 | 390 | 10 |
+| phase-18 Agent Self-Debugging and Trace Tools | PLANNED | 0/4 | 320 | 5 |
+| phase-19 Continuous Self-Improvement Loop | PLANNED | 0/4 | 380 | 5 |
 
 ## Dependencies
 
@@ -52,6 +55,16 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-13 | phase-16 | soft | PR creation from phase 13 should work across multiple repos |
 | phase-14 | phase-16 | soft | Health monitoring from phase 14 should cover workers across all repos |
 | phase-15 | phase-16 | soft | Approval policies from phase 15 may vary per repo |
+| phase-10 | phase-17 | soft | Structural invariants complement convention scanning from phase 10 -- invariants check architecture, conventions check style |
+| phase-5 | phase-17 | soft | Invariant checker runs as a pipeline gate in the DAG executor from phase 5 |
+| phase-8 | phase-18 | informs | Trace tools read from the execution logs created by phase 8 |
+| phase-7 | phase-18 | soft | Tests should be green before adding debug tooling to avoid noisy traces |
+| phase-5 | phase-18 | soft | Debug context injection modifies the executor from phase 5 |
+| phase-8 | phase-19 | informs | Self-improvement reads from the execution logs created by phase 8 |
+| phase-9 | phase-19 | soft | LLM review results from phase 9 provide additional signal for improvement analysis |
+| phase-10 | phase-19 | soft | GC findings from phase 10 can feed into the improvement analysis |
+| phase-17 | phase-19 | soft | Invariant violations from phase 17 can be tracked as improvement signals |
+| phase-18 | phase-19 | soft | Failure correlation from phase 18 feeds into the pattern analyzer |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -845,6 +858,154 @@ Multi-repo is primarily a configuration and routing change, not a fundamental ar
 - Per-repo configuration drift -- different repos may need different orchestrator versions
 - Cost tracking is estimates only -- actual token usage depends on the LLM provider and model
 - Workspace migration from flat layout to repo-prefixed layout could break existing workspaces
+
+## [ ] phase-17: Structural Invariants Engine (PLANNED)
+
+**Goal:** Build custom structural tests that enforce architectural constraints (layering, dependency direction, module boundaries) beyond code style
+
+The Harness Engineering research emphasizes "Rigid Architecture" as a key pillar: enforcing a strict layering model that limits the agent's search space. Phase 10's convention scanner handles naming and style conventions. This phase goes deeper: enforcing architectural rules like "no UI code importing from database layer," "service modules must depend on repo interfaces not implementations," and "all public APIs must have type annotations." These invariants are mechanically checked and can be run as pipeline gates, catching architectural drift before it accumulates.
+
+### Deliverables
+
+- [ ] **Architecture invariant checker** -- Python module that reads an invariants.yaml config and checks a codebase for architectural violations
+  - [ ] `p17.d1.t1` Create invariant_checker.py module
+    > Python module that: (1) reads invariants.yaml defining project-specific architectural rules, (2) uses AST parsing to check import statements against forbidden_imports rules, (3) verifies layer_order (e.g., types -> config -> repo -> service), (4) checks dependency_direction (higher layers cannot import from lower), (5) detects circular dependencies via import graph, (6) outputs structured JSON report with file:line:violation:severity. Support --fix flag for auto-fixable violations (reorder imports).
+    _Files: ~/zion/projects/agent-orchestration/invariant_checker.py_
+  - [ ] Module parses invariants.yaml with rule definitions (forbidden_imports, required_interfaces, layer_order, dependency_direction)
+    _Validation: read config and checker code_
+  - [ ] Checker detects at least 4 violation types (forbidden imports, layer violations, missing type annotations, circular dependencies)
+    _Validation: run checker on test fixtures with known violations_
+  _~150 LOC_
+- [ ] **Invariants configuration schema** -- YAML schema for defining project-specific architectural invariants with sensible defaults
+  - [ ] `p17.d2.t1` Create invariants.yaml schema and example config (depends: p17.d1.t1)
+    > Define invariants.yaml schema with sections: layers (ordered list of module layers), forbidden_imports (regex patterns), dependency_rules (source_layer -> allowed_target_layers), required_annotations (functions/classes that need type hints), circular_limit (max allowed cycle length, 0 = none). Create example-invariants.yaml for a typical layered project (models/repo/service/api).
+    _Files: ~/zion/projects/agent-orchestration/invariants.yaml_
+  - [ ] invariants.yaml schema supports forbidden_imports, layer_order, dependency_direction, required_annotations, circular_dependency_limit
+    _Validation: read YAML schema_
+  - [ ] Example invariants.yaml provided for a typical layered project
+    _Validation: read example config_
+  _~80 LOC_
+- [ ] **Integrate invariant checker into pipelines** -- Add invariant checking as a gate in the standard and team pipelines
+  - [ ] `p17.d3.t1` Add invariant check to pipeline templates (depends: p17.d1.t1, p5.d3.t1)
+    > Add a Bash node to standard-pipeline.yaml and team-pipeline.yaml that runs invariant_checker.py with the project's invariants.yaml. Place it after the implement node and before tests, so architectural violations are caught early. Gate the pipeline on failure (stop before tests if invariants fail).
+    _Files: ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml, ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml_
+  - [ ] standard-pipeline.yaml and team-pipeline.yaml include an invariant check node after implementation
+    _Validation: read pipeline YAML_
+  _~40 LOC_
+- [ ] **Tests for invariant checker** -- Unit tests covering all violation types and edge cases
+  - [ ] `p17.d4.t1` Create test_invariant_checker.py (depends: p17.d1.t1)
+    > Create test fixtures (sample Python files with intentional violations) and test cases: valid project passes all checks, forbidden import detected, layer violation detected, circular dependency detected, missing type annotation detected, empty project returns clean report, invalid config handled gracefully, --fix flag corrects reorderable violations.
+    _Files: ~/zion/projects/agent-orchestration/test_invariant_checker.py_
+  - [ ] Test file with 10+ test cases covering AST parsing, layer enforcement, cycle detection
+    _Validation: python3 -m pytest test_invariant_checker.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+Use Python AST module for import analysis -- no external dependencies. Layer enforcement uses a simple graph traversal. Circular dependency detection uses Tarjan's algorithm. Keep rules project-agnostic via YAML config.
+
+### Risks
+
+- AST-based analysis may miss dynamic imports or conditional imports
+- Defining good architectural invariants requires domain knowledge of the target project
+- Overly strict invariants can slow down development if not tuned carefully
+
+## [ ] phase-18: Agent Self-Debugging and Trace Tools (PLANNED)
+
+**Goal:** Give agents the ability to read their own execution traces, inspect logs, and debug failures during pipeline execution
+
+Phase 8 adds execution history for humans to review after runs. The Harness Engineering research emphasizes "Application Legibility" -- agents should have local access to logs, metrics, and traces so they can reason about code they just wrote. This phase builds tools that make execution traces agent-readable, letting an AI node in a pipeline inspect its own (or a previous run's) output, understand what failed, and adjust its approach. This is the difference between "a human reviews the log" and "the agent reviews its own trace and self-corrects."
+
+### Deliverables
+
+- [ ] **Agent-readable trace formatter** -- Module that converts execution logs into a concise, agent-optimized format suitable for inclusion in prompts
+  - [ ] `p18.d1.t1` Create trace_formatter.py module (depends: p8.d1.t1)
+    > Python module that: (1) reads a pipeline run from execution_log.py, (2) extracts key information per node (status, duration, error message, output summary), (3) formats as compact text for prompt injection (<2000 tokens), (4) supports --format compact|detailed|diff modes, (5) highlights failure chain (which nodes failed and why), (6) includes context about what files were touched. The compact format is designed to be prepended to an AI node's prompt so the agent can understand previous failures.
+    _Files: ~/zion/projects/agent-orchestration/trace_formatter.py_
+  - [ ] Can format a pipeline run trace into a compact summary (node status, error messages, key outputs) under 2000 tokens
+    _Validation: python3 trace_formatter.py --run RUN_ID --compact_
+  - [ ] Supports multiple output formats: compact (for prompts), detailed (for debugging), diff-focused (shows what changed at each node)
+    _Validation: run with different format flags_
+  _~120 LOC_
+- [ ] **Debug context builder for executor** -- Enhance the DAG executor to build debug context for AI nodes when previous runs failed
+  - [ ] `p18.d2.t1` Add debug context to executor AI nodes (depends: p18.d1.t1, p5.d2.t1)
+    > Modify executor.py to: (1) when an AI node runs after a previous failure in the same pipeline execution, automatically call trace_formatter to build a debug context, (2) inject the debug context into the AI node's prompt as a "Previous attempt failed:" section, (3) include the specific error message and which node failed, (4) for Loop nodes, include iteration count and failure history. This enables AI nodes to learn from their own failures within a single pipeline run.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Executor automatically builds a debug context string when retrying a failed pipeline
+    _Validation: execute pipeline with failure, check retry prompt includes trace_
+  _~60 LOC_
+- [ ] **Cross-run failure correlation** -- Analyze multiple pipeline runs to find recurring failure patterns
+  - [ ] `p18.d3.t1` Add failure correlation to trace_formatter (depends: p18.d1.t1)
+    > Add --correlate flag to trace_formatter.py that: (1) reads the last N pipeline runs, (2) groups failures by node_id and failure_type, (3) identifies recurring patterns (same node failing in >50% of runs), (4) outputs a summary: "Node 'test' failed in 8/10 recent runs. Common error: ImportError. Suggested fix: check dependencies." This enables the orchestrator or a human to spot systemic issues.
+    _Files: ~/zion/projects/agent-orchestration/trace_formatter.py_
+  - [ ] Can identify that a specific node type or pipeline step fails repeatedly across runs
+    _Validation: python3 trace_formatter.py --correlate --last 20_
+  _~80 LOC_
+- [ ] **Self-debug pipeline template** -- Pipeline YAML that uses trace tools to enable agents to debug and fix their own failures
+  - [ ] `p18.d4.t1` Create debug-pipeline.yaml (depends: p18.d2.t1, p5.d3.t1)
+    > Create pipelines/debug-pipeline.yaml: AI(implement) -> Bash(test) -> AI(debug, reads trace from failed run, analyzes failure) -> Loop(fix, max=3, includes trace context in each iteration) -> Bash(test). The debug node uses trace_formatter to get the failure context, then formulates a targeted fix. The loop retries with increasing trace history so the agent can see what it already tried.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/debug-pipeline.yaml_
+  - [ ] Pipeline includes a debug node that reads previous failure traces and formulates a fix strategy
+    _Validation: read pipeline YAML, trace through nodes_
+  _~60 LOC_
+
+### Technical Notes
+
+The key insight is that traces should be compact enough to fit in an AI prompt without blowing the context window. The compact format targets <2000 tokens. Detailed format is for human debugging. Diff format shows what files changed at each step.
+
+### Risks
+
+- Trace context in prompts adds tokens -- need to be careful about context window budget
+- Over-debugging can make pipelines slower without adding value for simple failures
+- Trace format needs to be stable across executor versions to avoid breaking correlation
+
+## [ ] phase-19: Continuous Self-Improvement Loop (PLANNED)
+
+**Goal:** Analyze execution history to identify recurring failure patterns, auto-tune pipeline parameters, and improve the orchestrator's own harness
+
+The research's end vision is a "self-correcting codebase" where the system analyzes its own execution history and improves its harness. Phase 10 handles code-level garbage collection. This phase closes the meta-loop: the orchestrator analyzes its own pipeline execution data to identify which nodes fail most, which pipelines have the lowest success rate, and which parameters need tuning. It then generates actionable improvement suggestions or automatically adjusts parameters. This transforms the orchestrator from a static executor into a system that gets better at its job over time.
+
+### Deliverables
+
+- [ ] **Failure pattern analyzer** -- Module that analyzes execution logs to identify recurring failure patterns and bottlenecks
+  - [ ] `p19.d1.t1` Create self_improve.py analyzer module (depends: p8.d1.t1)
+    > Python module that: (1) reads all pipeline runs from execution_log.py, (2) computes per-node failure rates, (3) identifies failure sequences (which nodes fail after which), (4) detects bottlenecks (slowest nodes, most retried loops), (5) identifies pipeline-level patterns (which pipelines have lowest success rate), (6) outputs structured JSON report with findings and suggested actions. Support --period flag for time-windowed analysis.
+    _Files: ~/zion/projects/agent-orchestration/self_improve.py_
+  - [ ] Can identify top 5 failing nodes across all runs with failure rates
+    _Validation: python3 self_improve.py --analyze --last 50_
+  - [ ] Detects patterns like "test node fails 60% of the time after implement node" or "loop node always hits max iterations"
+    _Validation: run analysis on synthetic history_
+  _~150 LOC_
+- [ ] **Parameter auto-tuner** -- Automatically adjust pipeline parameters (loop max, timeout, retry count) based on historical performance
+  - [ ] `p19.d2.t1` Add parameter tuning to self_improve.py (depends: p19.d1.t1)
+    > Add --tune mode to self_improve.py: (1) analyze loop nodes to determine if max_iterations is too low (most loops hit the limit) or too high (loops almost never reach it), (2) analyze timeout values for bash nodes (are tests timing out?), (3) suggest adjusted values with confidence scores, (4) support --apply flag to write suggested values back to pipeline YAML files, (5) keep a tuning history log to track changes over time.
+    _Files: ~/zion/projects/agent-orchestration/self_improve.py_
+  - [ ] Can suggest parameter adjustments based on failure patterns (e.g., "loop max 3 is insufficient, 80% of loops hit the limit")
+    _Validation: python3 self_improve.py --tune_
+  _~100 LOC_
+- [ ] **Weekly self-review cron** -- Cron job that runs the analyzer weekly and generates an improvement report
+  - [ ] `p19.d3.t1` Create weekly self-review cron (depends: p19.d1.t1)
+    > Create a weekly Hermes cron that runs self_improve.py --analyze --period week and outputs a summary report. The report includes: top failure patterns, pipeline success rates, parameter tuning suggestions, and a "health score" for the orchestrator. Optionally creates GitHub Issues for high-priority findings. Keep the report in ~/.orchestrator/reports/ for historical comparison.
+  - [ ] Cron job runs weekly and outputs a structured improvement report
+    _Validation: cronjob list_
+  _~30 LOC_
+- [ ] **Improvement action executor** -- Module that can automatically apply low-risk improvements suggested by the analyzer
+  - [ ] `p19.d4.t1` Add improvement executor to self_improve.py (depends: p19.d2.t1, p13.d1.t1)
+    > Add --apply mode with --auto flag: (1) apply parameter tuning (safe, mechanical changes to pipeline YAML), (2) for structural improvements (new test cases, missing invariants), create a draft GitHub Issue with the suggestion, (3) log all applied changes with before/after values, (4) support --dry-run to preview changes. Only auto-apply changes with confidence >= 0.9.
+    _Files: ~/zion/projects/agent-orchestration/self_improve.py_
+  - [ ] Can apply parameter tuning suggestions and create issues for structural improvements
+    _Validation: python3 self_improve.py --apply --auto_
+  _~100 LOC_
+
+### Technical Notes
+
+The self-improvement loop is the most "meta" phase -- the system improving itself. Start with read-only analysis (phase 19.d1), then add parameter tuning (19.d2), then automated action (19.d4). Each step requires more trust. Keep the improvement report human-readable so Jericho can review what the system wants to change.
+
+### Risks
+
+- Auto-tuning could make things worse if the analysis is wrong -- need human review for structural changes
+- The improvement loop could get stuck in a cycle (change parameters -> different failures -> change back)
+- Analysis quality depends on having enough execution history -- needs a minimum of 20-30 runs to be meaningful
 
 ## Global Risks
 
