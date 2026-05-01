@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 6/6 phases complete, 0 in progress
+**Progress:** 6/9 phases complete, 0 in progress
 
-**Deliverables:** 24/24 complete
+**Deliverables:** 24/36 complete
 
-**Tasks:** 24/24 complete
+**Tasks:** 24/36 complete
 
 ## Scope Summary
 
@@ -18,6 +18,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-4 Build Lightweight Symphony-Style Orchestrator | COMPLETE | 4/4 | 1,160 | - |
 | phase-5 Archon-Style Deterministic DAG for Hermes | COMPLETE | 4/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | COMPLETE | 3/3 | 1,780 | - |
+| phase-7 Testing and Hardening | PLANNED | 0/4 | 550 | 30 |
+| phase-8 Execution History and Observability | PLANNED | 0/4 | 310 | 5 |
+| phase-9 Inferential Sensor (LLM-as-Judge Post-Review) | PLANNED | 0/4 | 340 | 5 |
 
 ## Dependencies
 
@@ -28,6 +31,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-3 | phase-4 | soft | Quick wins from phase 3 (test gating, AI_GUIDE improvements) make the orchestrator more effective, but not strictly required |
 | phase-4 | phase-5 | soft | DAG executor enhances the orchestrator but can also run standalone for manual use |
 | phase-5 | phase-6 | soft | Role specialization builds on the DAG executor from phase 5 |
+| phase-6 | phase-7 | soft | Tests should cover all the systems built in phases 1-6 |
+| phase-7 | phase-8 | soft | Tests should be green before adding observability to avoid logging test noise |
+| phase-8 | phase-9 | soft | Review results should be logged to the execution history from phase 8 |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -355,6 +361,147 @@ Roles are prompt+toolset profiles, not separate processes. Same delegate_task in
 
 - Role matching heuristics may be too simplistic
 - Over-specialization can reduce flexibility for novel tasks
+
+## [ ] phase-7: Testing and Hardening (PLANNED)
+
+**Goal:** Add comprehensive tests for the orchestrator system and harden edge cases
+
+The orchestrator, DAG executor, poller, spawner, and role system have no tests. This phase adds unit tests for each module, an integration test that exercises a full pipeline end-to-end, and fixes any bugs discovered during testing. This is a prerequisite for relying on the orchestrator in production.
+
+### Deliverables
+
+- [ ] **Unit tests for DAG parser and executor** -- Test node parsing, topological sort, cycle detection, and all 4 node type executors
+  - [ ] `p7.d1.t1` Create test_dag.py with comprehensive unit tests
+    > Expand existing test_dag.py (or replace) with tests for: parse_node, parse_pipeline, cycle detection, topological order, entry_nodes, pipeline_to_dict, edge cases (empty pipeline, missing deps, invalid node types, loop children validation)
+    _Files: ~/zion/projects/agent-orchestration/test_dag.py_
+  - [ ] Test file exists with 10+ test cases covering dag.py
+    _Validation: python3 -m pytest test_dag.py -v_
+  - [ ] Test file exists with 10+ test cases covering executor.py
+    _Validation: python3 -m pytest test_executor.py -v_
+  _~150 LOC_
+- [ ] **Unit tests for poller, spawner, roles, orchestrator** -- Test each module core functions with mocked gh CLI and filesystem
+  - [ ] `p7.d2.t1` Create test_orchestrator_modules.py
+    > Mock gh CLI for poller tests. Mock filesystem for spawner tests. Test role matching heuristics. Test orchestrator run_loop with mocked poller/spawner. Cover edge cases: empty issues, max concurrent, no repo configured.
+    _Files: ~/zion/projects/agent-orchestration/test_orchestrator_modules.py_
+  - [ ] Test file covers poller.py, spawner.py, roles.py with mocked subprocess calls
+    _Validation: python3 -m pytest test_orchestrator_modules.py -v_
+  _~200 LOC_
+- [ ] **End-to-end integration test** -- Test a full pipeline execution from YAML parse through all node types
+  - [ ] `p7.d3.t1` Create test_integration.py (depends: p7.d1.t1, p7.d2.t1)
+    > Create a test pipeline YAML with all 4 node types. Execute it with the DAGExecutor. Verify: correct execution order, bash node output capture, loop node iteration count, failure propagation, context templating, dry-run mode.
+    _Files: ~/zion/projects/agent-orchestration/test_integration.py_
+  - [ ] Integration test runs a pipeline YAML through the full executor
+    _Validation: python3 -m pytest test_integration.py -v_
+  _~120 LOC_
+- [ ] **Fix bugs found during testing** -- Address any issues discovered by the test suite
+  - [ ] `p7.d4.t1` Fix bugs discovered by test suite (depends: p7.d1.t1, p7.d2.t1, p7.d3.t1)
+    > Run the full test suite. Fix any failures in dag.py, executor.py, spawner.py, roles.py, or orchestrator.py. Common areas to check: loop executor variable scoping, template rendering edge cases, role matching fallbacks.
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/roles.py_
+  - [ ] All tests pass after fixes
+    _Validation: python3 -m pytest -v (all green)_
+  _~80 LOC_
+
+### Technical Notes
+
+Use pytest with subprocess mocking for gh CLI. Use tmp_path fixture for filesystem tests. No external dependencies needed beyond pytest.
+
+### Risks
+
+- The executor AI node preparation may be hard to unit test since it outputs delegate_task params rather than executing
+- Loop executor has a known variable scoping issue (iteration variable in except clause)
+
+## [ ] phase-8: Execution History and Observability (PLANNED)
+
+**Goal:** Add persistent execution logging so past orchestrator runs can be inspected, debugged, and analyzed
+
+The current system has no execution history. When a pipeline runs, results are printed to stdout and lost. This phase adds a JSON-based execution log that records every pipeline run, every node execution, and every orchestrator loop iteration. Includes a CLI to query past runs. This addresses gap #7 from the comparison page (observability) and is essential for production use.
+
+### Deliverables
+
+- [ ] **Execution log storage** -- JSON-based log that records every pipeline run with timestamps, node results, and context
+  - [ ] `p8.d1.t1` Add execution logging to DAGExecutor
+    > Create execution_log.py module that creates ~/.orchestrator/logs/ directory, writes one JSON file per run (named by timestamp), stores pipeline name, all node results, duration, context, and final status. Integrate into executor.py run() method.
+    _Files: ~/zion/projects/agent-orchestration/execution_log.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Executor writes results to a persistent log file after each run
+    _Validation: run executor, check log file exists and contains run data_
+  _~100 LOC_
+- [ ] **Orchestrator loop logging** -- Log each orchestrator loop iteration (poll results, spawn decisions, worker state)
+  - [ ] `p8.d2.t1` Add loop logging to orchestrator.py (depends: p8.d1.t1)
+    > Append each run_loop() summary to ~/.orchestrator/logs/loops/YYYY-MM-DD.jsonl (one JSON line per iteration). Include: timestamp, polled count, spawned issues, active workers, skipped reasons.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator appends loop summaries to a daily log file
+    _Validation: run orchestrator, check daily log file_
+  _~50 LOC_
+- [ ] **History query CLI** -- CLI command to list and inspect past execution runs
+  - [ ] `p8.d3.t1` Create orch_history.py CLI (depends: p8.d1.t1)
+    > Python CLI with subcommands: list (show recent runs with status, pipeline name, duration), show RUN_ID (display full node-by-node results), failed (show only failed runs), stats (summary statistics). Output as formatted terminal table or JSON.
+    _Files: ~/zion/projects/agent-orchestration/orch_history.py_
+  - [ ] Can list past runs and show details of a specific run
+    _Validation: python3 orch_history.py list && python3 orch_history.py show RUN_ID_
+  _~120 LOC_
+- [ ] **Update status.sh to show recent history** -- Enhance the status dashboard with last N runs summary
+  - [ ] `p8.d4.t1` Update status.sh with history section (depends: p8.d3.t1)
+    > Add a "Recent Runs" section to status.sh that calls orch_history.py list --last 5 and displays it. Keep the existing worker status section.
+    _Files: ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] status.sh shows recent execution history alongside worker status
+    _Validation: run status.sh, check for history section_
+  _~40 LOC_
+
+### Technical Notes
+
+Use JSON Lines format for loop logs (append-friendly). Use one JSON file per pipeline run (easy to inspect). Log directory: ~/.orchestrator/logs/.
+
+### Risks
+
+- Log files could grow large over time -- need rotation or pruning
+- Sensitive data in prompts/issue bodies may end up in logs
+
+## [ ] phase-9: Inferential Sensor (LLM-as-Judge Post-Review) (PLANNED)
+
+**Goal:** Implement an LLM-based code review sensor that runs after pipeline completion to assess code quality
+
+The final high-value gap from the comparison page: inferential sensors. After a pipeline completes (code written, tests passing), an LLM-as-judge reviews the git diff for quality, security issues, and adherence to project conventions. This mirrors the Outer Harness inferential sensor pattern from Harness Engineering. The review runs as an optional pipeline node or standalone command.
+
+### Deliverables
+
+- [ ] **LLM review sensor module** -- Python module that runs an LLM review on a git diff and outputs structured feedback
+  - [ ] `p9.d1.t1` Create review_sensor.py
+    > Create a Python module that reads a git diff, constructs a review prompt with project context (AI_GUIDE.md if available), calls an LLM via delegate_task or subprocess, parses the review response into structured JSON (summary, issues list with severity, verdict: approve/request_changes/block). Include configurable review criteria (security, performance, readability, convention adherence).
+    _Files: ~/zion/projects/agent-orchestration/review_sensor.py_
+  - [ ] Module can review a git diff and output structured JSON with verdict
+    _Validation: python3 review_sensor.py --diff <(git diff)_
+  _~150 LOC_
+- [ ] **Review sensor as pipeline node type** -- Add REVIEW node type to the DAG executor that runs the LLM review sensor
+  - [ ] `p9.d2.t1` Add REVIEW node type to DAG (depends: p9.d1.t1)
+    > Add NodeType.REVIEW to dag.py. The review node takes: diff_source (git diff command or file path), review_criteria (list), and threshold (minimum score to pass). Executor calls review_sensor.run_review(). If verdict is block, node fails (stopping the pipeline).
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Pipeline YAML can include a review node that runs LLM-as-judge
+    _Validation: create pipeline with review node, execute it_
+  _~80 LOC_
+- [ ] **Review pipeline template** -- Pipeline YAML that adds an LLM review gate before the final commit
+  - [ ] `p9.d3.t1` Create review-pipeline.yaml (depends: p9.d2.t1)
+    > Create pipelines/review-pipeline.yaml based on standard-pipeline.yaml but with a REVIEW node inserted between review (AI) and commit (bash). The review node runs the LLM sensor on the git diff. If blocked, pipeline stops before commit.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/review-pipeline.yaml_
+  - [ ] Pipeline template exists with review node before commit
+    _Validation: read YAML, trace through nodes_
+  _~60 LOC_
+- [ ] **Review sensor configuration** -- YAML config for review criteria, model selection, and thresholds
+  - [ ] `p9.d4.t1` Create review_config.yaml
+    > Create review_config.yaml with: default_criteria (security, readability, performance, convention), model (claude-sonnet), max_tokens, threshold_score (0-100), custom_rules (project-specific review rules), and examples of good/bad patterns.
+    _Files: ~/zion/projects/agent-orchestration/review_config.yaml_
+  - [ ] review_config.yaml exists with sensible defaults
+    _Validation: read YAML file_
+  _~50 LOC_
+
+### Technical Notes
+
+The review sensor should work both as a pipeline node and as a standalone CLI tool. Use the same delegate_task infrastructure for the LLM call. The review prompt should be structured for reliable JSON output.
+
+### Risks
+
+- LLM-as-judge can be inconsistent -- the structured prompt and criteria need careful design
+- Token cost per review -- should be configurable and possibly skippable for simple changes
+- Review may produce false positives -- need a way to override or whitelist
 
 ## Global Risks
 
