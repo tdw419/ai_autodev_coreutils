@@ -514,7 +514,7 @@ phases:
   test_target: 0
 - id: phase-5
   title: Archon-Style Deterministic DAG for Hermes
-  status: planned
+  status: complete
   goal: Implement a YAML-based DAG runner that forces delegate_task workers through
     a defined pipeline (plan, implement, test, review, PR)
   description: 'Archon uses YAML DAGs to make agent workflows deterministic. This
@@ -529,15 +529,15 @@ phases:
   - name: DAG YAML schema and parser
     description: Define schema for workflow YAML (nodes, edges, node types) and write
       parser
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Schema supports AI, Bash, Loop, Dependency node types
       validation: parse example YAML
-      met: false
+      met: true
     tasks:
     - id: p5.d1.t1
       title: Create DAG schema and parser
-      status: todo
+      status: done
       description: Python module with Pydantic/dataclass models for DAG nodes (AI,
         Bash, Loop, Dependency) and edges. YAML parser that validates the DAG is acyclic.
         Include a default 'standard-pipeline.yaml' for plan->implement->test->review.
@@ -549,18 +549,18 @@ phases:
   - name: DAG executor
     description: 'Execute DAG nodes: AI nodes via delegate_task, Bash nodes via terminal,
       Loop nodes with retry logic'
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Executes a simple 3-node pipeline end-to-end
       validation: run with example YAML
-      met: false
+      met: true
     - description: Stops on Bash node failure (deterministic gate)
       validation: test with failing test node
-      met: false
+      met: true
     tasks:
     - id: p5.d2.t1
       title: Create DAG executor
-      status: todo
+      status: done
       description: 'Python executor that walks the DAG topologically. AI nodes: build
         prompt from node config + context, call delegate_task. Bash nodes: run shell
         command, check exit code. Loop nodes: repeat child until condition met. Dependency
@@ -575,15 +575,15 @@ phases:
   - name: Standard pipeline template
     description: 'Default workflow YAML for the standard dev pipeline: plan, implement,
       lint, test, review, commit'
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Template covers full dev lifecycle with gates
       validation: read YAML, trace through nodes
-      met: false
+      met: true
     tasks:
     - id: p5.d3.t1
       title: Create standard-pipeline.yaml
-      status: todo
+      status: done
       description: 'YAML file defining: AI(plan) -> AI(implement) -> Bash(lint) ->
         Bash(test) -> Loop(fix-on-failure, max=3) -> AI(review) -> Bash(git commit).
         Include prompts and shell commands for each node.'
@@ -597,15 +597,15 @@ phases:
   - name: Integrate DAG with orchestrator (phase 4)
     description: Wire DAG executor into the orchestrator so each issue goes through
       the pipeline
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Orchestrator spawns DAG executor instead of raw delegate_task
       validation: check orchestrator cron prompt
-      met: false
+      met: true
     tasks:
     - id: p5.d4.t1
       title: Integrate DAG executor into orchestrator
-      status: todo
+      status: done
       description: Modify the orchestrator spawner to use DAG executor with the standard
         pipeline instead of a single delegate_task call. Each issue becomes a DAG
         execution.

@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 4/6 phases complete, 0 in progress
+**Progress:** 5/6 phases complete, 0 in progress
 
-**Deliverables:** 17/24 complete
+**Deliverables:** 21/24 complete
 
-**Tasks:** 17/24 complete
+**Tasks:** 21/24 complete
 
 ## Scope Summary
 
@@ -16,7 +16,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-2 Map Symphony Patterns to Hermes Infrastructure | COMPLETE | 2/2 | 740 | - |
 | phase-3 Close High-Value Gaps with Existing Tools | COMPLETE | 3/3 | 890 | - |
 | phase-4 Build Lightweight Symphony-Style Orchestrator | COMPLETE | 4/4 | 1,160 | - |
-| phase-5 Archon-Style Deterministic DAG for Hermes | PLANNED | 0/4 | 1,570 | - |
+| phase-5 Archon-Style Deterministic DAG for Hermes | COMPLETE | 4/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | PLANNED | 0/3 | 1,780 | - |
 
 ## Dependencies
@@ -262,7 +262,7 @@ Uses gh CLI for GitHub, delegate_task for workers, cron for scheduling. No Elixi
 - delegate_task sessions are synchronous within a turn -- need to handle long-running tasks via background processes or chained cron
 - Issue state management race conditions with multiple workers
 
-## [ ] phase-5: Archon-Style Deterministic DAG for Hermes (PLANNED)
+## [x] phase-5: Archon-Style Deterministic DAG for Hermes (COMPLETE)
 
 **Goal:** Implement a YAML-based DAG runner that forces delegate_task workers through a defined pipeline (plan, implement, test, review, PR)
 
@@ -273,34 +273,34 @@ with AI nodes using delegate_task and bash nodes running tests/lint/git.
 
 ### Deliverables
 
-- [ ] **DAG YAML schema and parser** -- Define schema for workflow YAML (nodes, edges, node types) and write parser
-  - [ ] `p5.d1.t1` Create DAG schema and parser
+- [x] **DAG YAML schema and parser** -- Define schema for workflow YAML (nodes, edges, node types) and write parser
+  - [x] `p5.d1.t1` Create DAG schema and parser
     > Python module with Pydantic/dataclass models for DAG nodes (AI, Bash, Loop, Dependency) and edges. YAML parser that validates the DAG is acyclic. Include a default 'standard-pipeline.yaml' for plan->implement->test->review.
     _Files: ~/zion/projects/agent-orchestration/dag.py_
-  - [ ] Schema supports AI, Bash, Loop, Dependency node types
+  - [x] Schema supports AI, Bash, Loop, Dependency node types
     _Validation: parse example YAML_
   _~120 LOC_
-- [ ] **DAG executor** -- Execute DAG nodes: AI nodes via delegate_task, Bash nodes via terminal, Loop nodes with retry logic
-  - [ ] `p5.d2.t1` Create DAG executor (depends: p5.d1.t1)
+- [x] **DAG executor** -- Execute DAG nodes: AI nodes via delegate_task, Bash nodes via terminal, Loop nodes with retry logic
+  - [x] `p5.d2.t1` Create DAG executor (depends: p5.d1.t1)
     > Python executor that walks the DAG topologically. AI nodes: build prompt from node config + context, call delegate_task. Bash nodes: run shell command, check exit code. Loop nodes: repeat child until condition met. Dependency nodes: just enforce order. Output results per node.
     _Files: ~/zion/projects/agent-orchestration/executor.py_
-  - [ ] Executes a simple 3-node pipeline end-to-end
+  - [x] Executes a simple 3-node pipeline end-to-end
     _Validation: run with example YAML_
-  - [ ] Stops on Bash node failure (deterministic gate)
+  - [x] Stops on Bash node failure (deterministic gate)
     _Validation: test with failing test node_
   _~150 LOC_
-- [ ] **Standard pipeline template** -- Default workflow YAML for the standard dev pipeline: plan, implement, lint, test, review, commit
-  - [ ] `p5.d3.t1` Create standard-pipeline.yaml (depends: p5.d1.t1)
+- [x] **Standard pipeline template** -- Default workflow YAML for the standard dev pipeline: plan, implement, lint, test, review, commit
+  - [x] `p5.d3.t1` Create standard-pipeline.yaml (depends: p5.d1.t1)
     > YAML file defining: AI(plan) -> AI(implement) -> Bash(lint) -> Bash(test) -> Loop(fix-on-failure, max=3) -> AI(review) -> Bash(git commit). Include prompts and shell commands for each node.
     _Files: ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml_
-  - [ ] Template covers full dev lifecycle with gates
+  - [x] Template covers full dev lifecycle with gates
     _Validation: read YAML, trace through nodes_
   _~60 LOC_
-- [ ] **Integrate DAG with orchestrator (phase 4)** -- Wire DAG executor into the orchestrator so each issue goes through the pipeline
-  - [ ] `p5.d4.t1` Integrate DAG executor into orchestrator (depends: p4.d3.t1, p5.d2.t1)
+- [x] **Integrate DAG with orchestrator (phase 4)** -- Wire DAG executor into the orchestrator so each issue goes through the pipeline
+  - [x] `p5.d4.t1` Integrate DAG executor into orchestrator (depends: p4.d3.t1, p5.d2.t1)
     > Modify the orchestrator spawner to use DAG executor with the standard pipeline instead of a single delegate_task call. Each issue becomes a DAG execution.
     _Files: ~/zion/projects/agent-orchestration/spawner.py_
-  - [ ] Orchestrator spawns DAG executor instead of raw delegate_task
+  - [x] Orchestrator spawns DAG executor instead of raw delegate_task
     _Validation: check orchestrator cron prompt_
   _~40 LOC_
 
