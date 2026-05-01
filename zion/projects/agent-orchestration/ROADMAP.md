@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 3/6 phases complete, 0 in progress
+**Progress:** 4/6 phases complete, 0 in progress
 
-**Deliverables:** 16/24 complete
+**Deliverables:** 17/24 complete
 
-**Tasks:** 16/24 complete
+**Tasks:** 17/24 complete
 
 ## Scope Summary
 
@@ -15,7 +15,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-1 Wiki Synthesis from Symphony Research | COMPLETE | 8/8 | 530 | - |
 | phase-2 Map Symphony Patterns to Hermes Infrastructure | COMPLETE | 2/2 | 740 | - |
 | phase-3 Close High-Value Gaps with Existing Tools | COMPLETE | 3/3 | 890 | - |
-| phase-4 Build Lightweight Symphony-Style Orchestrator | PLANNED | 3/4 | 1,160 | - |
+| phase-4 Build Lightweight Symphony-Style Orchestrator | COMPLETE | 4/4 | 1,160 | - |
 | phase-5 Archon-Style Deterministic DAG for Hermes | PLANNED | 0/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | PLANNED | 0/3 | 1,780 | - |
 
@@ -204,7 +204,7 @@ These are low-risk changes to existing infrastructure. No new services needed.
 
 - Garbage collection cron needs careful scoping to avoid noisy reports
 
-## [ ] phase-4: Build Lightweight Symphony-Style Orchestrator (PLANNED)
+## [x] phase-4: Build Lightweight Symphony-Style Orchestrator (COMPLETE)
 
 **Goal:** Build a Hermes-native orchestrator that uses GitHub Issues as a control plane to drive autonomous coding agents
 
@@ -244,11 +244,11 @@ infrastructure instead of Elixir/Codex.
   - [x] Respects max_concurrent limit (configurable)
     _Validation: check cron prompt for limit_
   _~40 LOC_
-- [ ] **Orchestrator status dashboard** -- Simple status command showing active workers, recent completions, queue depth
-  - [ ] `p4.d4.t1` Create orchestrator status command (depends: p4.d3.t1)
+- [x] **Orchestrator status dashboard** -- Simple status command showing active workers, recent completions, queue depth
+  - [x] `p4.d4.t1` Create orchestrator status command (depends: p4.d3.t1)
     > CLI command (or script) that reads workspace state and reports: active workers (by issue number), completed issues, failed issues, queue depth. Output as simple terminal table.
     _Files: ~/zion/projects/agent-orchestration/status.sh_
-  - [ ] Can run from terminal to see orchestrator state
+  - [x] Can run from terminal to see orchestrator state
     _Validation: run status command_
   _~50 LOC_
 

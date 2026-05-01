@@ -385,7 +385,7 @@ phases:
   test_target: 0
 - id: phase-4
   title: Build Lightweight Symphony-Style Orchestrator
-  status: planned
+  status: complete
   goal: Build a Hermes-native orchestrator that uses GitHub Issues as a control plane
     to drive autonomous coding agents
   description: 'This is the main build phase. Create an orchestrator that polls GitHub
@@ -477,15 +477,15 @@ phases:
   - name: Orchestrator status dashboard
     description: Simple status command showing active workers, recent completions,
       queue depth
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Can run from terminal to see orchestrator state
       validation: run status command
-      met: false
+      met: true
     tasks:
     - id: p4.d4.t1
       title: Create orchestrator status command
-      status: todo
+      status: done
       description: 'CLI command (or script) that reads workspace state and reports:
         active workers (by issue number), completed issues, failed issues, queue depth.
         Output as simple terminal table.'
