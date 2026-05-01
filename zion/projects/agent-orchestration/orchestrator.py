@@ -44,6 +44,7 @@ def load_config(config_path: str | None = None) -> dict:
         "label": os.environ.get("ORCH_LABEL", "agent-ready"),
         "max_concurrent": int(os.environ.get("ORCH_MAX_CONCURRENT", "2")),
         "project_dir": str(PROJECT_DIR),
+        "pipeline": os.environ.get("ORCH_PIPELINE", ""),
     }
 
     if config_path and os.path.exists(config_path):
@@ -161,12 +162,14 @@ def run_loop(config: dict, dry_run: bool = False) -> dict:
             result = spawn_worker(
                 issue=issue,
                 project_dir=Path(config["project_dir"]) if config.get("project_dir") else None,
+                pipeline=config.get("pipeline"),
             )
             # Comment on the issue
             update_issue_status(issue["number"], "in-progress", repo)
             summary["spawned"].append({
                 "issue_number": issue["number"],
                 "workspace": result["workspace_path"],
+                "execution_mode": result["execution_mode"],
             })
         else:
             summary["spawned"].append({

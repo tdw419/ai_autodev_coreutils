@@ -93,13 +93,18 @@ def build_prompt(issue: dict, ai_guide: str = "") -> str:
 def spawn_worker(
     issue: dict,
     project_dir: Path | None = None,
+    pipeline: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """
     Prepare workspace and prompt for a worker task.
 
+    If a pipeline YAML is provided, the worker will execute via the DAG
+    executor instead of a raw delegate_task call. Each issue becomes a
+    DAG execution with the task context injected as {{task}}.
+
     Returns a dict with workspace_path, prompt_path, prompt, and
-    project_dir that the orchestrator can use to call delegate_task.
+    project_dir that the orchestrator can use.
     """
     issue_num = issue["number"]
     workspace = WORKSPACES_DIR / str(issue_num)
@@ -117,6 +122,7 @@ def spawn_worker(
             "labels": issue.get("labels", []),
             "url": issue.get("url", ""),
             "status": "in-progress",
+            "pipeline": pipeline,
             "spawned_at": __import__("datetime").datetime.now().isoformat(),
         }
         (workspace / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
@@ -125,13 +131,37 @@ def spawn_worker(
     resolved_project = project_dir or find_project_dir(issue)
     ai_guide = read_ai_guide(resolved_project) if resolved_project else ""
 
-    # Build the prompt
-    prompt = build_prompt(issue, ai_guide)
+    # Build the task description
+    task_desc = build_prompt(issue, ai_guide)
+
+    # Build execution instructions based on mode (pipeline vs direct)
+    if pipeline:
+        pipeline_path = Path(pipeline)
+        if not pipeline_path.is_absolute():
+            pipeline_path = PROJECT_DIR / pipeline
+        execution_mode = "dag"
+        exec_instructions = {
+            "mode": "dag",
+            "pipeline": str(pipeline_path),
+            "workdir": str(workspace),
+            "context": {"task": task_desc},
+            "command": f"python3 {PROJECT_DIR}/executor.py {pipeline_path} --workdir {workspace} --context task=@{workspace}/task.json",
+        }
+    else:
+        execution_mode = "direct"
+        exec_instructions = {
+            "mode": "direct",
+            "workdir": str(workspace),
+            "prompt": task_desc,
+            "acp_command": "claude",
+        }
 
     if not dry_run:
         # Save prompt to workspace
         prompt_path = workspace / "prompt.md"
-        prompt_path.write_text(prompt)
+        prompt_path.write_text(task_desc)
+        # Save task as JSON for DAG executor context
+        (workspace / "task.json").write_text(json.dumps({"task": task_desc}))
     else:
         prompt_path = workspace / "prompt.md"
 
@@ -139,13 +169,9 @@ def spawn_worker(
         "issue_number": issue_num,
         "workspace_path": str(workspace),
         "prompt_path": str(prompt_path),
-        "prompt": prompt,
+        "execution_mode": execution_mode,
         "project_dir": str(resolved_project) if resolved_project else None,
-        "delegate_params": {
-            "workdir": str(workspace),
-            "prompt": prompt,
-            "acp_command": "claude",
-        },
+        "exec_instructions": exec_instructions,
     }
 
     return result
@@ -164,6 +190,11 @@ def main():
         "--project-dir", "-p",
         default=None,
         help="Target project directory (for AI_GUIDE.md context)",
+    )
+    parser.add_argument(
+        "--pipeline", "-P",
+        default=os.environ.get("ORCH_PIPELINE", ""),
+        help="Pipeline YAML to use (enables DAG mode). Default: ORCH_PIPELINE env var",
     )
     parser.add_argument(
         "--dry-run", "-n",
@@ -204,6 +235,7 @@ def main():
     result = spawn_worker(
         issue=issue,
         project_dir=Path(args.project_dir) if args.project_dir else None,
+        pipeline=args.pipeline or None,
         dry_run=args.dry_run,
     )
 

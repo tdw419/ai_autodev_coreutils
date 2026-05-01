@@ -1,7 +1,7 @@
 # Hermes Agent Orchestrator Configuration
 #
 # Override any setting via environment variables:
-#   ORCH_REPO, ORCH_LABEL, ORCH_MAX_CONCURRENT, ORCH_PROJECT_DIR
+#   ORCH_REPO, ORCH_LABEL, ORCH_MAX_CONCURRENT, ORCH_PROJECT_DIR, ORCH_PIPELINE
 
 # GitHub repo to poll for issues
 repo: ""
@@ -14,3 +14,7 @@ max_concurrent: 2
 
 # Base project directory
 project_dir: ~/zion/projects/agent-orchestration
+
+# Pipeline YAML for DAG mode (empty = direct delegate_task mode)
+# Set to "pipelines/standard-pipeline.yaml" to enable the full dev pipeline
+pipeline: ""
