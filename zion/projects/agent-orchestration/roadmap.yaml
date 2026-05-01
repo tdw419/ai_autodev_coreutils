@@ -4734,6 +4734,467 @@ phases:
   - Prompt bloat from too many patterns -- strict limit on injected context
   scope_lines_total: 360
   test_target: 12
+- id: phase-39
+  title: Browser-Based UI Verification (Chrome DevTools Protocol)
+  status: planned
+  goal: Enable agents to drive a headless browser to visually verify UI changes, reproduce bugs,
+    and validate end-to-end user flows before submitting PRs
+  description: 'The Harness Engineering research explicitly calls out "Direct UI Manipulation:
+    Wiring tools like Chrome DevTools Protocol into the agent''s runtime, allowing it to reproduce
+    bugs and verify UI fixes autonomously." Phase 31 (Self-Verifying Agent Toolkit) covers
+    assertion-based verification but not browser/visual verification. This phase adds a headless
+    browser integration layer that agents can call from pipeline nodes to: (1) navigate to pages
+    and check rendering, (2) fill forms and validate submissions, (3) take screenshots for visual
+    regression, (4) reproduce reported bugs by following reproduction steps. This closes the
+    Application Legibility gap for UI-focused projects.'
+  deliverables:
+  - name: Browser automation module
+    description: Python module that wraps Chrome DevTools Protocol for agent-driven browser
+      interactions
+    status: planned
+    acceptance_criteria:
+    - description: Module can launch headless Chrome, navigate to a URL, and return page content
+      validation: python3 browser_verify.py --navigate http://localhost:3000
+      met: false
+    - description: Supports form filling, click, scroll, and screenshot capture
+      validation: run through a form submission test
+      met: false
+    tasks:
+    - id: p39.d1.t1
+      title: Create browser_verify.py module
+      status: planned
+      description: 'Python module using playwright or CDP directly: (1) launch_headless(url)
+        -- start Chrome in headless mode, return a BrowserSession, (2) session.navigate(url),
+        session.fill(selector, value), session.click(selector), session.screenshot(path),
+        (3) session.get_page_text() -- extract visible text for assertion, (4) session.wait_for(selector,
+        timeout) -- wait for element to appear, (5) session.close(). Use subprocess to manage
+        Chrome process. Fall back gracefully if Chrome is not installed. Include --mode headed
+        for debugging.'
+      files:
+      - ~/zion/projects/agent-orchestration/browser_verify.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/browser_verify.py
+  - name: BROWSER node type for DAG executor
+    description: Add a BROWSER node type that runs browser verification steps from the pipeline
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline YAML can include BROWSER nodes for UI verification
+      validation: create pipeline with browser node, execute it
+      met: false
+    tasks:
+    - id: p39.d2.t1
+      title: Add BROWSER node type to DAG
+      status: planned
+      description: 'Add NodeType.BROWSER to dag.py. The browser node takes: url (base URL to
+        navigate), steps (list of actions: navigate, fill, click, wait, screenshot, assert_text),
+        assert_text (expected text to verify on page), screenshot_on_failure (bool, capture
+        screenshot when assertion fails). Executor calls browser_verify.py with the steps.
+        If assertion fails, node fails and screenshot is saved to workspace for debugging.'
+      dependencies:
+      - p39.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dag.py
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dag.py
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Visual regression detection
+    description: Screenshot-based comparison to detect unintended visual changes
+    status: planned
+    acceptance_criteria:
+    - description: Can compare screenshots and report pixel-level differences
+      validation: take baseline screenshot, modify UI, take new screenshot, compare
+      met: false
+    tasks:
+    - id: p39.d3.t1
+      title: Add visual regression to browser_verify.py
+      status: planned
+      description: 'Add visual regression to browser_verify.py: (1) capture_baseline(url, selector,
+        path) -- save a reference screenshot, (2) compare_screenshot(baseline_path, current_path,
+        threshold) -- compare pixel difference, return match percentage and diff image, (3)
+        --threshold flag (default 0.01 = 1% pixel difference allowed), (4) store baselines
+        in workspace/.orchestrator/baselines/. Include --update-baseline flag to refresh baselines
+        after intentional visual changes.'
+      dependencies:
+      - p39.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/browser_verify.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/browser_verify.py
+  - name: Browser verification pipeline template
+    description: Pipeline YAML that adds browser-based UI verification for frontend projects
+    status: planned
+    acceptance_criteria:
+    - description: Pipeline template includes BROWSER nodes for UI testing before commit
+      validation: read pipeline YAML, trace through nodes
+      met: false
+    tasks:
+    - id: p39.d4.t1
+      title: Create browser-pipeline.yaml
+      status: planned
+      description: 'Create pipelines/browser-pipeline.yaml: AI(implement) -> Bash(build/start
+        dev server) -> BROWSER(navigate to app, verify rendering) -> Bash(run unit tests) ->
+        BROWSER(fill form, submit, verify result) -> AI(review) -> Bash(commit). Include
+        env vars for dev server URL and startup command. The browser nodes serve as integration
+        tests that verify the UI actually works after code changes.'
+      dependencies:
+      - p39.d2.t1
+      - p39.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/browser-pipeline.yaml
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/browser-pipeline.yaml
+  dependencies:
+  - source: phase-5
+    target: phase-39
+    type: soft
+    reason: BROWSER node type extends the DAG executor from phase 5
+  - source: phase-7
+    target: phase-39
+    soft: soft
+    reason: Tests should cover browser verification before production use
+  - source: phase-31
+    target: phase-39
+    type: soft
+    reason: Self-verification toolkit from phase 31 provides the verification framework that
+      browser nodes extend
+  technical_notes: 'Use Playwright (pip install playwright) if available for reliable CDP
+    control, with a subprocess-based Chrome fallback. The BROWSER node is complementary to
+    VERIFY nodes -- VERIFY checks structured assertions, BROWSER checks visual/interaction
+    behavior. Screenshots on failure are critical for debugging -- they give agents and humans
+    a visual record of what went wrong. Keep browser sessions short-lived to avoid resource
+    leaks.'
+  risks:
+  - Headless Chrome may not be available in all environments -- need graceful degradation
+  - Browser tests are inherently slower than unit tests -- keep them focused on critical flows
+  - Visual regression can be flaky due to rendering differences (fonts, anti-aliasing) --
+    use per-environment baselines
+  - Browser automation adds a heavy dependency (Chrome/Chromium) -- make it optional
+  scope_lines_total: 410
+  test_target: 8
+- id: phase-40
+  title: Multi-Model Agent Backend Abstraction
+  status: planned
+  goal: Abstract the AI execution layer so the orchestrator can route work to different models
+    and providers based on task type, cost, and quality requirements
+  description: 'The Harness Engineering research describes the Inner Harness as "infrastructure
+    inside developer tools (Cursor, Claude Code, Codex)" and notes it is "increasingly commoditized
+    as providers converge on similar execution primitives." The current orchestrator is tightly
+    coupled to a single model/provider via delegate_task. This phase adds a backend abstraction
+    layer that: (1) defines a uniform interface for AI execution, (2) supports multiple backends
+    (Claude, GPT, local models, Codex), (3) routes tasks to the optimal backend based on
+    task type and cost, (4) enables fallback when a backend is unavailable. This is the Inner
+    Harness abstraction that Symphony treats as a pluggable component, and it unlocks cost
+    optimization by routing simple tasks to cheaper models while preserving quality for complex
+    ones.'
+  deliverables:
+  - name: Backend abstraction interface
+    description: Python interface defining the uniform contract for all AI execution backends
+    status: planned
+    acceptance_criteria:
+    - description: Interface defines execute(prompt, context, tools) -> result with structured
+        output
+      validation: read backend.py, check interface definition
+      met: false
+    - description: At least 2 backend implementations (Claude, subprocess/CLI)
+      validation: read backend implementations
+      met: false
+    tasks:
+    - id: p40.d1.t1
+      title: Create backend.py abstraction layer
+      status: planned
+      description: 'Create backend.py with: (1) AIBackend abstract base class with execute(prompt,
+        system_prompt, tools, max_turns, context_window) -> BackendResult, (2) ClaudeBackend
+        -- wraps delegate_task with acp_command=claude, (3) SubprocessBackend -- wraps any
+        CLI tool (Codex, aider, etc.) via subprocess, (4) MockBackend -- returns canned responses
+        for testing, (5) BackendConfig dataclass with model, provider, max_tokens, temperature.
+        Each backend reports: model name, token usage estimate, latency, cost estimate.'
+      files:
+      - ~/zion/projects/agent-orchestration/backend.py
+    scope_lines: 180
+    scope_files:
+    - ~/zion/projects/agent-orchestration/backend.py
+  - name: Backend routing engine
+    description: Module that selects the optimal backend for each AI node based on task characteristics
+    status: planned
+    acceptance_criteria:
+    - description: Can route simple tasks to cheaper backends and complex tasks to premium
+        ones
+      validation: test routing with different task types
+      met: false
+    - description: Routing rules are configurable via YAML
+      validation: read routing config
+      met: false
+    tasks:
+    - id: p40.d2.t1
+      title: Create router.py backend selection module
+      status: planned
+      description: 'Create router.py: (1) select_backend(node_config, issue_labels, budget_remaining)
+        -- returns the best backend for a given task, (2) routing rules based on: task complexity
+        (simple edit vs full implementation), role requirements (reviewer needs strong model,
+        tester can use cheaper model), budget constraints, model availability, (3) routing_config.yaml
+        defines: default_backend, per_role_overrides, per_label_overrides, fallback_chain
+        (what to try if primary backend fails), (4) --dry-run to preview routing decisions
+        without executing.'
+      dependencies:
+      - p40.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/router.py
+      - ~/zion/projects/agent-orchestration/routing_config.yaml
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/router.py
+    - ~/zion/projects/agent-orchestration/routing_config.yaml
+  - name: Backend integration with executor
+    description: Wire the backend abstraction into the DAG executor so AI nodes use the routing
+      engine
+    status: planned
+    acceptance_criteria:
+    - description: AI nodes in pipelines use the backend router instead of hardcoded delegate_task
+      validation: run pipeline, check execution log shows backend selection
+      met: false
+    tasks:
+    - id: p40.d3.t1
+      title: Integrate backend router into executor
+      status: planned
+      description: 'Modify executor.py AI node execution to: (1) call router.select_backend()
+        with node config and issue context, (2) instantiate the selected backend, (3) execute
+        via the backend interface instead of direct delegate_task call, (4) log which backend
+        was used, estimated cost, and actual latency, (5) on backend failure, try the next
+        backend in the fallback chain before giving up. Backward compatible -- if no routing
+        config, use default ClaudeBackend.'
+      dependencies:
+      - p40.d1.t1
+      - p40.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Backend cost comparison reporting
+    description: Track and report cost/quality metrics per backend to inform routing decisions
+    status: planned
+    acceptance_criteria:
+    - description: Can report cost per backend, success rate, and average latency
+      validation: python3 router.py --report --period week
+      met: false
+    tasks:
+    - id: p40.d4.t1
+      title: Add backend reporting to router.py
+      status: planned
+      description: 'Add --report mode to router.py: (1) aggregate execution logs by backend,
+        (2) compute per-backend metrics: total_cost, success_rate, avg_latency, avg_tokens,
+        failure_reasons, (3) identify cost savings from routing (compare actual cost vs if
+        everything used the premium backend), (4) suggest routing rule adjustments based on
+        data (e.g., "tester role has 95% success rate with cheap model -- consider always routing
+        there"). Output as table or JSON.'
+      dependencies:
+      - p40.d2.t1
+      - p8.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/router.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/router.py
+  dependencies:
+  - source: phase-5
+    target: phase-40
+    type: soft
+    reason: Backend abstraction modifies the executor AI node execution from phase 5
+  - source: phase-6
+    target: phase-40
+    type: soft
+    reason: Role profiles from phase 6 inform per-role backend routing rules
+  - source: phase-32
+    target: phase-40
+    type: soft
+    reason: Cost tracking from phase 32 provides the cost data that backend routing optimizes
+  - source: phase-29
+    target: phase-40
+    type: soft
+    reason: A/B testing analytics from phase 29 can compare backend performance
+  technical_notes: 'The backend abstraction is the Inner Harness layer from the research.
+    Keep it simple: a Python ABC with 2-3 implementations. The key insight is that not all
+    AI tasks need the most expensive model -- code review can use a fast model, complex implementation
+    needs a powerful one. The routing engine is the "model router" pattern from production ML
+    systems, applied to agent orchestration. Start with ClaudeBackend (existing delegate_task)
+    and SubprocessBackend (any CLI tool), add more backends as needed.'
+  risks:
+  - Different backends produce different quality output -- routing a complex task to a weak
+    model wastes tokens on retries
+  - Backend availability varies -- fallback chains add latency
+  - Cost estimation is approximate -- actual costs depend on provider pricing
+  - Adding more backends increases maintenance burden -- keep the interface minimal
+  scope_lines_total: 460
+  test_target: 10
+- id: phase-41
+  title: Intelligent Scheduling and Priority Queuing (GUPP Enforcement)
+  status: planned
+  goal: Replace simple cron polling with an intelligent scheduler that prioritizes work, enforces
+    urgency, and optimizes throughput
+  description: 'The Gas Town research describes the "Gastown Universal Propulsion Principle"
+    (GUPP): "if an agent has work on its hook, it must run it immediately." The current orchestrator
+    uses simple cron-based polling that processes issues in GitHub API order with no concept
+    of priority, urgency, or strategic scheduling. This phase adds: (1) a priority queue that
+    ranks issues by urgency, complexity, dependencies, and strategic value, (2) urgency scoring
+    based on issue age, labels, and dependencies, (3) GUPP-style enforcement that ensures
+    ready work is processed immediately rather than waiting for the next cron cycle, (4) scheduling
+    policies that balance throughput (many simple issues) with progress (complex issues don''t
+    starve). This transforms the orchestrator from a passive poller into an active scheduler
+    that maximizes the value of every agent-hour.'
+  deliverables:
+  - name: Priority queue system
+    description: Ordered work queue with configurable priority scoring for issues
+    status: planned
+    acceptance_criteria:
+    - description: Issues are scored and ranked by configurable priority criteria
+      validation: queue 5 issues with different labels/ages, verify ordering
+      met: false
+    - description: Queue persists across orchestrator restarts
+      validation: restart orchestrator, check queue is restored
+      met: false
+    tasks:
+    - id: p41.d1.t1
+      title: Create priority_queue.py module
+      status: planned
+      description: 'Create priority_queue.py: (1) score_issue(issue) -- compute priority score
+        from: urgency (age-based: older issues score higher), labels (bug > feature > chore),
+        complexity (simple issues first for throughput), dependencies (blocked issues deprioritized),
+        strategic_value (from issue metadata or label), (2) enqueue(issue, score) -- add to
+        priority queue backed by ~/.orchestrator/state/priority-queue.jsonl, (3) dequeue()
+        -- return highest-priority issue, (4) reprioritize(issue_number, new_score) -- adjust
+        priority after external events, (5) --dump to inspect queue state, --clear to reset.'
+      files:
+      - ~/zion/projects/agent-orchestration/priority_queue.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/priority_queue.py
+  - name: Urgency scoring engine
+    description: Module that calculates urgency scores based on issue age, SLA targets, and
+      dependency chains
+    status: planned
+    acceptance_criteria:
+    - description: Issues that have been open longer get higher urgency scores
+      validation: create issues of different ages, check scoring
+      met: false
+    - description: Issues blocking other issues get boosted priority
+      validation: create dependency chain, check parent issue priority
+      met: false
+    tasks:
+    - id: p41.d2.t1
+      title: Add urgency scoring to priority_queue.py
+      status: planned
+      description: 'Add urgency scoring to priority_queue.py: (1) age_factor -- linear ramp
+        from creation date, configurable half_life (issues double in urgency every N days),
+        (2) dependency_boost -- if an issue has sub-issues waiting on it, boost its priority
+        (detect via gh CLI issue references), (3) SLA_targets (from priority_config.yaml)
+        -- define target resolution times per label (P0: 1 hour, P1: 1 day, P2: 1 week),
+        urgency spikes as SLA approaches, (4) starvation_prevention -- ensure complex issues
+        don''t get perpetually skipped by simple ones (aging factor that guarantees eventual
+        processing). Output urgency breakdown per issue for transparency.'
+      dependencies:
+      - p41.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/priority_queue.py
+      - ~/zion/projects/agent-orchestration/priority_config.yaml
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/priority_queue.py
+    - ~/zion/projects/agent-orchestration/priority_config.yaml
+  - name: GUPP enforcement in orchestrator loop
+    description: Modify the orchestrator to use the priority queue instead of raw poller order,
+      processing high-priority work immediately
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator processes issues by priority score rather than API order
+      validation: file 3 issues, verify highest-priority is processed first
+      met: false
+    - description: When webhook triggers arrive (phase 37), they jump the queue
+      validation: trigger webhook, verify issue is processed before lower-priority queued items
+      met: false
+    tasks:
+    - id: p41.d3.t1
+      title: Integrate priority queue into orchestrator loop
+      status: planned
+      description: 'Modify orchestrator.py run_loop() to: (1) poll issues as before, but instead
+        of processing in API order, add all to priority queue with scores, (2) dequeue the highest-priority
+        issue, spawn worker for it, (3) re-score remaining issues on each iteration (urgency
+        increases with time), (4) when webhook triggers arrive (from phase 37), add them to
+        queue with elevated priority, (5) log scheduling decisions: "Skipped issue #42 (priority
+        3.2) in favor of issue #38 (priority 8.7, SLA in 2h)".'
+      dependencies:
+      - p41.d1.t1
+      - p41.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+  - name: Scheduling analytics and SLA tracking
+    description: 'Track scheduling performance: time-to-first-response, SLA compliance, queue
+      depth trends'
+    status: planned
+    acceptance_criteria:
+    - description: Can report average time from issue creation to worker spawn
+      validation: python3 priority_queue.py --analytics --period week
+      met: false
+    - description: SLA breach rate is tracked and reported
+      validation: check analytics output for SLA metrics
+      met: false
+    tasks:
+    - id: p41.d4.t1
+      title: Add scheduling analytics to priority_queue.py
+      status: planned
+      description: 'Add --analytics mode to priority_queue.py: (1) compute avg_time_to_spawn
+        (from issue creation to worker start), (2) SLA compliance rate (% of issues processed
+        within target time), (3) queue_depth trends (average, peak, growth rate), (4) throughput
+        (issues processed per day/week), (5) starvation detection (issues that have been in
+        queue > N times without being selected). Store historical analytics in ~/.orchestrator/logs/scheduling/
+        for trend analysis.'
+      dependencies:
+      - p41.d1.t1
+      - p8.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/priority_queue.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/priority_queue.py
+  dependencies:
+  - source: phase-4
+    target: phase-41
+    type: soft
+    reason: Priority queue modifies the orchestrator poller-spawner loop from phase 4
+  - source: phase-6
+    target: phase-41
+    type: soft
+    reason: Role specialization from phase 6 affects which issues get which workers
+  - source: phase-14
+    target: phase-41
+    type: soft
+    reason: Health monitoring from phase 14 should track scheduling latency
+  - source: phase-37
+    target: phase-41
+    type: soft
+    reason: Webhook triggers from phase 37 should jump the priority queue
+  technical_notes: 'The priority queue is the scheduling brain of the orchestrator. The key
+    insight from Gas Town''s GUPP is that work should flow immediately, not wait for polling
+    cycles. The queue is file-backed (JSONL) for persistence. Urgency scoring uses simple heuristics
+    (age, labels, dependencies) rather than ML -- keep it transparent and debuggable. Starvation
+    prevention is critical: without it, a constant stream of simple issues could permanently
+    block complex ones.'
+  risks:
+  - Priority scoring heuristics may not match actual business priorities -- need configurable
+    weights
+  - Urgency scoring could lead to thrashing if priorities change rapidly between iterations
+  - Queue persistence adds I/O overhead on every loop iteration -- keep it lightweight
+  - GUPP enforcement could overwhelm the system if too many high-priority issues arrive at
+    once -- need backpressure
+  scope_lines_total: 470
+  test_target: 10
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
 - delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
@@ -4745,6 +5206,9 @@ global_risks:
 - Token budget enforcement (phase 32) relies on estimates -- actual costs may differ significantly
 - Webhook server (phase 37) requires network exposure -- needs security review for production use
 - Cross-project knowledge (phase 38) could leak proprietary patterns between repos -- need per-repo knowledge isolation controls
+- Browser automation (phase 39) requires Chrome/Chromium -- adds a heavy runtime dependency and may not work in all CI environments
+- Multi-model routing (phase 40) could route complex tasks to underpowered models if scoring is wrong -- need conservative defaults
+- Priority scheduling (phase 41) could starve complex tasks if urgency weights favor simple fast completions -- need starvation prevention
 conventions:
 - Python scripts use python3 (no bare python command on this system)
 - GitHub API via gh CLI, not raw curl
@@ -4755,8 +5219,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 38
-  estimated_weeks: 36-44
+  phases_total: 41
+  estimated_weeks: 42-50
   updated: '2026-05-01'
-  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]
-  phases_added_from: 'Phase 36-38: Dynamic Policy Engine (Symphony Workflow Loader pattern for per-project runtime agent configuration), Event-Driven Trigger Mode (webhook-based fast-path complementing cron polling), and Cross-Project Knowledge Transfer (shared pattern library so agents learn from solutions across repos). Added based on gap analysis against Symphony Workflow Loader, Symphony polling daemon latency, and Gas Town Beads shared state patterns.'
+  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41]
+  phases_added_from: 'Phase 39-41: Browser-Based UI Verification (Harness Engineering "Direct UI Manipulation" via Chrome DevTools Protocol -- closing the Application Legibility gap for visual/UI verification), Multi-Model Agent Backend Abstraction (Inner Harness pluggable backends with intelligent routing for cost optimization -- from the research noting Inner Harness is "increasingly commoditized"), and Intelligent Scheduling with GUPP Enforcement (Gas Town Universal Propulsion Principle -- priority queue, urgency scoring, SLA tracking replacing simple cron polling order). Added based on gap analysis against research doc sections on Application Legibility, Inner Harness commoditization, and GUPP scheduling principle.'
