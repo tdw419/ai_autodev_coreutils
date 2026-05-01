@@ -640,25 +640,25 @@ phases:
   test_target: 0
 - id: phase-7
   title: Testing and Hardening
-  status: planned
+  status: complete
   goal: Add comprehensive tests for the orchestrator system and harden edge cases
   description: The orchestrator, DAG executor, poller, spawner, and role system have no tests. This phase adds unit tests for each module, an integration test that exercises a full pipeline end-to-end,
     and fixes any bugs discovered during testing. This is a prerequisite for relying on the orchestrator in production.
   deliverables:
   - name: Unit tests for DAG parser and executor
     description: Test node parsing, topological sort, cycle detection, and all 4 node type executors
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Test file exists with 10+ test cases covering dag.py
       validation: python3 -m pytest test_dag.py -v
-      met: false
+      met: true
     - description: Test file exists with 10+ test cases covering executor.py
       validation: python3 -m pytest test_executor.py -v
-      met: false
+      met: true
     tasks:
     - id: p7.d1.t1
       title: Create test_dag.py with comprehensive unit tests
-      status: planned
+      status: done
       description: 'Expand existing test_dag.py (or replace) with tests for: parse_node, parse_pipeline, cycle detection, topological order, entry_nodes, pipeline_to_dict, edge cases (empty pipeline, missing
         deps, invalid node types, loop children validation)'
       files:
@@ -668,15 +668,15 @@ phases:
     - ~/zion/projects/agent-orchestration/test_dag.py
   - name: Unit tests for poller, spawner, roles, orchestrator
     description: Test each module core functions with mocked gh CLI and filesystem
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Test file covers poller.py, spawner.py, roles.py with mocked subprocess calls
       validation: python3 -m pytest test_orchestrator_modules.py -v
-      met: false
+      met: true
     tasks:
     - id: p7.d2.t1
       title: Create test_orchestrator_modules.py
-      status: planned
+      status: done
       description: 'Mock gh CLI for poller tests. Mock filesystem for spawner tests. Test role matching heuristics. Test orchestrator run_loop with mocked poller/spawner. Cover edge cases: empty issues,
         max concurrent, no repo configured.'
       files:
@@ -686,15 +686,15 @@ phases:
     - ~/zion/projects/agent-orchestration/test_orchestrator_modules.py
   - name: End-to-end integration test
     description: Test a full pipeline execution from YAML parse through all node types
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Integration test runs a pipeline YAML through the full executor
       validation: python3 -m pytest test_integration.py -v
-      met: false
+      met: true
     tasks:
     - id: p7.d3.t1
       title: Create test_integration.py
-      status: planned
+      status: done
       description: 'Create a test pipeline YAML with all 4 node types. Execute it with the DAGExecutor. Verify: correct execution order, bash node output capture, loop node iteration count, failure propagation,
         context templating, dry-run mode.'
       files:
@@ -707,15 +707,15 @@ phases:
     - ~/zion/projects/agent-orchestration/test_integration.py
   - name: Fix bugs found during testing
     description: Address any issues discovered by the test suite
-    status: planned
+    status: done
     acceptance_criteria:
     - description: All tests pass after fixes
       validation: python3 -m pytest -v (all green)
-      met: false
+      met: true
     tasks:
     - id: p7.d4.t1
       title: Fix bugs discovered by test suite
-      status: planned
+      status: done
       description: 'Run the full test suite. Fix any failures in dag.py, executor.py, spawner.py, roles.py, or orchestrator.py. Common areas to check: loop executor variable scoping, template rendering
         edge cases, role matching fallbacks.'
       files:

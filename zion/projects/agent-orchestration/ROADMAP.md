@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 6/16 phases complete, 0 in progress
+**Progress:** 7/16 phases complete, 0 in progress
 
-**Deliverables:** 24/63 complete
+**Deliverables:** 28/63 complete
 
-**Tasks:** 24/63 complete
+**Tasks:** 28/63 complete
 
 ## Scope Summary
 
@@ -18,7 +18,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-4 Build Lightweight Symphony-Style Orchestrator | COMPLETE | 4/4 | 1,160 | - |
 | phase-5 Archon-Style Deterministic DAG for Hermes | COMPLETE | 4/4 | 1,570 | - |
 | phase-6 Gas Town-Style Role Specialization | COMPLETE | 3/3 | 1,780 | - |
-| phase-7 Testing and Hardening | PLANNED | 0/4 | 550 | 30 |
+| phase-7 Testing and Hardening | COMPLETE | 4/4 | 550 | 30 |
 | phase-8 Execution History and Observability | PLANNED | 0/4 | 310 | 5 |
 | phase-9 Inferential Sensor (LLM-as-Judge Post-Review) | PLANNED | 0/4 | 340 | 5 |
 | phase-10 Automated Garbage Collection and Remediation | PLANNED | 0/4 | 350 | 15 |
@@ -380,7 +380,7 @@ Roles are prompt+toolset profiles, not separate processes. Same delegate_task in
 - Role matching heuristics may be too simplistic
 - Over-specialization can reduce flexibility for novel tasks
 
-## [ ] phase-7: Testing and Hardening (PLANNED)
+## [x] phase-7: Testing and Hardening (COMPLETE)
 
 **Goal:** Add comprehensive tests for the orchestrator system and harden edge cases
 
@@ -388,34 +388,34 @@ The orchestrator, DAG executor, poller, spawner, and role system have no tests. 
 
 ### Deliverables
 
-- [ ] **Unit tests for DAG parser and executor** -- Test node parsing, topological sort, cycle detection, and all 4 node type executors
-  - [ ] `p7.d1.t1` Create test_dag.py with comprehensive unit tests
+- [x] **Unit tests for DAG parser and executor** -- Test node parsing, topological sort, cycle detection, and all 4 node type executors
+  - [x] `p7.d1.t1` Create test_dag.py with comprehensive unit tests
     > Expand existing test_dag.py (or replace) with tests for: parse_node, parse_pipeline, cycle detection, topological order, entry_nodes, pipeline_to_dict, edge cases (empty pipeline, missing deps, invalid node types, loop children validation)
     _Files: ~/zion/projects/agent-orchestration/test_dag.py_
-  - [ ] Test file exists with 10+ test cases covering dag.py
+  - [x] Test file exists with 10+ test cases covering dag.py
     _Validation: python3 -m pytest test_dag.py -v_
-  - [ ] Test file exists with 10+ test cases covering executor.py
+  - [x] Test file exists with 10+ test cases covering executor.py
     _Validation: python3 -m pytest test_executor.py -v_
   _~150 LOC_
-- [ ] **Unit tests for poller, spawner, roles, orchestrator** -- Test each module core functions with mocked gh CLI and filesystem
-  - [ ] `p7.d2.t1` Create test_orchestrator_modules.py
+- [x] **Unit tests for poller, spawner, roles, orchestrator** -- Test each module core functions with mocked gh CLI and filesystem
+  - [x] `p7.d2.t1` Create test_orchestrator_modules.py
     > Mock gh CLI for poller tests. Mock filesystem for spawner tests. Test role matching heuristics. Test orchestrator run_loop with mocked poller/spawner. Cover edge cases: empty issues, max concurrent, no repo configured.
     _Files: ~/zion/projects/agent-orchestration/test_orchestrator_modules.py_
-  - [ ] Test file covers poller.py, spawner.py, roles.py with mocked subprocess calls
+  - [x] Test file covers poller.py, spawner.py, roles.py with mocked subprocess calls
     _Validation: python3 -m pytest test_orchestrator_modules.py -v_
   _~200 LOC_
-- [ ] **End-to-end integration test** -- Test a full pipeline execution from YAML parse through all node types
-  - [ ] `p7.d3.t1` Create test_integration.py (depends: p7.d1.t1, p7.d2.t1)
+- [x] **End-to-end integration test** -- Test a full pipeline execution from YAML parse through all node types
+  - [x] `p7.d3.t1` Create test_integration.py (depends: p7.d1.t1, p7.d2.t1)
     > Create a test pipeline YAML with all 4 node types. Execute it with the DAGExecutor. Verify: correct execution order, bash node output capture, loop node iteration count, failure propagation, context templating, dry-run mode.
     _Files: ~/zion/projects/agent-orchestration/test_integration.py_
-  - [ ] Integration test runs a pipeline YAML through the full executor
+  - [x] Integration test runs a pipeline YAML through the full executor
     _Validation: python3 -m pytest test_integration.py -v_
   _~120 LOC_
-- [ ] **Fix bugs found during testing** -- Address any issues discovered by the test suite
-  - [ ] `p7.d4.t1` Fix bugs discovered by test suite (depends: p7.d1.t1, p7.d2.t1, p7.d3.t1)
+- [x] **Fix bugs found during testing** -- Address any issues discovered by the test suite
+  - [x] `p7.d4.t1` Fix bugs discovered by test suite (depends: p7.d1.t1, p7.d2.t1, p7.d3.t1)
     > Run the full test suite. Fix any failures in dag.py, executor.py, spawner.py, roles.py, or orchestrator.py. Common areas to check: loop executor variable scoping, template rendering edge cases, role matching fallbacks.
     _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/roles.py_
-  - [ ] All tests pass after fixes
+  - [x] All tests pass after fixes
     _Validation: python3 -m pytest -v (all green)_
   _~80 LOC_
 
