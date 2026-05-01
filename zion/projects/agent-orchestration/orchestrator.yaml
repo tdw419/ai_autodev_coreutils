@@ -1,0 +1,16 @@
+# Hermes Agent Orchestrator Configuration
+#
+# Override any setting via environment variables:
+#   ORCH_REPO, ORCH_LABEL, ORCH_MAX_CONCURRENT, ORCH_PROJECT_DIR
+
+# GitHub repo to poll for issues
+repo: ""
+
+# Label that marks issues as ready for agent work
+label: agent-ready
+
+# Maximum number of parallel workers
+max_concurrent: 2
+
+# Base project directory
+project_dir: ~/zion/projects/agent-orchestration
