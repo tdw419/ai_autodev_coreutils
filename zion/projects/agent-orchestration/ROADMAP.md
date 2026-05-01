@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 5/6 phases complete, 0 in progress
+**Progress:** 6/6 phases complete, 0 in progress
 
-**Deliverables:** 21/24 complete
+**Deliverables:** 24/24 complete
 
-**Tasks:** 21/24 complete
+**Tasks:** 24/24 complete
 
 ## Scope Summary
 
@@ -17,7 +17,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-3 Close High-Value Gaps with Existing Tools | COMPLETE | 3/3 | 890 | - |
 | phase-4 Build Lightweight Symphony-Style Orchestrator | COMPLETE | 4/4 | 1,160 | - |
 | phase-5 Archon-Style Deterministic DAG for Hermes | COMPLETE | 4/4 | 1,570 | - |
-| phase-6 Gas Town-Style Role Specialization | PLANNED | 0/3 | 1,780 | - |
+| phase-6 Gas Town-Style Role Specialization | COMPLETE | 3/3 | 1,780 | - |
 
 ## Dependencies
 
@@ -313,7 +313,7 @@ Keep it simple -- no Phoenix dashboard, no Dolt database. Just YAML + Python + H
 - DAG complexity can grow unbounded -- cap at 10 nodes per pipeline
 - Error propagation across nodes needs clear semantics
 
-## [ ] phase-6: Gas Town-Style Role Specialization (PLANNED)
+## [x] phase-6: Gas Town-Style Role Specialization (COMPLETE)
 
 **Goal:** Implement role-based agent specialization where different workers have different prompts, toolsets, and responsibilities
 
@@ -325,25 +325,25 @@ task type.
 
 ### Deliverables
 
-- [ ] **Role profile system** -- Define agent roles as YAML profiles with prompts, toolsets, and capabilities
-  - [ ] `p6.d1.t1` Create role profile YAMLs
+- [x] **Role profile system** -- Define agent roles as YAML profiles with prompts, toolsets, and capabilities
+  - [x] `p6.d1.t1` Create role profile YAMLs
     > Create roles/ directory with YAML profiles for: implementer (code writing, full tools), reviewer (read-only + suggestions), tester (run tests, report), coordinator (triage, assign, no code changes). Each has: name, description, system_prompt additions, allowed_toolsets, max_turns.
     _Files: ~/zion/projects/agent-orchestration/roles/_
-  - [ ] At least 4 roles defined (implementer, reviewer, tester, coordinator)
+  - [x] At least 4 roles defined (implementer, reviewer, tester, coordinator)
     _Validation: read role YAML files_
   _~100 LOC_
-- [ ] **Role-aware orchestrator** -- Update orchestrator to match issues to roles based on labels or heuristics
-  - [ ] `p6.d2.t1` Add role matching to orchestrator (depends: p4.d3.t1, p6.d1.t1)
+- [x] **Role-aware orchestrator** -- Update orchestrator to match issues to roles based on labels or heuristics
+  - [x] `p6.d2.t1` Add role matching to orchestrator (depends: p4.d3.t1, p6.d1.t1)
     > Update spawner.py to select role profile based on issue labels or title heuristics. Pass role-specific prompt additions and toolsets to delegate_task.
     _Files: ~/zion/projects/agent-orchestration/spawner.py_
-  - [ ] Issues with 'bug' label get tester role, 'feature' gets implementer, etc.
+  - [x] Issues with 'bug' label get tester role, 'feature' gets implementer, etc.
     _Validation: test with labeled issues_
   _~60 LOC_
-- [ ] **Multi-role pipeline** -- Create a pipeline where different roles handle different stages (implementer writes code, tester validates, reviewer approves)
-  - [ ] `p6.d3.t1` Create multi-role pipeline YAML (depends: p5.d3.t1, p6.d1.t1)
+- [x] **Multi-role pipeline** -- Create a pipeline where different roles handle different stages (implementer writes code, tester validates, reviewer approves)
+  - [x] `p6.d3.t1` Create multi-role pipeline YAML (depends: p5.d3.t1, p6.d1.t1)
     > Create a pipeline YAML where: AI(plan, role=coordinator) -> AI(implement, role=implementer) -> Bash(test) -> Loop(fix, role=implementer) -> AI(review, role=reviewer) -> Bash(commit). Requires role field on AI nodes.
     _Files: ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml_
-  - [ ] Pipeline YAML uses different roles for different nodes
+  - [x] Pipeline YAML uses different roles for different nodes
     _Validation: read pipeline YAML_
   _~50 LOC_
 

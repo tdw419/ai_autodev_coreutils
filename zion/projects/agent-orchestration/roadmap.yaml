@@ -632,7 +632,7 @@ phases:
   test_target: 0
 - id: phase-6
   title: Gas Town-Style Role Specialization
-  status: planned
+  status: complete
   goal: Implement role-based agent specialization where different workers have different
     prompts, toolsets, and responsibilities
   description: 'Gas Town assigns specialized roles (Mayor, Polecat, Deacon, etc.)
@@ -648,15 +648,15 @@ phases:
   deliverables:
   - name: Role profile system
     description: Define agent roles as YAML profiles with prompts, toolsets, and capabilities
-    status: todo
+    status: done
     acceptance_criteria:
     - description: At least 4 roles defined (implementer, reviewer, tester, coordinator)
       validation: read role YAML files
-      met: false
+      met: true
     tasks:
     - id: p6.d1.t1
       title: Create role profile YAMLs
-      status: todo
+      status: done
       description: 'Create roles/ directory with YAML profiles for: implementer (code
         writing, full tools), reviewer (read-only + suggestions), tester (run tests,
         report), coordinator (triage, assign, no code changes). Each has: name, description,
@@ -668,16 +668,16 @@ phases:
     - ~/zion/projects/agent-orchestration/roles/
   - name: Role-aware orchestrator
     description: Update orchestrator to match issues to roles based on labels or heuristics
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Issues with 'bug' label get tester role, 'feature' gets implementer,
         etc.
       validation: test with labeled issues
-      met: false
+      met: true
     tasks:
     - id: p6.d2.t1
       title: Add role matching to orchestrator
-      status: todo
+      status: done
       description: Update spawner.py to select role profile based on issue labels
         or title heuristics. Pass role-specific prompt additions and toolsets to delegate_task.
       dependencies:
@@ -691,15 +691,15 @@ phases:
   - name: Multi-role pipeline
     description: Create a pipeline where different roles handle different stages (implementer
       writes code, tester validates, reviewer approves)
-    status: todo
+    status: done
     acceptance_criteria:
     - description: Pipeline YAML uses different roles for different nodes
       validation: read pipeline YAML
-      met: false
+      met: true
     tasks:
     - id: p6.d3.t1
       title: Create multi-role pipeline YAML
-      status: todo
+      status: done
       description: 'Create a pipeline YAML where: AI(plan, role=coordinator) -> AI(implement,
         role=implementer) -> Bash(test) -> Loop(fix, role=implementer) -> AI(review,
         role=reviewer) -> Bash(commit). Requires role field on AI nodes.'
