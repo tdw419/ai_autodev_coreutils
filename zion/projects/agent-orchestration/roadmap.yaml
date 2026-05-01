@@ -1,0 +1,747 @@
+title: Hermes Agent Orchestration
+version: 0.1.0
+description: Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and
+  Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts
+  to existing infrastructure, and implement concrete improvements.
+project_url: ''
+phases:
+- id: phase-1
+  title: Wiki Synthesis from Symphony Research
+  status: complete
+  goal: Extract and synthesize all key concepts from the OpenAI Symphony doc into
+    persistent wiki pages
+  description: 'The research doc at ~/zion/docs/research/ covers 6 major concepts
+    that have no wiki
+
+    representation yet: Symphony, Harness Engineering, Gas Town, Archon, Ralph Wiggum
+
+    pattern, and agent.md spec. Create focused wiki pages for each, cross-referenced
+
+    with existing pages. Update the tag taxonomy in SCHEMA.md to include new tags.
+
+    '
+  deliverables:
+  - name: Update wiki tag taxonomy
+    description: Add orchestration, harness-engineering, codex, openai, workflow-dag
+      to SCHEMA.md tag taxonomy
+    status: done
+    acceptance_criteria:
+    - description: New tags added to SCHEMA.md under appropriate section
+      validation: grep for each tag in SCHEMA.md
+      met: true
+    tasks:
+    - id: p1.d1.t1
+      title: Add orchestration-related tags to SCHEMA.md
+      status: done
+      description: 'Add tags: orchestration, harness-engineering, codex, openai, workflow-dag,
+        agent-md under appropriate taxonomy sections'
+      files:
+      - ~/wiki/SCHEMA.md
+    scope_lines: 20
+    scope_files:
+    - ~/wiki/SCHEMA.md
+  - name: Symphony wiki page
+    description: Create concepts/openai-symphony.md covering the orchestration spec,
+      architecture, config params, and issue-tracker-as-control-plane pattern
+    status: done
+    acceptance_criteria:
+    - description: Page exists with proper frontmatter and 2+ wikilinks
+      validation: read_file and check links
+      met: true
+    - description: Covers polling daemon, workspace manager, workflow loader, agent
+        runner, status surface
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d2.t1
+      title: Create concepts/openai-symphony.md
+      status: done
+      description: Write wiki page covering Symphony spec mechanics, architecture
+        table, config params, Elixir implementation notes, and 500% PR increase claim
+      files:
+      - ~/wiki/concepts/openai-symphony.md
+    scope_lines: 80
+    scope_files:
+    - ~/wiki/concepts/openai-symphony.md
+  - name: Harness Engineering wiki page
+    description: Create concepts/harness-engineering.md covering the three-layer hierarchy
+      (inner/outer/orchestrator), dark factory model, application legibility
+    status: done
+    acceptance_criteria:
+    - description: Page covers all three harness layers with tooling examples
+      validation: read page content
+      met: true
+    - description: Links to Symphony and existing hermes-related pages
+      validation: check wikilinks
+      met: true
+    tasks:
+    - id: p1.d3.t1
+      title: Create concepts/harness-engineering.md
+      status: done
+      description: Write wiki page covering the three-layer harness hierarchy, dark
+        factory model (1M LOC, 0% review), application legibility principles, and
+        structural invariants
+      files:
+      - ~/wiki/concepts/harness-engineering.md
+    scope_lines: 100
+    scope_files:
+    - ~/wiki/concepts/harness-engineering.md
+  - name: Gas Town wiki page
+    description: Create concepts/gas-town.md covering the swarm coordination architecture,
+      Beads state management, and specialized agent roles
+    status: done
+    acceptance_criteria:
+    - description: Page covers all 6 agent roles (Mayor, Polecat, Deacon, Refinery,
+        Witness, Dog)
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d4.t1
+      title: Create concepts/gas-town.md
+      status: done
+      description: Write wiki page covering Gas Town architecture, Beads/Dolt state
+        mgmt, agent role taxonomy, GUPP principle, and Kubernetes comparison
+      files:
+      - ~/wiki/concepts/gas-town.md
+    scope_lines: 90
+    scope_files:
+    - ~/wiki/concepts/gas-town.md
+  - name: Archon wiki page
+    description: Create concepts/archon-deterministic-workflows.md covering YAML DAG
+      pipelines and deterministic vs probabilistic node types
+    status: done
+    acceptance_criteria:
+    - description: Page covers all 4 node types (AI, Bash, Loop, Dependency)
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d5.t1
+      title: Create concepts/archon-deterministic-workflows.md
+      status: done
+      description: Write wiki page covering Archon's YAML DAG approach, node types
+        table, harness-vs-brain debate, and CI/CD-style pipeline for agents
+      files:
+      - ~/wiki/concepts/archon-deterministic-workflows.md
+    scope_lines: 70
+    scope_files:
+    - ~/wiki/concepts/archon-deterministic-workflows.md
+  - name: Ralph Wiggum pattern wiki page
+    description: Create concepts/ralph-wiggum-pattern.md covering context management,
+      smart zone, and persistence artifacts
+    status: done
+    acceptance_criteria:
+    - description: Page covers context decay problem, fresh-per-iteration solution,
+        stop hooks
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d6.t1
+      title: Create concepts/ralph-wiggum-pattern.md
+      status: done
+      description: Write wiki page covering the Ralph Wiggum loop pattern, context
+        window decay, smart zone concept, git/filesystem persistence, and comparison
+        table
+      files:
+      - ~/wiki/concepts/ralph-wiggum-pattern.md
+    scope_lines: 70
+    scope_files:
+    - ~/wiki/concepts/ralph-wiggum-pattern.md
+  - name: agent.md spec wiki page
+    description: Create concepts/agent-md-specification.md covering structure, AAIF
+      adoption, and effective implementation patterns
+    status: done
+    acceptance_criteria:
+    - description: Page covers tech stack definition, executable commands, code examples,
+        three-tier boundaries
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d7.t1
+      title: Create concepts/agent-md-specification.md
+      status: done
+      description: Write wiki page covering agent.md structure (4 key sections), AAIF
+        adoption, 2500-repo analysis findings
+      files:
+      - ~/wiki/concepts/agent-md-specification.md
+    scope_lines: 70
+    scope_files:
+    - ~/wiki/concepts/agent-md-specification.md
+  - name: Update wiki index and log
+    description: Add all new pages to index.md, fix stale ralph-loop entry, append
+      log entry
+    status: done
+    acceptance_criteria:
+    - description: All 6 new pages appear in index.md under correct section
+      validation: grep index.md for each page
+      met: true
+    - description: Stale claude-code-ralph-loop-explained entry removed or fixed
+      validation: grep index.md
+      met: true
+    tasks:
+    - id: p1.d8.t1
+      title: Update index.md and log.md
+      status: done
+      description: Add all 6 concept pages to index.md, fix stale ralph-loop entry,
+        append bulk ingest log entry
+      files:
+      - ~/wiki/index.md
+      - ~/wiki/log.md
+    scope_lines: 30
+    scope_files:
+    - ~/wiki/index.md
+    - ~/wiki/log.md
+  dependencies: []
+  technical_notes: Use wiki_ingest MCP tool to pull source material from RAG. Track
+    synthesis with wiki_track. Each page must have 2+ wikilinks to other wiki pages.
+  risks:
+  - Some concepts may already have partial coverage in existing pages -- search before
+    creating
+  scope_lines_total: 530
+  test_target: 0
+- id: phase-2
+  title: Map Symphony Patterns to Hermes Infrastructure
+  status: complete
+  goal: Create a comparison document mapping each Symphony/Gas Town/Harness concept
+    to what Hermes already has, identifying gaps
+  description: 'Several patterns from the research doc already exist in Hermes in
+    different forms.
+
+    This phase creates a structured mapping and identifies specific gaps to close.
+
+    '
+  deliverables:
+  - name: Hermes vs Symphony comparison wiki page
+    description: Create comparisons/hermes-vs-symphony.md mapping each pattern to
+      Hermes equivalents
+    status: done
+    acceptance_criteria:
+    - description: Covers at least 8 pattern mappings with gap analysis
+      validation: read page, count mappings
+      met: true
+    - description: 'Each mapping identifies: Hermes equivalent, maturity level, specific
+        gaps'
+      validation: check table format
+      met: true
+    tasks:
+    - id: p2.d1.t1
+      title: Create comparisons/hermes-vs-symphony.md
+      status: done
+      description: 'Map these patterns to Hermes equivalents:
+
+        1. Issue tracker as control plane -> GitHub Issues skill + Paperclip
+
+        2. Workspace isolation -> delegate_task workdir isolation
+
+        3. WORKFLOW.md policy engine -> AGENT.md / AI_GUIDE.md
+
+        4. Agent runner (Codex) -> delegate_task + acp_command=claude
+
+        5. Ralph Wiggum loop -> RFL with carry-forward
+
+        6. Outer Harness (guides) -> skills system + AGENT.md
+
+        7. Outer Harness (sensors) -> keep-or-revert, code-review skill
+
+        8. Orchestrator layer -> cron scheduler + continuous-roadmap-worker
+
+        9. Deterministic DAG (Archon) -> no equivalent (GAP)
+
+        10. Specialized agent roles (Gas Town) -> partial via delegate-dispatch (GAP)
+
+        11. Garbage Collection Loops -> no equivalent (GAP)
+
+        12. agent.md spec -> partial via AI_GUIDE.md convention (GAP)
+
+        '
+      files:
+      - ~/wiki/comparisons/hermes-vs-symphony.md
+    scope_lines: 150
+    scope_files:
+    - ~/wiki/comparisons/hermes-vs-symphony.md
+  - name: Gap priority ranking
+    description: Rank identified gaps by implementation effort vs value, produce actionable
+      recommendations
+    status: done
+    acceptance_criteria:
+    - description: 'Each gap has: description, effort (low/med/high), value (low/med/high),
+        recommendation'
+      validation: read comparison page gap section
+      met: true
+    tasks:
+    - id: p2.d2.t1
+      title: Add gap priority ranking to comparison page
+      status: done
+      description: After the mapping table, add a ranked list of gaps with effort/value
+        assessment and specific recommendation for each
+      dependencies:
+      - p2.d1.t1
+      files:
+      - ~/wiki/comparisons/hermes-vs-symphony.md
+    scope_lines: 60
+    scope_files:
+    - ~/wiki/comparisons/hermes-vs-symphony.md
+  dependencies:
+  - source: phase-1
+    target: phase-2
+    type: informs
+    reason: Wiki pages from phase 1 provide the reference material for the mapping
+  technical_notes: The comparisons/ directory currently has 0 pages -- this will be
+    the first. Make it good as a template.
+  risks:
+  - Some Hermes equivalents may be undocumented -- need to check skills and session
+    history
+  scope_lines_total: 740
+  test_target: 0
+- id: phase-3
+  title: Close High-Value Gaps with Existing Tools
+  status: complete
+  goal: Implement the highest-value gaps identified in phase 2 using existing Hermes
+    infrastructure
+  description: 'Based on the gap analysis, implement quick wins that leverage what''s
+    already built.
+
+    Focus on: agent.md improvements, garbage collection loops, and outer harness sensors.
+
+    '
+  deliverables:
+  - name: AI_GUIDE.md template upgrade
+    description: Update the ai-guide skill to incorporate agent.md best practices
+      from the research (three-tier boundaries, executable commands, code examples)
+    status: done
+    acceptance_criteria:
+    - description: ai-guide skill includes agent.md structure recommendations
+      validation: read skill content
+      met: true
+    - description: Three-tier boundaries (Always/Ask First/Never) included as template
+        section
+      validation: grep skill for 'three-tier' or 'boundaries'
+      met: true
+    tasks:
+    - id: p3.d1.t1
+      title: Patch ai-guide skill with agent.md best practices
+      status: done
+      description: 'Add agent.md spec''s 4 key sections as recommended additions to
+        AI_GUIDE.md template: tech stack definition, executable commands, code examples,
+        three-tier boundaries'
+      files:
+      - ~/.hermes/skills/software-development/ai-guide/SKILL.md
+    scope_lines: 40
+    scope_files:
+    - ~/.hermes/skills/software-development/ai-guide/SKILL.md
+  - name: Convention garbage collection cron job
+    description: Create a weekly cron job that scans project codebases for deviations
+      from documented conventions and opens issues or creates tasks
+    status: done
+    acceptance_criteria:
+    - description: Cron job exists and runs weekly
+      validation: cronjob list
+      met: true
+    - description: Checks at least 3 convention types (naming, structure, test patterns)
+      validation: read cron prompt
+      met: true
+    tasks:
+    - id: p3.d2.t1
+      title: Create garbage collection cron job
+      status: done
+      description: Create a weekly cron job that reads AI_GUIDE.md from target projects,
+        scans code for convention violations (naming patterns, file structure, missing
+        tests), and reports findings. Start with geometry-os as the target project.
+      files: []
+    scope_lines: 30
+    scope_files: []
+  - name: 'Outer harness sensor: automated test gating for delegate_task'
+    description: Create a wrapper pattern/skill that automatically runs tests after
+      delegate_task completion and re-runs on failure (deterministic sensor)
+    status: done
+    acceptance_criteria:
+    - description: Skill or documented pattern exists for test-after-delegate
+      validation: skill_view or read skill file
+      met: true
+    - description: Includes retry-with-context on test failure
+      validation: read skill content
+      met: true
+    tasks:
+    - id: p3.d3.t1
+      title: Create delegate-test-gate skill
+      status: done
+      description: 'Create a skill that wraps delegate_task with: (1) run task, (2)
+        run tests, (3) if tests fail, re-delegate with test output as context, (4)
+        repeat up to N times. Pattern from outer harness deterministic sensors.'
+      files:
+      - ~/.hermes/skills/.archive/delegate-test-gate/SKILL.md
+    scope_lines: 80
+    scope_files:
+    - ~/.hermes/skills/.archive/delegate-test-gate/SKILL.md
+  dependencies:
+  - source: phase-2
+    target: phase-3
+    type: informs
+    reason: Gap analysis from phase 2 determines which quick wins to prioritize
+  technical_notes: These are low-risk changes to existing infrastructure. No new services
+    needed.
+  risks:
+  - Garbage collection cron needs careful scoping to avoid noisy reports
+  scope_lines_total: 890
+  test_target: 0
+- id: phase-4
+  title: Build Lightweight Symphony-Style Orchestrator
+  status: planned
+  goal: Build a Hermes-native orchestrator that uses GitHub Issues as a control plane
+    to drive autonomous coding agents
+  description: 'This is the main build phase. Create an orchestrator that polls GitHub
+    Issues for
+
+    tasks, spawns delegate_task workers in isolated workdirs, and manages status
+
+    lifecycle. Modeled on Symphony but using Hermes''s existing cron + delegate_task
+
+    infrastructure instead of Elixir/Codex.
+
+    '
+  deliverables:
+  - name: 'Orchestrator core: issue poller'
+    description: Script that polls GitHub Issues (repo TBD) for issues with specific
+      labels (e.g. 'agent-ready'), returns structured task list
+    status: done
+    acceptance_criteria:
+    - description: Polls GitHub Issues API via gh CLI
+      validation: run script, check output
+      met: true
+    - description: Filters by label, excludes in-progress/completed
+      validation: test with labeled issues
+      met: true
+    tasks:
+    - id: p4.d1.t1
+      title: Create issue poller script
+      status: done
+      description: Python script using gh CLI to poll GitHub Issues. Filter by label
+        'agent-ready'. Return JSON with issue number, title, body, labels. Skip issues
+        already assigned or closed.
+      files:
+      - ~/zion/projects/agent-orchestration/poller.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/poller.py
+  - name: 'Orchestrator core: worker spawner'
+    description: Script that takes an issue from the poller and spawns a delegate_task
+      worker with appropriate context, workdir, and skills
+    status: todo
+    acceptance_criteria:
+    - description: Spawns delegate_task with issue context as prompt
+      validation: test with a real issue
+      met: false
+    - description: Creates isolated workdir per issue
+      validation: check workdir creation
+      met: false
+    - description: Uses acp_command=claude for reasoning tasks
+      validation: check delegate_task params
+      met: false
+    tasks:
+    - id: p4.d2.t1
+      title: Create worker spawner script
+      status: todo
+      description: Python script that receives an issue, creates workdir at ~/zion/projects/agent-orchestration/workspaces/ISSUE-NUM,
+        builds prompt from issue title+body+AI_GUIDE.md, calls delegate_task with
+        appropriate toolsets
+      dependencies:
+      - p4.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/spawner.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/spawner.py
+  - name: Orchestrator cron integration
+    description: Wire poller + spawner into a Hermes cron job that runs on a schedule,
+      with concurrency limits
+    status: todo
+    acceptance_criteria:
+    - description: Cron job runs orchestrator on schedule
+      validation: cronjob list
+      met: false
+    - description: Respects max_concurrent limit (configurable)
+      validation: check cron prompt for limit
+      met: false
+    tasks:
+    - id: p4.d3.t1
+      title: Create orchestrator cron job
+      status: todo
+      description: 'Create Hermes cron job that runs the orchestrator loop: poll issues
+        -> filter ready -> spawn workers (up to N concurrent) -> update issue status.
+        Include config for repo, labels, max_concurrent, polling interval.'
+      dependencies:
+      - p4.d1.t1
+      - p4.d2.t1
+      files: []
+    scope_lines: 40
+    scope_files: []
+  - name: Orchestrator status dashboard
+    description: Simple status command showing active workers, recent completions,
+      queue depth
+    status: todo
+    acceptance_criteria:
+    - description: Can run from terminal to see orchestrator state
+      validation: run status command
+      met: false
+    tasks:
+    - id: p4.d4.t1
+      title: Create orchestrator status command
+      status: todo
+      description: 'CLI command (or script) that reads workspace state and reports:
+        active workers (by issue number), completed issues, failed issues, queue depth.
+        Output as simple terminal table.'
+      dependencies:
+      - p4.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/status.sh
+    scope_lines: 50
+    scope_files:
+    - ~/zion/projects/agent-orchestration/status.sh
+  dependencies:
+  - source: phase-3
+    target: phase-4
+    type: soft
+    reason: Quick wins from phase 3 (test gating, AI_GUIDE improvements) make the
+      orchestrator more effective, but not strictly required
+  technical_notes: Uses gh CLI for GitHub, delegate_task for workers, cron for scheduling.
+    No Elixir, no Codex -- pure Hermes stack. Workspace isolation via delegate_task
+    workdir param. Consider reusing delegate-dispatch skill patterns.
+  risks:
+  - GitHub API rate limits on frequent polling
+  - delegate_task sessions are synchronous within a turn -- need to handle long-running
+    tasks via background processes or chained cron
+  - Issue state management race conditions with multiple workers
+  scope_lines_total: 1160
+  test_target: 0
+- id: phase-5
+  title: Archon-Style Deterministic DAG for Hermes
+  status: planned
+  goal: Implement a YAML-based DAG runner that forces delegate_task workers through
+    a defined pipeline (plan, implement, test, review, PR)
+  description: 'Archon uses YAML DAGs to make agent workflows deterministic. This
+    phase brings that
+
+    pattern to Hermes: define a pipeline as a YAML DAG, execute nodes sequentially,
+
+    with AI nodes using delegate_task and bash nodes running tests/lint/git.
+
+    '
+  deliverables:
+  - name: DAG YAML schema and parser
+    description: Define schema for workflow YAML (nodes, edges, node types) and write
+      parser
+    status: todo
+    acceptance_criteria:
+    - description: Schema supports AI, Bash, Loop, Dependency node types
+      validation: parse example YAML
+      met: false
+    tasks:
+    - id: p5.d1.t1
+      title: Create DAG schema and parser
+      status: todo
+      description: Python module with Pydantic/dataclass models for DAG nodes (AI,
+        Bash, Loop, Dependency) and edges. YAML parser that validates the DAG is acyclic.
+        Include a default 'standard-pipeline.yaml' for plan->implement->test->review.
+      files:
+      - ~/zion/projects/agent-orchestration/dag.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dag.py
+  - name: DAG executor
+    description: 'Execute DAG nodes: AI nodes via delegate_task, Bash nodes via terminal,
+      Loop nodes with retry logic'
+    status: todo
+    acceptance_criteria:
+    - description: Executes a simple 3-node pipeline end-to-end
+      validation: run with example YAML
+      met: false
+    - description: Stops on Bash node failure (deterministic gate)
+      validation: test with failing test node
+      met: false
+    tasks:
+    - id: p5.d2.t1
+      title: Create DAG executor
+      status: todo
+      description: 'Python executor that walks the DAG topologically. AI nodes: build
+        prompt from node config + context, call delegate_task. Bash nodes: run shell
+        command, check exit code. Loop nodes: repeat child until condition met. Dependency
+        nodes: just enforce order. Output results per node.'
+      dependencies:
+      - p5.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Standard pipeline template
+    description: 'Default workflow YAML for the standard dev pipeline: plan, implement,
+      lint, test, review, commit'
+    status: todo
+    acceptance_criteria:
+    - description: Template covers full dev lifecycle with gates
+      validation: read YAML, trace through nodes
+      met: false
+    tasks:
+    - id: p5.d3.t1
+      title: Create standard-pipeline.yaml
+      status: todo
+      description: 'YAML file defining: AI(plan) -> AI(implement) -> Bash(lint) ->
+        Bash(test) -> Loop(fix-on-failure, max=3) -> AI(review) -> Bash(git commit).
+        Include prompts and shell commands for each node.'
+      dependencies:
+      - p5.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml
+  - name: Integrate DAG with orchestrator (phase 4)
+    description: Wire DAG executor into the orchestrator so each issue goes through
+      the pipeline
+    status: todo
+    acceptance_criteria:
+    - description: Orchestrator spawns DAG executor instead of raw delegate_task
+      validation: check orchestrator cron prompt
+      met: false
+    tasks:
+    - id: p5.d4.t1
+      title: Integrate DAG executor into orchestrator
+      status: todo
+      description: Modify the orchestrator spawner to use DAG executor with the standard
+        pipeline instead of a single delegate_task call. Each issue becomes a DAG
+        execution.
+      dependencies:
+      - p4.d3.t1
+      - p5.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/spawner.py
+    scope_lines: 40
+    scope_files:
+    - ~/zion/projects/agent-orchestration/spawner.py
+  dependencies:
+  - source: phase-4
+    target: phase-5
+    type: soft
+    reason: DAG executor enhances the orchestrator but can also run standalone for
+      manual use
+  technical_notes: Keep it simple -- no Phoenix dashboard, no Dolt database. Just
+    YAML + Python + Hermes tools. The DAG runner is a library, not a service.
+  risks:
+  - DAG complexity can grow unbounded -- cap at 10 nodes per pipeline
+  - Error propagation across nodes needs clear semantics
+  scope_lines_total: 1570
+  test_target: 0
+- id: phase-6
+  title: Gas Town-Style Role Specialization
+  status: planned
+  goal: Implement role-based agent specialization where different workers have different
+    prompts, toolsets, and responsibilities
+  description: 'Gas Town assigns specialized roles (Mayor, Polecat, Deacon, etc.)
+    to agents.
+
+    This phase brings role specialization to Hermes: define role profiles as skills
+
+    or prompt templates, and let the orchestrator assign roles to workers based on
+
+    task type.
+
+    '
+  deliverables:
+  - name: Role profile system
+    description: Define agent roles as YAML profiles with prompts, toolsets, and capabilities
+    status: todo
+    acceptance_criteria:
+    - description: At least 4 roles defined (implementer, reviewer, tester, coordinator)
+      validation: read role YAML files
+      met: false
+    tasks:
+    - id: p6.d1.t1
+      title: Create role profile YAMLs
+      status: todo
+      description: 'Create roles/ directory with YAML profiles for: implementer (code
+        writing, full tools), reviewer (read-only + suggestions), tester (run tests,
+        report), coordinator (triage, assign, no code changes). Each has: name, description,
+        system_prompt additions, allowed_toolsets, max_turns.'
+      files:
+      - ~/zion/projects/agent-orchestration/roles/
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/roles/
+  - name: Role-aware orchestrator
+    description: Update orchestrator to match issues to roles based on labels or heuristics
+    status: todo
+    acceptance_criteria:
+    - description: Issues with 'bug' label get tester role, 'feature' gets implementer,
+        etc.
+      validation: test with labeled issues
+      met: false
+    tasks:
+    - id: p6.d2.t1
+      title: Add role matching to orchestrator
+      status: todo
+      description: Update spawner.py to select role profile based on issue labels
+        or title heuristics. Pass role-specific prompt additions and toolsets to delegate_task.
+      dependencies:
+      - p4.d3.t1
+      - p6.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/spawner.py
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/spawner.py
+  - name: Multi-role pipeline
+    description: Create a pipeline where different roles handle different stages (implementer
+      writes code, tester validates, reviewer approves)
+    status: todo
+    acceptance_criteria:
+    - description: Pipeline YAML uses different roles for different nodes
+      validation: read pipeline YAML
+      met: false
+    tasks:
+    - id: p6.d3.t1
+      title: Create multi-role pipeline YAML
+      status: todo
+      description: 'Create a pipeline YAML where: AI(plan, role=coordinator) -> AI(implement,
+        role=implementer) -> Bash(test) -> Loop(fix, role=implementer) -> AI(review,
+        role=reviewer) -> Bash(commit). Requires role field on AI nodes.'
+      dependencies:
+      - p5.d3.t1
+      - p6.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml
+    scope_lines: 50
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml
+  dependencies:
+  - source: phase-5
+    target: phase-6
+    type: soft
+    reason: Role specialization builds on the DAG executor from phase 5
+  technical_notes: Roles are prompt+toolset profiles, not separate processes. Same
+    delegate_task infrastructure, different configuration. This is the 'Outer Harness'
+    concept -- role profiles ARE guides.
+  risks:
+  - Role matching heuristics may be too simplistic
+  - Over-specialization can reduce flexibility for novel tasks
+  scope_lines_total: 1780
+  test_target: 0
+global_risks:
+- Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates
+  as those projects change
+- delegate_task sessions are synchronous and bounded by parent turn -- long-running
+  orchestrator tasks need careful design (background terminals or chained cron)
+- GitHub Issues as control plane requires a public or accessible repo -- private repo
+  token management adds complexity
+- Token costs for autonomous loops can escalate quickly (Symphony team uses 1B tokens/day)
+  -- need cost awareness in the orchestrator
+conventions:
+- Python scripts use python3 (no bare python command on this system)
+- GitHub API via gh CLI, not raw curl
+- All new code goes to ~/zion/projects/agent-orchestration/
+- Skills go to ~/.hermes/skills/ following existing category structure
+- Wiki pages follow SCHEMA.md conventions (frontmatter, wikilinks, tag taxonomy)
+meta:
+  author: Hermes Agent
+  created: '2026-04-30'
+  source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
+  phases_total: 6
+  estimated_weeks: 4-6
