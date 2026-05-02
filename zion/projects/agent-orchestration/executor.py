@@ -29,6 +29,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 from dag import Pipeline, Node, NodeType, load_pipeline
 from execution_log import log_pipeline_run
 
+# Try importing trace_formatter for debug context injection
+try:
+    from trace_formatter import build_debug_context, format_compact
+    _HAS_TRACE_FORMATTER = True
+except ImportError:
+    _HAS_TRACE_FORMATTER = False
+
 
 @dataclass
 class NodeResult:
@@ -149,6 +156,48 @@ class DAGExecutor:
                 duration_seconds=round(duration, 2),
             )
 
+    def _build_failure_context(self, exclude_node_id: str | None = None) -> str:
+        """
+        Build a compact failure context from previous node results.
+
+        Scans self.results for failed nodes and produces a summary
+        suitable for injection into an AI node prompt so the agent
+        can learn from prior failures in the same pipeline run.
+        """
+        failed = [
+            r for r in self.results
+            if r.status == "failed" and r.node_id != exclude_node_id
+        ]
+        if not failed:
+            return ""
+
+        # Use trace_formatter if available for richer formatting
+        if _HAS_TRACE_FORMATTER:
+            synthetic_run = {
+                "pipeline_name": self.pipeline.name,
+                "status": "failed",
+                "total_nodes": len(self.results),
+                "completed_nodes": sum(1 for r in self.results if r.status == "completed"),
+                "failed_nodes": len(failed),
+                "duration_seconds": sum(r.duration_seconds for r in self.results),
+                "results": [
+                    {"node_id": r.node_id, "node_type": r.node_type, "status": r.status,
+                     "duration_seconds": r.duration_seconds, "error": r.error,
+                     "output": r.output[:500] if r.output else ""}
+                    for r in self.results
+                ],
+            }
+            return build_debug_context(synthetic_run)
+
+        # Fallback: manual compact summary
+        lines = ["<previous_attempt_failed>", "Some nodes in this pipeline have already failed:"]
+        for r in failed:
+            error_msg = r.error[:200] if r.error else "unknown error"
+            lines.append(f"  - Node '{r.node_id}' ({r.node_type}): {error_msg}")
+        lines.append("Analyze these failures and adjust your approach accordingly.")
+        lines.append("</previous_attempt_failed>")
+        return "\n".join(lines)
+
     def _execute_ai(self, node: Node) -> NodeResult:
         """
         Prepare AI node execution.
@@ -156,6 +205,9 @@ class DAGExecutor:
         Since the executor runs outside the Hermes agent session, AI nodes
         output their prompt as a delegate_task instruction. The orchestrator
         agent reads this and actually calls delegate_task.
+
+        Automatically injects failure context from previous nodes so the
+        agent can self-debug (phase-18: Agent Self-Debugging).
         """
         start = time.time()
         prompt = self._render_template(node.prompt)
@@ -171,6 +223,11 @@ class DAGExecutor:
         full_prompt = prompt
         if context_parts:
             full_prompt = "\n\n## Previous Step Outputs\n\n".join(context_parts) + "\n\n" + prompt
+
+        # Inject failure context if any previous nodes failed
+        failure_ctx = self._build_failure_context(exclude_node_id=node.id)
+        if failure_ctx:
+            full_prompt = failure_ctx + "\n\n" + full_prompt
 
         duration = time.time() - start
 
@@ -196,9 +253,14 @@ class DAGExecutor:
         """Execute a Loop node by iterating over its children."""
         start = time.time()
         last_child_result = None
+        iteration_failures = []  # Track per-iteration failure summaries
 
         for iteration in range(1, node.max_iterations + 1):
             print(f"  [LOOP {node.id}] iteration {iteration}/{node.max_iterations}", file=sys.stderr)
+
+            # Inject iteration context into child AI nodes
+            # Save the current results count so we can identify results from this iteration
+            results_before = len(self.results)
 
             # Execute children in order
             for child_id in node.children:
@@ -213,6 +275,18 @@ class DAGExecutor:
                     # Child failed, loop will retry
                     break
 
+            # Collect failure info from this iteration
+            iteration_results = self.results[results_before:]
+            failed_in_iter = [r for r in iteration_results if r.status == "failed"]
+            if failed_in_iter:
+                iteration_failures.append({
+                    "iteration": iteration,
+                    "failures": [
+                        {"node_id": r.node_id, "error": r.error[:150] if r.error else "unknown"}
+                        for r in failed_in_iter
+                    ],
+                })
+
             # Check if loop should stop
             if last_child_result and last_child_result.status == "completed":
                 # Last child succeeded, loop condition met
@@ -226,11 +300,28 @@ class DAGExecutor:
         else:
             status = "failed"
 
+        # Build iteration history for context injection
+        iteration_summary = ""
+        if iteration_failures:
+            lines = [f"<loop_history node='{node.id}' iterations='{iterations_used}'>"]
+            for ifail in iteration_failures:
+                lines.append(f"  Iteration {ifail['iteration']}:")
+                for f in ifail["failures"]:
+                    lines.append(f"    - {f['node_id']}: {f['error']}")
+            lines.append("The above failures occurred in previous loop iterations. "
+                         "Avoid repeating the same approach.")
+            lines.append("</loop_history>")
+            iteration_summary = "\n".join(lines)
+
+        output = f"Loop completed after {iterations_used} iterations"
+        if iteration_summary:
+            output = iteration_summary + "\n\n" + output
+
         return NodeResult(
             node_id=node.id,
             node_type=node.type.value,
             status=status,
-            output=f"Loop completed after {iterations_used} iterations",
+            output=output,
             duration_seconds=round(duration, 2),
             iterations=iterations_used,
         )
