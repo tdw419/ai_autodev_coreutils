@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 20/97 phases complete, 0 in progress
+**Progress:** 20/102 phases complete, 0 in progress
 
-**Deliverables:** 80/387 complete
+**Deliverables:** 80/407 complete
 
-**Tasks:** 80/387 complete
+**Tasks:** 80/407 complete
 
 ## Scope Summary
 
@@ -109,6 +109,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-95 Orchestrator Auto-Remediation and Self-Healing | PLANNED | 0/4 | 650 | 10 |
 | phase-96 agent.md Spec Validation and Compliance Linting | PLANNED | 0/4 | 450 | 12 |
 | phase-97 Multi-Session Task Chaining with Context Marshaling | PLANNED | 0/4 | 480 | 12 |
+| phase-98 Orchestrator End-to-End Scenario Test Harness | PLANNED | 0/4 | 410 | 10 |
+| phase-99 Unified Orchestrator CLI | PLANNED | 0/4 | 350 | 8 |
+| phase-100 Agent PR Quality Standards and Output Formatting | PLANNED | 0/4 | 340 | 10 |
+| phase-101 Orchestrator Data Lifecycle and Retention | PLANNED | 0/4 | 330 | 8 |
+| phase-102 Graceful Shutdown and Drain Mode | PLANNED | 0/4 | 420 | 8 |
 
 ## Dependencies
 
@@ -469,6 +474,22 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-5 | phase-97 | soft | DAG executor from phase 5 is extended with CHAIN_CONTEXT, CHAIN_COMPLETE, and CHAIN_END_SESSION nodes |
 | phase-47 | phase-97 | soft | Knowledge persistence from phase 47 and session chaining both externalize agent state -- they should share the persistence layer |
 | phase-68 | phase-97 | soft | Session identity from phase 68 provides per-session profiling; chaining adds cross-session identity |
+| phase-69 | phase-98 | soft | Scenario tests build on the integration test infrastructure from phase 69 but validate the full workflow |
+| phase-92 | phase-98 | soft | Mock agent backends from phase 92 enable zero-cost scenario test execution in CI |
+| phase-4 | phase-99 | soft | CLI wraps the orchestrator core from phase 4 |
+| phase-27 | phase-99 | soft | CLI status subcommand extends the terminal dashboard from phase 27 |
+| phase-71 | phase-99 | soft | Config validation from phase 71 informs the CLI config loading |
+| phase-13 | phase-100 | soft | PR automation from phase 13 creates the PRs that this phase templates and validates |
+| phase-21 | phase-100 | soft | Merge queue from phase 21 enforces the PR quality gate before merge |
+| phase-44 | phase-100 | soft | Health scorecard from phase 44 consumes PR quality trends as a quality signal |
+| phase-8 | phase-101 | soft | Execution logs from phase 8 are the largest data source requiring retention management |
+| phase-85 | phase-101 | soft | Audit trail from phase 85 has special retention requirements (never delete, long archive) |
+| phase-11 | phase-101 | soft | Workspace lifecycle from phase 11 determines when workspace data becomes eligible for cleanup |
+| phase-44 | phase-101 | soft | Health scorecard from phase 44 consumes storage health metrics |
+| phase-4 | phase-102 | soft | Drain mode modifies the orchestrator main loop from phase 4 |
+| phase-11 | phase-102 | soft | Workspace lifecycle from phase 11 provides the state tracking that drain mode preserves |
+| phase-25 | phase-102 | soft | State recovery from phase 25 provides the resilience patterns that drain mode extends |
+| phase-14 | phase-102 | soft | Health monitoring from phase 14 reports drain status |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -5406,6 +5427,274 @@ Session chaining is the key architectural pattern that enables agents to handle 
 - Chain state files could grow large for very long chains -- implement retention/archival for completed chains
 - Multi-session chains consume more tokens than single-session execution -- cost tracking (phase 32) should account for chain overhead
 - Chain scheduling via cron adds latency between sessions -- consider background process for active chains
+
+## [ ] phase-98: Orchestrator End-to-End Scenario Test Harness (PLANNED)
+
+**Goal:** Create scenario-based tests that validate the FULL orchestrator lifecycle from issue filing to merged PR
+
+Phase 69 provides integration tests for individual modules (poller, spawner, executor, etc.) but no phase validates the complete end-to-end workflow as a coherent scenario. The research describes Symphony as a system where engineers shift their role from supervising execution to filing speculative tickets and reviewing completed work at the end of the pipeline. To have confidence that this pipeline works, we need scenario tests that exercise: (1) create a labeled GitHub issue, (2) poller picks it up, (3) spawner creates workspace, (4) executor runs a full pipeline (plan, implement, test, review), (5) PR is created, (6) merge queue accepts it, (7) PR merges successfully. These are the happy path smoke tests that prove the system works as a whole, complementing the module-level tests from phase 69.
+
+### Deliverables
+
+- [ ] **Scenario test framework** -- Test framework that spins up ephemeral GitHub repos and runs full orchestrator scenarios
+  - [ ] `p98.d1.t1` Create scenario test framework
+    > Create test_scenarios.py with: (1) ScenarioTest class that manages ephemeral GitHub repos (create via gh repo create --private, delete after test), (2) file_issue(repo, title, body, labels) helper, (3) run_orchestrator_scenario(repo, issue, config) that invokes poller/spawner/executor chain, (4) assert_pr_created(repo) that verifies a PR was opened, (5) assert_pr_merged(repo) that verifies PR was merged, (6) cleanup(repo) that tears down the ephemeral repo. Use subprocess to call existing scripts rather than importing them, to test the actual CLI interface.
+    _Files: ~/zion/projects/agent-orchestration/test_scenarios.py_
+  - [ ] Can create a temporary repo, file an issue, and run the orchestrator against it end-to-end
+    _Validation: run a scenario test and verify it completes without errors_
+  - [ ] Scenarios are parameterized by pipeline type, role, and repo configuration
+    _Validation: at least 3 different scenario configurations exist_
+  _~120 LOC_
+- [ ] **Happy path scenario tests** -- At least 3 scenario tests covering the most common orchestrator workflows
+  - [ ] `p98.d2.t1` Implement 3 happy path scenario tests (depends: p98.d1.t1)
+    > Add 3 scenario tests to test_scenarios.py: (1) test_simple_bug_fix: creates a repo with a deliberate bug, files issue, runs orchestrator, verifies PR fixes the bug, (2) test_multi_file_refactor: creates repo with a pattern to refactor across 5 files, verifies all files updated consistently, (3) test_failure_recovery: creates repo where first attempt will fail tests, verifies orchestrator retries and eventually produces passing PR.
+    _Files: ~/zion/projects/agent-orchestration/test_scenarios.py_
+  - [ ] Simple bug fix scenario passes the full lifecycle
+    _Validation: test_simple_bug_fix passes_
+  - [ ] Multi-file refactor scenario covers changes across multiple files
+    _Validation: test_multi_file_refactor passes_
+  - [ ] Pipeline failure recovery scenario handles test failures gracefully
+    _Validation: test_failure_recovery passes_
+  _~150 LOC_
+- [ ] **Scenario test CI integration** -- Run scenario tests as part of CI with mock agent backends
+  - [ ] `p98.d3.t1` Add scenario tests to CI configuration (depends: p98.d2.t1)
+    > Create test_scenarios_mock.py variant that uses mock agent backends (from phase 92) to run scenario tests in CI without consuming tokens. Mock agents return predetermined responses that exercise the full pipeline path. Add a Makefile target for running scenarios.
+    _Files: ~/zion/projects/agent-orchestration/test_scenarios_mock.py_
+  - [ ] Scenario tests can run in CI using mock agents with no real LLM calls
+    _Validation: CI config includes scenario test job_
+  _~80 LOC_
+- [ ] **Scenario test documentation and fixtures** -- Document how to write new scenarios and provide reusable test fixtures
+  - [ ] `p98.d4.t1` Add scenario test documentation (depends: p98.d2.t1)
+    > Add section to project README: how scenario tests work, how to write a new scenario, how to run locally vs CI, how to debug failing scenarios. Create fixtures/ directory with reusable test repos (minimal Python project, minimal Node project) that scenarios can clone.
+    _Files: ~/zion/projects/agent-orchestration/fixtures/_
+  - [ ] README section explains how to add new scenario tests
+    _Validation: check README for scenario test section_
+  _~60 LOC_
+
+### Technical Notes
+
+Scenario tests are expensive (create/destroy repos, run full pipelines). Run them in CI only, not on every commit. Use mock agents for CI, real agents for weekly validation. Each scenario should be idempotent.
+
+### Risks
+
+- Scenario tests that depend on GitHub API may be flaky due to rate limits or API errors
+- Ephemeral repo creation/deletion may leave artifacts if tests crash mid-execution
+- Mock agent scenarios may not catch real-world issues that only manifest with actual LLM responses
+
+## [ ] phase-99: Unified Orchestrator CLI (PLANNED)
+
+**Goal:** Create a single orch command that provides a consistent interface to all orchestrator modules
+
+The current orchestrator consists of 15+ independent Python scripts (poller.py, spawner.py, executor.py, merge_queue.py, health_monitor.py, garbage_collector.py, etc.), each with its own invocation pattern, argument parsing, and output format. The research describes Symphony as a long-running automation service with a unified interface. While Hermes uses cron scheduling rather than a daemon, the operator experience of running 15 separate scripts with different flags is unnecessarily complex. This phase creates a unified orch CLI that: (1) provides a single entry point with subcommands, (2) normalizes output format (JSON, table, or plain text), (3) shares common config loading and validation, (4) provides built-in help and tab completion, (5) wraps all existing scripts without changing their internals.
+
+### Deliverables
+
+- [ ] **CLI framework and core subcommands** -- Create the orch CLI with subcommands for the most common operations
+  - [ ] `p99.d1.t1` Create orch CLI framework
+    > Create orch.py (entry point) with argparse subcommands: (1) orch poll [--repo R] [--label L] [--json] calls poller.py, (2) orch spawn --issue N [--repo R] calls spawner.py, (3) orch run --pipeline P --workspace W [--dry-run] calls executor.py, (4) orch status [--json] [--watch] reads workspace state and health data, (5) orch queue [--enqueue|--dequeue|--status] calls merge_queue.py, (6) orch health [--check] calls health_monitor.py. Use subprocess.run to wrap existing scripts initially. Add --config flag that loads orchestrator.yaml.
+    _Files: ~/zion/projects/agent-orchestration/orch.py_
+  - [ ] orch poll runs the issue poller and returns structured output
+    _Validation: orch poll --repo owner/repo --label agent-ready_
+  - [ ] orch spawn prepares a workspace for an issue
+    _Validation: orch spawn --issue 42 --repo owner/repo_
+  - [ ] orch run executes a pipeline
+    _Validation: orch run --pipeline pipelines/default.yaml --workspace ./workspaces/42_
+  - [ ] orch status shows overall orchestrator state
+    _Validation: orch status returns worker list, queue depth, health summary_
+  _~150 LOC_
+- [ ] **Output normalization and formatting** -- Standardize output format across all subcommands (JSON, table, plain text)
+  - [ ] `p99.d2.t1` Add output formatting to orch CLI (depends: p99.d1.t1)
+    > Add output formatting layer to orch.py: (1) format_output(data, format) function, (2) table format with aligned columns and color-coded status, (3) JSON format with indent=2, (4) text format for human-readable paragraphs, (5) --format/-f global flag, (6) --no-color flag for pipe-friendly output, (7) detect TTY and auto-select format.
+    _Files: ~/zion/projects/agent-orchestration/orch.py_
+  - [ ] All subcommands support --json flag for machine-readable output
+    _Validation: orch poll --json returns valid JSON_
+  - [ ] Default output uses a consistent table format
+    _Validation: orch status shows aligned columns with headers_
+  _~80 LOC_
+- [ ] **Config loading and validation** -- Centralized config loading from orchestrator.yaml with validation
+  - [ ] `p99.d3.t1` Add config loading to orch CLI (depends: p99.d1.t1)
+    > Add config module to orch.py: (1) load_config(path) reads orchestrator.yaml with defaults, (2) validate_config(config) checks repo format, max_concurrent > 0, labels non-empty, project_dir exists, (3) merge_cli_args(config, args) allows CLI flags to override config values.
+    _Files: ~/zion/projects/agent-orchestration/orch.py_
+  - [ ] All subcommands load config from the same source
+    _Validation: set repo in orchestrator.yaml, verify orch poll uses it_
+  - [ ] Config validation catches common misconfigurations
+    _Validation: set invalid max_concurrent=-1, verify error message_
+  _~60 LOC_
+- [ ] **Shell completion and documentation** -- Tab completion for bash/zsh and help documentation for all subcommands
+  - [ ] `p99.d4.t1` Add shell completion and help docs (depends: p99.d1.t1)
+    > Generate bash/zsh completion scripts, add --help with examples for each subcommand, add orch version command, create README section documenting all subcommands.
+    _Files: ~/zion/projects/agent-orchestration/orch.py_
+  - [ ] Tab completion works for subcommands and flags
+    _Validation: orch TAB shows poll, spawn, run, status, queue, health_
+  _~60 LOC_
+
+### Technical Notes
+
+The CLI wraps existing scripts via subprocess initially. Over time, scripts can be converted to importable modules and the CLI can call them directly. The orch name is short, memorable, and mirrors gh for GitHub CLI.
+
+### Risks
+
+- CLI wrapping via subprocess adds a layer of indirection that could mask errors
+- Output formatting may not handle all edge cases from diverse script outputs
+- Tab completion may drift out of sync if new subcommands are added without updating completion scripts
+
+## [ ] phase-100: Agent PR Quality Standards and Output Formatting (PLANNED)
+
+**Goal:** Define and enforce standards for agent-authored PRs including description format, linked issues, test evidence, and change summaries
+
+Phase 13 creates PRs automatically, but no phase defines what a GOOD agent-authored PR looks like. The research emphasizes application legibility: code should be directly understandable and verifiable by the agent. This applies equally to PRs: a well-formatted PR description with linked issues, test evidence, and a clear change summary is more legible to both human reviewers and automated systems. Currently, agent-authored PRs may have inconsistent descriptions, missing issue links, no test evidence documentation, and vague change summaries. This phase creates a PR description template system and a pre-merge linting gate that enforces PR quality standards before allowing merge.
+
+### Deliverables
+
+- [ ] **PR description template system** -- Structured templates that agents use when creating PRs
+  - [ ] `p100.d1.t1` Create PR description template system
+    > Create pr_template.py with: (1) load_template(project_dir) loads custom template from .orchestrator/pr-template.md or falls back to default, (2) default template sections: Summary, Linked Issues, Test Evidence, Files Changed, Breaking Changes, Checklist, (3) fill_template(template, context) fills template from structured context (issue, files_changed, test_results, diff_summary), (4) validate_description(body) checks all required sections are present and non-empty.
+    _Files: ~/zion/projects/agent-orchestration/pr_template.py_
+  - [ ] Template includes sections for summary, linked issues, test evidence, breaking changes, files changed
+    _Validation: read template file, verify all sections present_
+  - [ ] Template is configurable per-project via AI_GUIDE.md or config
+    _Validation: set custom template in config, verify PR uses it_
+  _~100 LOC_
+- [ ] **PR quality linting gate** -- Automated check that PRs meet quality standards before merge
+  - [ ] `p100.d2.t1` Create PR quality linting gate (depends: p100.d1.t1)
+    > Add lint_pr function to pr_template.py: (1) parse PR body for required section headers, (2) check issue link format, (3) check test evidence section has concrete content, (4) check file list matches actual files in diff, (5) return score 0-100 and list of violations, (6) integrate with merge_queue.py as a precondition. CLI: python3 pr_template.py lint --pr 42.
+    _Files: ~/zion/projects/agent-orchestration/pr_template.py, ~/zion/projects/agent-orchestration/merge_queue.py_
+  - [ ] Linting gate checks for issue link, test evidence, non-empty summary, file list
+    _Validation: create PR missing sections, verify gate rejects it_
+  - [ ] Gate runs as a merge queue precondition
+    _Validation: enqueue PR with missing sections, verify blocked_
+  _~100 LOC_
+- [ ] **Spawner integration with PR templates** -- Automatically use PR templates when agents create PRs via the spawner
+  - [ ] `p100.d3.t1` Integrate PR templates into spawner and executor (depends: p100.d1.t1)
+    > Modify executor.py PR creation step to use pr_template.py: (1) after pipeline completes, call fill_template with pipeline context, (2) use the filled template as the PR body instead of free-form agent output, (3) add pr-template config option to orchestrator.yaml.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/orchestrator.yaml_
+  - [ ] Agent-created PRs use the template format
+    _Validation: run a full pipeline, check PR description format_
+  _~60 LOC_
+- [ ] **PR quality metrics and trends** -- Track PR quality scores over time to measure agent output improvement
+  - [ ] `p100.d4.t1` Add PR quality tracking (depends: p100.d2.t1)
+    > Add quality tracking to pr_template.py: (1) record_pr_quality(repo, pr_number, score, violations) appends to JSONL file, (2) get_quality_trend(repo, days) returns daily average scores, (3) get_worst_violations(repo, days) returns most common violations, (4) CLI: orch pr-quality --trend --repo owner/repo, (5) feed quality trends into health scorecard (phase 44).
+    _Files: ~/zion/projects/agent-orchestration/pr_template.py_
+  - [ ] Historical PR quality scores are tracked and trendable
+    _Validation: query quality history, see score trend_
+  _~80 LOC_
+
+### Technical Notes
+
+PR templates are project-configurable via .orchestrator/pr-template.md. The template system is separate from the PR creation logic to allow projects to customize without modifying core code.
+
+### Risks
+
+- Template format may be too rigid for some PR types (e.g., documentation-only changes)
+- Over-strict linting could block legitimate PRs -- default threshold should be moderate (70/100)
+- Agent-filled templates may contain hallucinated test evidence -- consider cross-referencing with actual test results
+
+## [ ] phase-101: Orchestrator Data Lifecycle and Retention (PLANNED)
+
+**Goal:** Implement automated retention policies, log rotation, and storage management for all orchestrator data
+
+With 20+ phases producing persistent data (execution logs, workspace state, merge queue, cost tracking, health history, knowledge base, session recordings, audit trail, etc.), storage grows unboundedly. The research describes a system running 24/7, constantly refactoring, testing, and improving its own codebase -- such a system generates significant data volume over time. No existing phase handles retention policies, log rotation, archive strategies, or storage cleanup. Without data lifecycle management, the orchestrator will eventually consume all available disk space and degrade performance. This phase creates a unified data lifecycle manager that classifies data by retention tier, automatically archives or deletes old data, provides storage usage reporting, and ensures compliance with data retention requirements.
+
+### Deliverables
+
+- [ ] **Data classification and retention policy engine** -- Define retention tiers for each type of orchestrator data
+  - [ ] `p101.d1.t1` Create data retention policy engine
+    > Create data_lifecycle.py with: (1) DATA_TYPES registry mapping each data source to its retention policy: execution_logs (hot 7d, warm 30d, archive 90d, delete 365d), workspace_state (hot while active, warm 7d after completion, delete 30d), merge_queue (hot while pending, delete 30d after merge), cost_tracking (warm 90d, archive 365d), health_history (warm 30d, archive 365d), knowledge_base (hot, never delete), session_recordings (warm 7d, archive 90d), audit_trail (hot 30d, archive 3650d, never delete), (2) RetentionPolicy dataclass, (3) load_policies(config_path) loads from data-lifecycle.yaml.
+    _Files: ~/zion/projects/agent-orchestration/data_lifecycle.py, ~/zion/projects/agent-orchestration/data-lifecycle.yaml_
+  - [ ] Each data type has a defined retention tier (hot/warm/cold/archive/delete)
+    _Validation: list all data types with their tiers_
+  - [ ] Retention policies are configurable per data type
+    _Validation: set custom retention for execution logs, verify applied_
+  _~100 LOC_
+- [ ] **Automated retention enforcement** -- Background process that applies retention policies to all data sources
+  - [ ] `p101.d2.t1` Implement retention enforcement (depends: p101.d1.t1)
+    > Add enforce_retention() to data_lifecycle.py: (1) scan all data directories, (2) check age against retention policy, (3) hot to warm: compress with gzip, (4) warm to archive: move to cold storage, (5) archive to delete: permanently remove with audit trail logging, (6) respect max_size_mb limits. CLI: python3 data_lifecycle.py enforce [--dry-run] [--data-type TYPE].
+    _Files: ~/zion/projects/agent-orchestration/data_lifecycle.py_
+  - [ ] Automatically archives data that exceeds warm retention period
+    _Validation: create old log files, run enforcement, verify archived_
+  - [ ] Automatically deletes data that exceeds delete retention period
+    _Validation: create expired data, run enforcement, verify deleted_
+  _~120 LOC_
+- [ ] **Storage usage reporting** -- CLI command and dashboard data showing storage consumption by data type
+  - [ ] `p101.d3.t1` Create storage usage reporter (depends: p101.d1.t1)
+    > Add report_storage() to data_lifecycle.py: (1) scan all data directories and compute size per data type, (2) output table with hot/warm/archive/total sizes, (3) highlight types exceeding 80% of max_size_mb, (4) CLI: python3 data_lifecycle.py report [--json], (5) integrate with health scorecard (phase 44) as a storage health signal.
+    _Files: ~/zion/projects/agent-orchestration/data_lifecycle.py_
+  - [ ] Can report storage usage per data type with size and file count
+    _Validation: run report, verify all data types listed with sizes_
+  - [ ] Warns when any data type approaches its size limit
+    _Validation: fill disk near limit, verify warning_
+  _~80 LOC_
+- [ ] **Scheduled retention enforcement cron** -- Weekly cron job that runs retention enforcement automatically
+  - [ ] `p101.d4.t1` Create data lifecycle cron job (depends: p101.d2.t1)
+    > Create weekly Hermes cron job that runs retention enforcement with dry-run first, then enforce. Include storage report in output. Schedule weekly on Sunday at 03:00.
+  - [ ] Cron job runs retention enforcement weekly
+    _Validation: cronjob list shows data-lifecycle job_
+  _~30 LOC_
+
+### Technical Notes
+
+Retention policies are conservative by default -- archive before delete, long retention periods. The enforcement is safe: dry-run first, audit trail logging of all deletions, no destructive operations on knowledge base or audit trail.
+
+### Risks
+
+- Aggressive deletion could remove data needed for debugging or compliance
+- Archive storage could still grow large for high-volume orchestrators
+- Compression/decompression of large archives could be slow
+- Different projects may have different compliance requirements
+
+## [ ] phase-102: Graceful Shutdown and Drain Mode (PLANNED)
+
+**Goal:** Enable the orchestrator to shut down gracefully, draining active workers and saving state for clean resume
+
+The orchestrator runs as a Hermes cron job that executes periodically. However, no phase handles what happens when the operator needs to stop the system: a deploy, a config change, a vacation, or a system migration. The research describes Symphony as using Elixir hot code reloading for updates without interrupting active agent sessions. While Hermes does not use Elixir, the principle applies: active work should not be lost when the orchestrator is paused or reconfigured. This phase implements drain mode: (1) a signal file that tells the orchestrator to stop accepting new work, (2) active workers are allowed to complete, (3) queue state and workspace state are saved, (4) on resume, the orchestrator picks up where it left off. This is essential for operational safety.
+
+### Deliverables
+
+- [ ] **Drain mode signal and state preservation** -- Signal file mechanism that triggers drain mode and saves orchestrator state
+  - [ ] `p102.d1.t1` Implement drain mode core
+    > Create drain.py with: (1) is_draining() checks for ~/.orchestrator/drain signal file, (2) start_drain(reason) creates signal file with timestamp and reason, (3) cancel_drain() removes signal file, (4) get_drain_status() returns drain start time, reason, active worker count, (5) save_state() serializes current state to snapshot JSON, (6) load_state(snapshot_path) restores state from snapshot, (7) CLI: orch drain start/status/cancel/save-state. Integrate is_draining() check into orchestrator.py main loop.
+    _Files: ~/zion/projects/agent-orchestration/drain.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Creating a drain signal file prevents new workers from being spawned
+    _Validation: create ~/.orchestrator/drain, run orchestrator, verify no new workers_
+  - [ ] Active workers are tracked and allowed to complete during drain
+    _Validation: start workers, enter drain mode, verify they complete_
+  _~120 LOC_
+- [ ] **Worker completion tracking during drain** -- Monitor active workers during drain and report when all have completed
+  - [ ] `p102.d2.t1` Add worker tracking during drain (depends: p102.d1.t1)
+    > Extend drain.py: (1) track_active_workers() reads workspace state files to find running workers, (2) poll_worker_status() checks each active workspace for completion, (3) wait_for_drain_complete(timeout) blocks until all workers complete or timeout, (4) generate_drain_report() produces summary of completed/failed/timed-out workers, (5) integrate with health_monitor.py for drain status reporting.
+    _Files: ~/zion/projects/agent-orchestration/drain.py_
+  - [ ] Can list active workers and their progress during drain
+    _Validation: enter drain mode with active workers, check status_
+  - [ ] Provides notification when all workers complete (drain finished)
+    _Validation: wait for workers to finish, verify drain-complete state_
+  _~100 LOC_
+- [ ] **State snapshot and restore for resume** -- Save and restore full orchestrator state for clean resume after drain
+  - [ ] `p102.d3.t1` Implement state snapshot and restore (depends: p102.d1.t1)
+    > Extend drain.py: (1) save_state() serializes merge queue, workspace states, cost accumulator, health history, config, (2) restore_state(snapshot) deserializes and applies all state, (3) verify_state_consistency(snapshot) checks that referenced workspaces exist and queue entries are valid, (4) CLI: orch drain save/restore [--snapshot PATH], (5) auto-snapshot before entering drain mode.
+    _Files: ~/zion/projects/agent-orchestration/drain.py_
+  - [ ] State snapshot captures all queue entries, workspace states, and pending issues
+    _Validation: create snapshot, inspect JSON, verify all data present_
+  - [ ] Resume from snapshot restores orchestrator to pre-drain state
+    _Validation: drain, save, cancel drain, restore, verify queue and workers resumed_
+  _~100 LOC_
+- [ ] **Drain mode tests and documentation** -- Test drain mode scenarios and document operational procedures
+  - [ ] `p102.d4.t1` Create drain mode tests and documentation (depends: p102.d2.t1, p102.d3.t1)
+    > Create test_drain.py: (1) test_drain_signal: create/cancel drain, verify is_draining, (2) test_drain_blocks_new_workers: verify no spawn during drain, (3) test_active_worker_tracking: create mock workspace states, verify tracking, (4) test_state_snapshot_restore: save state, modify, restore, verify recovery, (5) test_drain_timeout: workers not completing within timeout are marked timed-out, (6) test_crash_recovery: kill orchestrator mid-drain, restart, verify drain state detected.
+    _Files: ~/zion/projects/agent-orchestration/test_drain.py_
+  - [ ] Tests cover drain with active workers, empty queue, and crash recovery
+    _Validation: python3 -m pytest test_drain.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+Drain mode uses a simple file-based signal (~/.orchestrator/drain) rather than IPC, keeping it compatible with the cron-based execution model. The signal file approach is robust to crashes -- if the orchestrator dies during drain, the signal file persists and is detected on next start.
+
+### Risks
+
+- Workers that hang indefinitely could prevent drain from completing -- timeout is essential
+- State snapshot could be large if many workspaces exist -- consider incremental snapshots
+- Restoring from a stale snapshot could conflict with changes made during the drain period
+- Signal file could be left behind if orchestrator crashes during cancel -- cleanup on startup
 
 ## Global Risks
 
