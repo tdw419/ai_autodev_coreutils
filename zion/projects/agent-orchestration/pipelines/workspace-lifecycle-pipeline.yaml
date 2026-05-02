@@ -1,0 +1,56 @@
+name: workspace-lifecycle-pipeline
+description: Full workspace lifecycle pipeline with creation, execution, review, and cleanup
+version: "1.0"
+
+nodes:
+  setup:
+    type: bash
+    name: Setup Workspace
+    description: Clone repo and configure workspace
+    command: |
+      python3 workspace_manager.py --create {{issue_number}} --title "{{title}}" || true
+      cd workspaces/{{issue_number}} && git init && git remote add origin {{repo_url}} && git fetch origin main && git checkout -b issue-{{issue_number}} origin/main
+    timeout_seconds: 120
+
+  implement:
+    type: ai
+    name: Implement
+    description: Implement the changes
+    depends_on: [setup]
+    prompt: |
+      Task: {{title}}
+
+      {{description}}
+
+      Work in the workspace directory: workspaces/{{issue_number}}
+      Follow project conventions. Write tests. Commit when done.
+    role: implementer
+    max_turns: 30
+    timeout_seconds: 600
+
+  review:
+    type: review
+    name: Quality Gate
+    description: LLM-as-Judge evaluates implementation
+    depends_on: [implement]
+    criteria: [code_quality, task_adherence, test_coverage, no_regressions]
+    review_threshold: 7.0
+    on_review_fail: continue
+    timeout_seconds: 120
+
+  test:
+    type: bash
+    name: Run Tests
+    description: Execute test suite
+    depends_on: [implement]
+    command: cd workspaces/{{issue_number}} && python3 -m pytest test_*.py -v --tb=short 2>&1 | tail -50
+    timeout_seconds: 300
+    continue_on_error: true
+
+  complete:
+    type: bash
+    name: Mark Complete
+    description: Transition workspace to completed
+    depends_on: [review, test]
+    command: python3 workspace_manager.py --transition {{issue_number}} --to completed
+    timeout_seconds: 10

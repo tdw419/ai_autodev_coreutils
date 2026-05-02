@@ -1,0 +1,62 @@
+name: review-pipeline
+description: Standard development pipeline with LLM-as-Judge review gate after implementation
+version: "1.0"
+
+nodes:
+  implement:
+    type: ai
+    name: Implement
+    description: Implement the changes described in the task
+    prompt: |
+      {{task}}
+
+      Implement the requested changes. Follow the project guidelines in AI_GUIDE.md.
+      Write tests for your changes. Commit when done.
+    role: implementer
+    max_turns: 30
+    timeout_seconds: 600
+
+  review:
+    type: review
+    name: Quality Review
+    description: LLM-as-Judge evaluates implementation quality
+    depends_on: [implement]
+    criteria: [code_quality, task_adherence, test_coverage, no_regressions]
+    review_threshold: 7.0
+    on_review_fail: continue
+    timeout_seconds: 120
+
+  test:
+    type: bash
+    name: Run Tests
+    description: Execute the project test suite
+    depends_on: [implement]
+    command: python3 -m pytest test_*.py -v --tb=short 2>&1 | tail -50
+    timeout_seconds: 300
+
+  fix:
+    type: ai
+    name: Fix Issues
+    description: Fix any issues found during review or testing
+    depends_on: [review, test]
+    prompt: |
+      {{task}}
+
+      The review or tests found issues. Fix them:
+      - Review score was below threshold - improve code quality
+      - Tests failed - fix the failing tests
+
+      Previous step outputs:
+      Review: {{review.output}}
+      Tests: {{test.output}}
+    role: implementer
+    max_turns: 15
+    timeout_seconds: 300
+
+  fix_loop:
+    type: loop
+    name: Fix Loop
+    description: Retry fixes up to 2 times
+    depends_on: [fix]
+    children: [test, review]
+    max_iterations: 2

@@ -1,0 +1,43 @@
+name: gc-pipeline
+description: Standard development pipeline with GC and convention scanning post-execution
+version: "1.0"
+
+nodes:
+  implement:
+    type: ai
+    name: Implement
+    description: Implement the changes described in the task
+    prompt: |
+      {{task}}
+
+      Implement the requested changes. Follow project guidelines.
+    role: implementer
+    max_turns: 30
+    timeout_seconds: 600
+
+  test:
+    type: bash
+    name: Run Tests
+    description: Execute the project test suite
+    depends_on: [implement]
+    command: python3 -m pytest test_*.py -v --tb=short 2>&1 | tail -50
+    timeout_seconds: 300
+    continue_on_error: true
+
+  gc_scan:
+    type: bash
+    name: GC Scan
+    description: Check for stale workspaces and leaked resources
+    depends_on: [test]
+    command: python3 garbage_collector.py --scan 2>&1 || true
+    timeout_seconds: 60
+    continue_on_error: true
+
+  convention_check:
+    type: bash
+    name: Convention Check
+    description: Scan for code convention violations
+    depends_on: [implement]
+    command: python3 garbage_collector.py --conventions . 2>&1 || true
+    timeout_seconds: 60
+    continue_on_error: true
