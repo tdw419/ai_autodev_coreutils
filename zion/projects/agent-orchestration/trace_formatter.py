@@ -261,11 +261,12 @@ def correlate_failures(runs: list[dict], min_occurrences: int = 2) -> str:
         lines.append("")
 
     # Pipeline-level analysis
-    pipeline_stats = defaultdict(lambda: {"total": 0, "failed": 0, "completed": 0})
+    pipeline_stats = defaultdict(lambda: defaultdict(int))
     for run in runs:
         name = run.get("pipeline_name", "unknown")
         pipeline_stats[name]["total"] += 1
-        pipeline_stats[name][run.get("status", "unknown")] += 1
+        status = run.get("status", "unknown")
+        pipeline_stats[name][status] += 1
 
     if len(pipeline_stats) > 1:
         lines.append("### Pipeline Success Rates")

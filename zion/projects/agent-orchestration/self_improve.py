@@ -101,7 +101,7 @@ def analyze_failure_patterns(runs: list[dict]) -> dict:
     failure_sequences = defaultdict(int)
 
     # Pipeline-level stats
-    pipeline_stats = defaultdict(lambda: {"total": 0, "completed": 0, "failed": 0})
+    pipeline_stats = defaultdict(lambda: defaultdict(int))
 
     # Loop retry patterns
     loop_patterns = defaultdict(lambda: {"runs": 0, "hit_max": 0, "total_iterations": 0})
