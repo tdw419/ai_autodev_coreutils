@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 20/80 phases complete, 0 in progress
+**Progress:** 20/86 phases complete, 0 in progress
 
-**Deliverables:** 79/319 complete
+**Deliverables:** 79/343 complete
 
-**Tasks:** 79/319 complete
+**Tasks:** 79/343 complete
 
 ## Scope Summary
 
@@ -92,6 +92,12 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-78 Orchestrator Interactive Debug Console | PLANNED | 0/4 | 510 | 8 |
 | phase-79 Inner Harness Backend Abstraction SDK | PLANNED | 0/4 | 540 | 10 |
 | phase-80 Agent-Legible Error Messages and Self-Healing Hints | PLANNED | 0/4 | 530 | 10 |
+| phase-81 Orchestrator Plugin System and Extension Points | PLANNED | 0/4 | 500 | 8 |
+| phase-82 Agent Context Seeding and Warm-Start | PLANNED | 0/4 | 460 | 8 |
+| phase-83 Orchestrator State Persistence and Migration Layer | PLANNED | 0/4 | 520 | 10 |
+| phase-84 Agent Capability Registry and Gap Detection | PLANNED | 0/4 | 510 | 8 |
+| phase-85 Orchestrator Security Audit Trail | PLANNED | 0/4 | 500 | 10 |
+| phase-86 Orchestrator Feature Flags and Gradual Rollout | PLANNED | 0/4 | 450 | 10 |
 
 ## Dependencies
 
@@ -382,6 +388,31 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-19 | phase-80 | soft | Self-improvement from phase 19 can analyze hint effectiveness to improve the hint database |
 | phase-33 | phase-80 | soft | Application legibility from phase 33 defines the standards that error transformation implements |
 | phase-65 | phase-80 | soft | Stop hooks from phase 65 can use transformed errors to decide whether to continue or escalate |
+| phase-5 | phase-81 | soft | Plugin system extends the DAG executor node registry from phase 5 |
+| phase-6 | phase-81 | soft | Role profiles from phase 6 could be implemented as plugins |
+| phase-17 | phase-81 | soft | Invariant checker from phase 17 could be exposed as a plugin sensor |
+| phase-34 | phase-81 | soft | Agent-generated tooling from phase 34 could be packaged as plugins |
+| phase-5 | phase-82 | soft | Context seeding modifies the executor AI node prompt construction from phase 5 |
+| phase-8 | phase-82 | soft | Context discovery reads from execution history logs created by phase 8 |
+| phase-20 | phase-82 | soft | Context briefs must respect context budget limits from phase 20 |
+| phase-81 | phase-82 | soft | Context enrichers from plugin system phase 81 complement automatic context seeding |
+| phase-8 | phase-83 | soft | Execution history from phase 8 is one of the primary state types to migrate |
+| phase-11 | phase-83 | soft | Workspace lifecycle from phase 11 manages workspace state files |
+| phase-21 | phase-83 | soft | Merge queue from phase 21 is a state file to migrate |
+| phase-71 | phase-83 | soft | Config validation from phase 71 benefits from schema-validated config state |
+| phase-8 | phase-84 | soft | Gap detection reads from execution history logs created by phase 8 |
+| phase-19 | phase-84 | soft | Self-improvement loop from phase 19 consumes gap detection results |
+| phase-34 | phase-84 | soft | Agent-generated tooling from phase 34 can auto-create capabilities for detected gaps |
+| phase-44 | phase-84 | soft | Health scorecard from phase 44 should include capability coverage metrics |
+| phase-4 | phase-85 | soft | Audit trail instruments the orchestrator loop from phase 4 |
+| phase-8 | phase-85 | soft | Audit trail complements execution history from phase 8 with tamper-proof logging |
+| phase-15 | phase-85 | soft | Safety policies from phase 15 generate approval events that must be audited |
+| phase-35 | phase-85 | hard | Dark factory mode from phase 35 requires audit trail as a prerequisite -- 0% human review means the audit log is the only accountability mechanism |
+| phase-52 | phase-85 | soft | Provenance tracking from phase 52 and audit trail both track agent actions -- they should share data |
+| phase-4 | phase-86 | soft | Feature flags control orchestrator loop behaviors from phase 4 |
+| phase-22 | phase-86 | soft | Config hot-reload from phase 22 can reload flag configuration without restart |
+| phase-28 | phase-86 | soft | Speculative execution from phase 28 is a prime candidate for gradual rollout via feature flags |
+| phase-29 | phase-86 | soft | A/B testing from phase 29 benefits from feature flag variant support |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -4416,6 +4447,320 @@ Error transformation is the lowest-cost, highest-impact improvement for agent ef
 - Context extraction from source files adds I/O overhead -- cache file reads within a pipeline run
 - Learned hints from self-healing may encode bad fixes -- require human review before promoting to shared hint database
 
+## [ ] phase-81: Orchestrator Plugin System and Extension Points (PLANNED)
+
+**Goal:** Create a plugin architecture that allows organization-specific customization of the orchestrator without forking
+
+The research emphasizes that the outer harness is "the DNA of the organization" -- the custom architectural layer that encodes org-specific quality gates and compliance standards. All 80 existing phases add monolithic modules to the orchestrator, requiring code changes for customization. This phase creates a plugin system with defined interfaces for extending: (1) DAG node types, (2) sensors (deterministic and inferential), (3) approval gates, (4) spawner behaviors, (5) context enrichers, and (6) lifecycle hooks. Plugins are discovered from a plugins/ directory and loaded via a simple manifest format. This enables different organizations to customize the orchestrator for their specific workflows without modifying core code.
+
+### Deliverables
+
+- [ ] **Plugin manifest schema and loader** -- Define plugin manifest YAML format and create the plugin discovery/loading module
+  - [ ] `p81.d1.t1` Create plugin_loader.py module
+    > Python module implementing plugin discovery and loading: (1) scan plugins/ directory for YAML manifest files, (2) validate manifest against schema (name, version, extension_points, module_path), (3) import plugin module, (4) register plugin with orchestrator extension registry, (5) support enable/disable flags per plugin, (6) provide CLI: python3 plugin_loader.py list, info <name>, enable <name>, disable <name>. Extension points: node_types, sensors, approval_gates, spawner_hooks, context_enrichers, lifecycle_hooks.
+    _Files: ~/zion/projects/agent-orchestration/plugin_loader.py_
+  - [ ] Plugin loader discovers plugins from plugins/ directory
+    _Validation: create test plugin, verify it is discovered and loaded_
+  - [ ] Manifest validates required fields and rejects invalid plugins
+    _Validation: create manifest with missing fields, verify rejection with clear error_
+  _~150 LOC_
+- [ ] **Plugin interfaces and base classes** -- Define abstract base classes for each extension point
+  - [ ] `p81.d2.t1` Create plugin_base.py with abstract interfaces (depends: p81.d1.t1)
+    > Python module with abstract base classes: (1) PluginNode (extends DAG node with custom execute), (2) PluginSensor (provides check() method for deterministic/inferential checks), (3) PluginApprovalGate (approve/deny/review interface), (4) PluginSpawnerHook (pre_spawn/post_spawn/should_spawn interface), (5) PluginContextEnricher (enrich(context) method that adds info to agent prompts), (6) PluginLifecycleHook (on_start/on_complete/on_failure interface). Each base class has: name, version, description, and validate() method.
+    _Files: ~/zion/projects/agent-orchestration/plugin_base.py_
+  - [ ] Base classes define clear interfaces for all 6 extension points
+    _Validation: inspect class hierarchy, verify abstract methods_
+  - [ ] Example plugin for each extension point exists in plugins/examples/
+    _Validation: check directory contains at least 6 example plugins_
+  _~120 LOC_
+- [ ] **Plugin integration with executor and orchestrator** -- Wire plugin system into DAG executor and orchestrator main loop
+  - [ ] `p81.d3.t1` Integrate plugin_loader into executor.py and orchestrator.py (depends: p81.d1.t1, p81.d2.t1, p5.d2.t1)
+    > Modify executor.py to: (1) on startup, load all enabled plugins, (2) register custom node types from plugins in the node registry, (3) run plugin sensors in VERIFY nodes alongside built-in sensors, (4) call plugin approval gates in APPROVAL nodes. Modify orchestrator.py to: (1) call spawner hooks before/after worker spawn, (2) call context enrichers when building agent prompts, (3) call lifecycle hooks on task start/complete/failure. Add plugin status to orch_history.py.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Custom node types from plugins are available in DAG YAML
+    _Validation: create plugin node type, use in pipeline YAML, verify execution_
+  - [ ] Plugin sensors run as part of pipeline verification
+    _Validation: create plugin sensor, verify it runs in verify pipeline_
+  _~80 LOC_
+- [ ] **Plugin tests and documentation** -- Test plugin system with example plugins and document the extension API
+  - [ ] `p81.d4.t1` Create test_plugin_loader.py and example plugins (depends: p81.d3.t1)
+    > Create test_plugin_loader.py: (1) test plugin discovery from plugins/ directory, (2) test manifest validation (valid, missing fields, invalid version), (3) test plugin enable/disable, (4) test custom node type execution in DAG, (5) test sensor integration, (6) test context enricher called in prompt building. Create 3 example plugins in plugins/examples/: (1) todo_scanner sensor (checks for TODO/FIXME comments), (2) git_blame_enricher (adds git blame context to prompts), (3) notify_on_failure lifecycle hook (sends notification on agent failure).
+    _Files: ~/zion/projects/agent-orchestration/test_plugin_loader.py_
+  - [ ] Test suite covers plugin loading, validation, and integration
+    _Validation: python3 -m pytest test_plugin_loader.py -v_
+  _~150 LOC_
+
+### Technical Notes
+
+The plugin system should be intentionally simple -- YAML manifest + Python module, no complex dependency resolution or version constraints. Plugins run in the same process as the orchestrator, so they must be trusted code. For untrusted plugins, sandboxing (phase 64) would apply. The plugin system is the most important architectural decision for long-term orchestrator extensibility -- it enables the "organization-specific DNA" the research describes without requiring forks of the core system.
+
+### Risks
+
+- Plugins run in-process and could crash the orchestrator -- isolate plugin execution with try/except
+- Plugin API changes could break existing plugins -- version the plugin interface and support backward compatibility
+- Plugin discovery adds startup latency -- cache plugin metadata and only rescan on manifest change
+
+## [ ] phase-82: Agent Context Seeding and Warm-Start (PLANNED)
+
+**Goal:** Automatically discover and inject relevant prior context (similar issues, solutions, code patterns) before agent starts work
+
+The research describes "Guides" as feedforward controls that provide agents with "project-specific context, architectural decisions, and coding conventions that cannot be inferred from the codebase alone." The current orchestrator starts agents with minimal context (issue description + AI_GUIDE.md). This phase creates a context seeding system that: (1) searches execution history for similar past issues, (2) finds prior solutions and their outcomes, (3) identifies relevant code patterns from the codebase, (4) assembles a "context brief" that gives the agent relevant prior art, (5) injects the brief into the agent prompt within context budget limits. This is distinct from phase 38 (cross-project knowledge transfer) which transfers knowledge across projects; this phase focuses on within-project context discovery for specific tasks.
+
+### Deliverables
+
+- [ ] **Context discovery engine** -- Module that finds relevant prior work for a given task description
+  - [ ] `p82.d1.t1` Create context_seeder.py module
+    > Python module implementing context discovery: (1) index execution history by issue title/description keywords, (2) given a new issue, find similar past issues using keyword overlap + optional embedding similarity (if sentence-transformers available), (3) for each similar issue, extract: what approach was taken, what files were changed, what the outcome was (success/failure), (4) search codebase for files matching keywords in the issue, (5) extract relevant code patterns (function signatures, class hierarchies, test patterns) from matched files. Output: ContextBrief with similar_issues (top 3), relevant_files (top 5), code_patterns (extracted snippets), budget_estimate (token count of assembled brief). CLI: python3 context_seeder.py discover --issue "Fix auth bug in login flow".
+    _Files: ~/zion/projects/agent-orchestration/context_seeder.py_
+  - [ ] Can find similar past issues from execution history
+    _Validation: create test issue, verify similar issues are returned_
+  - [ ] Relevance scoring prioritizes the most useful prior work
+    _Validation: check that exact-match issues score higher than loosely related ones_
+  _~180 LOC_
+- [ ] **Context brief assembler** -- Assemble discovered context into a structured brief for agent consumption
+  - [ ] `p82.d2.t1` Add brief assembly to context_seeder.py (depends: p82.d1.t1)
+    > Add assemble_brief() method to context_seeder.py: (1) takes ContextBrief + token budget, (2) prioritizes content: similar_issues > code_patterns > relevant_files, (3) formats as markdown: "## Similar Past Work" (issue titles + outcomes), "## Relevant Code" (function signatures + short snippets), "## Approach Suggestions" (summarized from past solutions), (4) truncates sections to fit budget, (5) includes source references so agent can ask for more detail. The brief should be 200-500 tokens for a typical task, fitting comfortably within the smart zone budget from phase 20.
+    _Files: ~/zion/projects/agent-orchestration/context_seeder.py_
+  - [ ] Brief fits within configurable token budget
+    _Validation: set budget to 500 tokens, verify brief is under limit_
+  - [ ] Brief is structured for easy agent parsing (markdown sections)
+    _Validation: check output format has clear sections_
+  _~100 LOC_
+- [ ] **Integration with executor and orchestrator** -- Wire context seeding into the agent prompt building process
+  - [ ] `p82.d3.t1` Integrate context_seeder into executor and orchestrator (depends: p82.d2.t1, p5.d2.t1, p20.d1.t1)
+    > Modify executor.py build_prompt() to: (1) before building the agent prompt, call context_seeder.discover() with the task description, (2) if relevant context found, call assemble_brief() with remaining context budget, (3) prepend the brief to the agent prompt as "## Context from Prior Work" section, (4) log what context was injected for traceability. Modify orchestrator.py to pass issue metadata to the spawner for context discovery. Add context seeding stats to execution log.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Agent prompts include context brief when relevant prior work exists
+    _Validation: complete a task, check prompt log includes context section_
+  _~60 LOC_
+- [ ] **Context seeding tests** -- Test context discovery, assembly, and integration
+  - [ ] `p82.d4.t1` Create test_context_seeder.py (depends: p82.d3.t1)
+    > Create test_context_seeder.py: (1) test issue similarity matching with mock execution history, (2) test code pattern extraction from mock files, (3) test brief assembly with various budget limits, (4) test that brief fits within context budget from phase 20, (5) test prompt integration (brief appears in output prompt), (6) test edge cases: no prior work found, very large codebase, budget too small for any content, (7) test CLI commands.
+    _Files: ~/zion/projects/agent-orchestration/test_context_seeder.py_
+  - [ ] Tests cover discovery accuracy, budget enforcement, and prompt integration
+    _Validation: python3 -m pytest test_context_seeder.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+Context seeding is keyword-based for simplicity, with optional embedding similarity if sentence-transformers is installed. The brief must be concise (200-500 tokens) to avoid consuming the context budget needed for the actual task. The key insight from the research: "guides are feedforward controls that shape behavior before the agent acts." Context seeding makes prior solutions available as implicit guides, reducing the chance that agents repeat failed approaches or miss successful patterns.
+
+### Risks
+
+- Context seeding could inject stale or misleading information -- always include timestamps and outcomes
+- Keyword matching may find irrelevant prior work -- relevance scoring must be conservative
+- Context brief adds tokens to every prompt -- only inject when high-confidence matches exist
+- Embedding similarity requires ML dependencies -- make it optional, fall back to keyword matching
+
+## [ ] phase-83: Orchestrator State Persistence and Migration Layer (PLANNED)
+
+**Goal:** Create a version-controlled persistence layer for all orchestrator state with schema migration support
+
+The research describes "Beads, a version-controlled SQL database built on Dolt" as the persistent source of truth for Gas Town's work coordination. The current orchestrator uses file-backed JSON Lines for state (merge queue, workspaces, execution logs, etc.) but has no schema versioning, migration support, or backup/restore. As the system grows to 80+ modules with multiple state files, the risk of incompatible state format changes increases. This phase creates a unified persistence layer that: (1) defines schemas for all orchestrator state, (2) supports versioned migrations when schemas change, (3) provides backup and restore, (4) ensures atomic writes to prevent corruption, (5) provides a single CLI for state management.
+
+### Deliverables
+
+- [ ] **State schema definitions and registry** -- Define versioned schemas for all orchestrator state types
+  - [ ] `p83.d1.t1` Create state_schemas.py with versioned schema definitions
+    > Python module defining versioned schemas for orchestrator state: (1) workspace_state schema (v1: workspace_id, issue, branch, status, created_at, updated_at, metadata), (2) execution_log schema (v1: timestamp, issue, phase, status, tokens, duration, result), (3) merge_queue schema (v1: pr_number, status, priority, conflicts, created_at), (4) config_state schema (v1: key, value, source, updated_at). Each schema: name, version, fields with types, migration_functions dict mapping old_version -> migration_callable. Use dataclasses for schema definitions.
+    _Files: ~/zion/projects/agent-orchestration/state_schemas.py_
+  - [ ] Schemas cover all major state types (workspaces, execution logs, merge queue, config)
+    _Validation: list schemas, verify coverage of existing state files_
+  - [ ] Each schema has a version number and migration path
+    _Validation: check schema definitions include version field_
+  _~120 LOC_
+- [ ] **State manager with atomic writes** -- Create a state manager that handles reads, writes, and atomic updates
+  - [ ] `p83.d2.t1` Create state_manager.py module (depends: p83.d1.t1)
+    > Python module implementing state management: (1) StateManager class with get(state_name), set(state_name, data), delete(state_name), list_states() methods, (2) atomic writes: write to .tmp file, fsync, rename (prevents corruption on crash), (3) auto-migration: on read, check schema version, apply migration chain if needed, (4) state_dir configurable (default: ~/.orchestrator/state/), (5) each state type stored as separate file (JSON with metadata header including schema version), (6) backup: create timestamped tarball of state directory, restore: extract from tarball with migration. CLI: python3 state_manager.py list, get <name>, backup, restore <file>, migrate --dry-run.
+    _Files: ~/zion/projects/agent-orchestration/state_manager.py_
+  - [ ] Writes are atomic (write to temp file, then rename)
+    _Validation: simulate crash during write, verify no corruption_
+  - [ ] Reads auto-migrate old schema versions to current
+    _Validation: create v1 state file, read with v2 schema, verify migration_
+  _~180 LOC_
+- [ ] **Migrate existing modules to state manager** -- Update existing modules to use the unified state persistence layer
+  - [ ] `p83.d3.t1` Integrate state_manager into existing modules (depends: p83.d2.t1)
+    > Refactor existing modules to use state_manager: (1) workspace_manager.py: replace direct file I/O with state_manager.get/set("workspaces"), (2) execution_log.py: replace direct file I/O with state_manager.get/set("execution_log"), (3) merge_queue.py (phase 21): replace direct file I/O with state_manager.get/set("merge_queue"), (4) config handling: replace direct YAML read with state_manager.get/set("config"). Keep backward compatibility: on first run, migrate existing state files to new format. Add deprecation warnings for direct file access.
+    _Files: ~/zion/projects/agent-orchestration/workspace_manager.py, ~/zion/projects/agent-orchestration/execution_log.py_
+  - [ ] Workspace manager, execution log, and merge queue use state manager
+    _Validation: run orchestrator, verify state files use new format_
+  _~100 LOC_
+- [ ] **State management tests** -- Test state persistence, migration, atomicity, and backup/restore
+  - [ ] `p83.d4.t1` Create test_state_manager.py (depends: p83.d3.t1)
+    > Create test_state_manager.py: (1) test basic get/set/delete operations, (2) test atomic write (verify no partial writes on crash simulation), (3) test schema migration (create v1 data, read with v2 schema, verify migration applied), (4) test multi-step migration chain (v1 -> v2 -> v3), (5) test backup creates valid tarball, (6) test restore from backup with migration, (7) test concurrent read/write safety, (8) test CLI commands, (9) test integration with workspace_manager and execution_log.
+    _Files: ~/zion/projects/agent-orchestration/test_state_manager.py_
+  - [ ] Tests cover atomic writes, migration chains, backup/restore
+    _Validation: python3 -m pytest test_state_manager.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+The persistence layer is intentionally file-based (not SQLite) to match the existing architecture and avoid adding database dependencies. Atomic writes via write-to-temp-then-rename are sufficient for single-process operation. For multi-process (federation, phase 51), file locking (fcntl.flock) can be added. Schema migrations are one-directional (forward only) for simplicity. The Beads concept from the research uses Dolt (version-controlled SQL), but for Hermes the simpler approach of versioned JSON files with migration support is more appropriate given the single-machine deployment model.
+
+### Risks
+
+- Migration bugs could corrupt existing state -- always backup before migrating
+- Atomic writes may not work on all filesystems (NFS) -- document limitations
+- Schema versioning adds complexity -- only version schemas that are likely to change
+- State directory could grow large -- add cleanup for old state snapshots
+
+## [ ] phase-84: Agent Capability Registry and Gap Detection (PLANNED)
+
+**Goal:** Systematically discover missing agent capabilities based on failure patterns and suggest tooling creation
+
+The research describes a key insight from the Dark Factory experiment: "When an agent failed, the team did not attempt to refine the prompt; instead, they analyzed the environment to identify missing capabilities or structures." This represents a fundamentally different approach to failure handling -- instead of retrying with better prompts, identify what the agent lacked (a tool, a linter, a code pattern, a test fixture) and create it. This phase builds a capability registry that: (1) catalogs available agent capabilities (tools, linters, scripts, templates), (2) analyzes failure patterns to identify recurring capability gaps, (3) auto-suggests new capabilities based on failure frequency and type, (4) tracks capability creation and adoption rates, (5) integrates with self-improvement loop (phase 19) and agent-generated tooling (phase 34).
+
+### Deliverables
+
+- [ ] **Capability registry** -- Catalog of available agent capabilities with discovery and metadata
+  - [ ] `p84.d1.t1` Create capability_registry.py module
+    > Python module implementing capability registry: (1) scan project for capabilities: scripts in bin/, Makefile targets, linter configs (.eslintrc, pyproject.toml), CI configs (.github/workflows/), custom tools in tools/, (2) catalog each capability with: name, type (linter, test_runner, formatter, build_tool, custom_tool, template), language, file_path, description (extracted from comments or shebang), last_used (from execution history), usage_count. (3) store registry in ~/.orchestrator/capabilities.json, (4) provide CLI: python3 capability_registry.py scan, list, info <name>, stats. Support per-project registries.
+    _Files: ~/zion/projects/agent-orchestration/capability_registry.py_
+  - [ ] Registry lists all available tools, linters, scripts, and templates
+    _Validation: run registry scan, verify it discovers existing tools_
+  - [ ] Each capability has metadata (name, type, language, usage frequency)
+    _Validation: check registry output includes metadata fields_
+  _~150 LOC_
+- [ ] **Gap detection analyzer** -- Analyze failure patterns to identify missing capabilities
+  - [ ] `p84.d2.t1` Create gap_detector.py module (depends: p84.d1.t1)
+    > Python module implementing gap detection: (1) scan execution history for failures, (2) cluster failures by type (missing import, undefined function, no tests, lint error, timeout), (3) for each cluster, check if a capability exists that would prevent the failure, (4) if no capability exists, flag as a gap with: failure_type, frequency, affected_issues, suggested capability (name, type, description), estimated effort, (5) prioritize gaps by frequency * impact (how many issues would benefit). CLI: python3 gap_detector.py analyze, report, suggest. Output gap report as markdown table.
+    _Files: ~/zion/projects/agent-orchestration/gap_detector.py_
+  - [ ] Can detect recurring failure patterns that suggest missing tools
+    _Validation: inject mock failures, verify gap detection identifies the capability need_
+  - [ ] Gap reports include specific suggestions for what to create
+    _Validation: check gap report includes tool name, type, and description_
+  _~160 LOC_
+- [ ] **Integration with self-improvement and tool generation** -- Feed gap detection results into self-improvement loop and tool generation
+  - [ ] `p84.d3.t1` Integrate gap_detector with self_improve.py and tool_gen.py (depends: p84.d2.t1, p19.d1.t1)
+    > Modify self_improve.py weekly analysis to: (1) run gap_detector.analyze(), (2) include capability gaps in the improvement recommendations, (3) prioritize gaps above parameter tuning when high-frequency gaps exist. Modify tool_gen.py (phase 34) to: (1) accept gap reports as input for tool generation, (2) auto-generate tools for the highest-priority gaps, (3) track which gaps were addressed by generated tools. Add capability gap metrics to health scorecard (phase 44).
+    _Files: ~/zion/projects/agent-orchestration/self_improve.py_
+  - [ ] Self-improvement weekly analysis includes capability gap report
+    _Validation: run self-improvement analysis, check for gap section in output_
+  _~80 LOC_
+- [ ] **Capability registry tests** -- Test registry scanning, gap detection, and integration
+  - [ ] `p84.d4.t1` Create test_capability_registry.py (depends: p84.d3.t1)
+    > Create test_capability_registry.py: (1) test registry scanning discovers mock capabilities, (2) test metadata extraction from mock files, (3) test gap detection with mock execution history (3 failure types), (4) test gap prioritization (high-frequency gap ranks above low-frequency), (5) test integration with self_improve.py (gap report included in analysis), (6) test CLI commands, (7) test edge cases: empty project, no failures, all capabilities covered.
+    _Files: ~/zion/projects/agent-orchestration/test_capability_registry.py_
+  - [ ] Tests cover scanning, gap detection accuracy, and integration
+    _Validation: python3 -m pytest test_capability_registry.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+This phase directly implements the most important operational insight from the Dark Factory experiment: "analyze the environment for missing capabilities rather than refining prompts." The capability registry is the "environment analysis" component. Gap detection is the "missing capabilities identification" component. Together, they shift the failure response from "try again with better prompts" to "build the missing tool." This is the key to scaling from manual orchestration to industrial-grade automation.
+
+### Risks
+
+- Gap detection could produce false positives -- require manual review before creating new capabilities
+- Capability scanning could be slow on large projects -- cache results and only rescan on file change
+- Suggested capabilities may not align with project needs -- include confidence scores and require human approval
+
+## [ ] phase-85: Orchestrator Security Audit Trail (PLANNED)
+
+**Goal:** Create a tamper-proof, append-only audit log of all agent actions for compliance and post-incident analysis
+
+The research describes the Dark Factory model where "no human reviewed the code before it was merged." Phase 35 implements dark factory mode, but no phase provides the compliance-grade audit trail that enterprise adoption requires. When agents operate autonomously at scale, organizations need: (1) a complete, tamper-proof record of every agent action, (2) attribution tracking (which agent/role/session performed each action), (3) compliance reporting (what changed, when, by whom, with what approval), (4) post-incident forensics (reconstruct the chain of events leading to an issue). This phase creates an append-only audit log that is cryptographically chained (each entry references the previous entry's hash) to detect tampering, with query and reporting capabilities.
+
+### Deliverables
+
+- [ ] **Append-only audit log with cryptographic chaining** -- Tamper-proof log that records every agent action with hash chaining
+  - [ ] `p85.d1.t1` Create audit_log.py module
+    > Python module implementing append-only audit log: (1) each entry: timestamp, session_id, agent_role, action_type (spawn, execute, approve, merge, config_change, policy_change), action_detail (JSON), issue_id, workspace_id, approval_status, token_usage, previous_hash, entry_hash (SHA-256 of all fields + previous_hash). (2) append-only: entries written to ~/.orchestrator/audit.log.jsonl, (3) verify(): walk the chain, check every hash, report any breaks, (4) query(): filter by agent_role, action_type, time_range, issue_id. CLI: python3 audit_log.py verify, query --role Polecat --action merge, report --last 7d, export --format csv.
+    _Files: ~/zion/projects/agent-orchestration/audit_log.py_
+  - [ ] Each log entry includes a hash of the previous entry
+    _Validation: inspect log file, verify hash chain is intact_
+  - [ ] Tampering with any entry breaks the chain and is detectable
+    _Validation: modify a historical entry, run verification, verify chain broken_
+  _~180 LOC_
+- [ ] **Audit event instrumentation** -- Add audit logging calls to all orchestrator modules
+  - [ ] `p85.d2.t1` Instrument orchestrator modules with audit logging (depends: p85.d1.t1)
+    > Add audit_log.record() calls to: (1) orchestrator.py: issue pickup, worker spawn, worker completion, loop iteration, (2) spawner.py: workspace creation, agent launch, session end, (3) executor.py: pipeline start, node execution, pipeline completion, (4) safety.py: approval request, approval decision (approve/deny), (5) pr_automation.py: PR creation, PR merge, (6) config_watcher.py (phase 22): config change events. Each call includes full context (session_id, role, issue, action). Implement redaction: strip API keys, tokens, and file content from action_detail field.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] All major orchestrator actions are logged to audit trail
+    _Validation: run orchestrator through a full task lifecycle, verify audit entries_
+  - [ ] Sensitive data (tokens, secrets) is redacted from audit entries
+    _Validation: check audit entries contain no raw tokens or secrets_
+  _~80 LOC_
+- [ ] **Compliance reporting and forensics** -- Create compliance reports and forensic analysis tools
+  - [ ] `p85.d3.t1` Add compliance reporting to audit_log.py (depends: p85.d2.t1)
+    > Add reporting methods to audit_log.py: (1) compliance_report(start, end): generates markdown report with: total actions by type, unique agents/sessions, approval rate, merge rate, config changes, policy violations, summary statistics, (2) issue_timeline(issue_id): reconstructs full action chain for an issue with timestamps and outcomes, (3) agent_activity(session_id): all actions by a specific agent session, (4) anomaly_detection(): flag unusual patterns (sudden spike in actions, denied approvals, config changes outside maintenance windows). Add compliance report to weekly maintenance cron (phase 66).
+    _Files: ~/zion/projects/agent-orchestration/audit_log.py_
+  - [ ] Can generate compliance report for a date range
+    _Validation: run report for last 30 days, verify it covers all action types_
+  - [ ] Can reconstruct the chain of events for a specific issue
+    _Validation: trace a completed issue, verify full action chain is recovered_
+  _~120 LOC_
+- [ ] **Audit trail tests** -- Test audit logging, verification, and reporting
+  - [ ] `p85.d4.t1` Create test_audit_log.py (depends: p85.d3.t1)
+    > Create test_audit_log.py: (1) test append and verify clean chain, (2) test tampering detection (modify entry, verify chain breaks), (3) test query filtering by role, action, time range, (4) test compliance report generation, (5) test issue timeline reconstruction, (6) test redaction of sensitive data, (7) test anomaly detection with injected anomalies, (8) test CLI commands, (9) test concurrent appends (multiple sessions writing simultaneously).
+    _Files: ~/zion/projects/agent-orchestration/test_audit_log.py_
+  - [ ] Tests cover hash chain integrity, tampering detection, and reporting
+    _Validation: python3 -m pytest test_audit_log.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+Cryptographic hash chaining provides tamper detection without requiring a blockchain or external trust anchor. SHA-256 is sufficient for this use case. The audit log is append-only by convention (the module only provides append and verify methods, no delete or modify). For enterprise compliance, the audit log can be exported and stored in immutable storage (WORM drive, cloud immutable bucket). The key insight from the research: dark factory mode is only viable when there is a complete record of what happened. The audit trail is the accountability layer that makes autonomous operation acceptable to organizations.
+
+### Risks
+
+- Audit logging adds overhead to every operation -- keep entries compact and batch writes
+- Hash chain verification is O(n) -- cache verified state and only verify new entries incrementally
+- Audit log could grow very large at Gas Town scale -- implement rotation/archival for old entries
+- Sensitive data redaction may miss custom secrets -- provide redaction rules configuration
+
+## [ ] phase-86: Orchestrator Feature Flags and Gradual Rollout (PLANNED)
+
+**Goal:** Create a feature flag system for safely rolling out new orchestrator behaviors with automatic rollback
+
+The research highlights Elixir/BEAM's "hot code reloading" as a key feature of the Symphony reference implementation -- the ability to update the system without interrupting active agent sessions. Phase 22 (config hot-reload) handles configuration changes, but feature flags serve a different purpose: they allow new behaviors to be rolled out gradually to a percentage of tasks, with automatic rollback if error rates increase. This is essential for safely evolving the orchestrator as it grows to 80+ modules. This phase creates a feature flag system that: (1) defines flags with rollout percentages and target criteria, (2) evaluates flags per-task to determine which behaviors are active, (3) monitors error rates per flag and auto-rollbacks on degradation, (4) provides CLI for flag management and rollout control.
+
+### Deliverables
+
+- [ ] **Feature flag engine** -- Define, evaluate, and manage feature flags for orchestrator behaviors
+  - [ ] `p86.d1.t1` Create feature_flags.py module
+    > Python module implementing feature flags: (1) flag definition: name, description, enabled (bool), rollout_percentage (0-100), targeting_rules (issue_labels, repos, agent_roles), created_at, created_by, (2) evaluation: given a task context (issue_id, labels, repo, role), determine if flag is active using: hash(issue_id + flag_name) % 100 < rollout_percentage, (3) flag storage: ~/.orchestrator/feature_flags.json, (4) support flag variants (not just on/off) for A/B testing: variant_a, variant_b with different rollout percentages. CLI: python3 feature_flags.py list, create <name> --rollout 10, enable <name>, disable <name>, rollout <name> --percentage 50, evaluate <name> --issue 42, stats <name>.
+    _Files: ~/zion/projects/agent-orchestration/feature_flags.py_
+  - [ ] Flags can be defined with rollout percentage and targeting rules
+    _Validation: create flag with 10% rollout, verify evaluation distribution_
+  - [ ] Flag evaluation is deterministic per task (same task always gets same result)
+    _Validation: evaluate same task twice, verify consistent result_
+  _~150 LOC_
+- [ ] **Flag monitoring and auto-rollback** -- Monitor error rates per flag and automatically rollback on degradation
+  - [ ] `p86.d2.t1` Add monitoring and auto-rollback to feature_flags.py (depends: p86.d1.t1)
+    > Add flag monitoring: (1) track per-flag metrics: total_evaluations, total_errors, error_rate, avg_duration, last_error_time, (2) configurable thresholds: max_error_rate (default 10%), min_sample_size (default 20 tasks), rollback_action (disable flag / revert to previous rollout), (3) evaluation hook: after each task completion, if flag was active, update flag metrics, (4) auto-rollback: if error_rate exceeds threshold for min_sample_size tasks, execute rollback_action and log the event, (5) alerting: print warning to orchestrator log when rollback occurs. CLI: python3 feature_flags.py monitor, rollback <name>, set-threshold <name> --max-error-rate 5.
+    _Files: ~/zion/projects/agent-orchestration/feature_flags.py_
+  - [ ] Can detect error rate increase for a specific flag
+    _Validation: enable flag, inject failures, verify detection_
+  - [ ] Auto-rollback disables flag when error threshold exceeded
+    _Validation: set threshold to 5%, inject 6% failure rate, verify flag disabled_
+  _~120 LOC_
+- [ ] **Integration with orchestrator modules** -- Wire feature flags into key orchestrator decision points
+  - [ ] `p86.d3.t1` Integrate feature flags into orchestrator decision points (depends: p86.d1.t1)
+    > Add flag checks to orchestrator modules: (1) orchestrator.py: "speculative_execution" flag controls whether phase 28 speculative execution is active for a task, (2) executor.py: "context_seeding" flag controls whether phase 82 context seeding is active, (3) spawner.py: "auto_rebase" flag controls whether merge queue auto-rebase is active, (4) safety.py: "auto_approve" flag controls whether certain low-risk actions skip approval, (5) garbage_collector.py: "auto_fix" flag controls whether GC auto-fixes issues or just reports them. Each flag check: evaluate flag for current task context, log flag evaluation result in execution history.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] At least 5 orchestrator behaviors are controlled by feature flags
+    _Validation: list flags, verify they control distinct behaviors_
+  _~60 LOC_
+- [ ] **Feature flag tests** -- Test flag evaluation, monitoring, auto-rollback, and integration
+  - [ ] `p86.d4.t1` Create test_feature_flags.py (depends: p86.d3.t1)
+    > Create test_feature_flags.py: (1) test flag creation and storage, (2) test evaluation distribution (1000 evaluations at 10% rollout should be ~100 active, chi-squared test), (3) test deterministic evaluation (same issue always gets same result), (4) test targeting rules (label-based, repo-based), (5) test error rate monitoring, (6) test auto-rollback triggers at threshold, (7) test variant rollout distribution, (8) test integration with orchestrator.py (flag controls behavior), (9) test CLI commands, (10) test edge cases: 0% rollout (never active), 100% rollout (always active), flag disabled mid-task.
+    _Files: ~/zion/projects/agent-orchestration/test_feature_flags.py_
+  - [ ] Tests cover flag evaluation distribution, monitoring accuracy, and auto-rollback
+    _Validation: python3 -m pytest test_feature_flags.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+Feature flags use deterministic hash-based evaluation (hash of issue_id + flag_name) rather than random assignment. This ensures the same task always gets the same flag evaluation, even across orchestrator restarts. The rollout percentage controls what fraction of new tasks see the new behavior. Existing tasks continue with their original evaluation. Auto-rollback is a safety net -- it should be configured conservatively (high error threshold, sufficient sample size) to avoid false positives. The research's Elixir hot code reloading is about updating code without restart; feature flags achieve a similar goal at the behavior level -- enabling new behaviors without code deployment.
+
+### Risks
+
+- Feature flags add conditional logic that makes code harder to understand -- limit flag checks to integration points
+- Auto-rollback could disable a flag that is working correctly due to unrelated failures -- require manual review before rollback
+- Too many flags create configuration complexity -- retire flags after full rollout (100% for 2+ weeks)
+- Flag evaluation must be fast -- cache flag definitions and only reload on change
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -4489,6 +4834,12 @@ Error transformation is the lowest-cost, highest-impact improvement for agent ef
 - Metrics HTTP server (phase 72) exposes internal orchestrator state -- require auth for non-localhost access
 - Workspace checkpoints (phase 73) could consume significant disk space on large workspaces
 - Checkpoint restore (phase 73) during active writes could corrupt workspace state -- file locking is critical
+- Plugin system (phase 81) extensibility could be exploited -- audit trail captures all plugin activity
+- Context seeding (phase 82) could leak proprietary code patterns into prompts -- audit trail tracks what was injected
+- State migration (phase 83) could corrupt data -- always backup before migrating
+- Capability gap detection (phase 84) could create unnecessary tools -- require human review before acting on suggestions
+- Audit log (phase 85) could grow very large -- implement rotation/archival for old entries
+- Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks
 
 ## Conventions
 
