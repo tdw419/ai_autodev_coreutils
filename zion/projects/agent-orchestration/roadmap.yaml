@@ -13171,6 +13171,354 @@ phases:
   - Remediation history could grow large -- implement retention and archival
   scope_lines_total: 650
   test_target: 10
+- id: phase-96
+  title: agent.md Spec Validation and Compliance Linting
+  status: planned
+  goal: Create a deterministic sensor that validates agent.md files against the AAIF specification, ensuring
+    machine-readability and structural completeness
+  description: 'The research emphasizes agent.md as a standardized format adopted by the Agentic AI Foundation
+    (AAIF), with analysis of 2,500+ repositories identifying four required sections: tech stack definition,
+    executable commands, code examples, and three-tier boundaries. Phase 55 generates agent.md files but nothing
+    validates them. This phase creates a linting tool that checks agent.md files against the spec, runs as a
+    deterministic sensor in DAG pipelines, and integrates with the garbage collector (phase 10) for periodic
+    compliance scanning. This closes the gap between agent.md generation and agent.md quality assurance -- analogous
+    to having a code formatter (phase 55) without a linter (this phase).'
+
+  deliverables:
+  - name: agent.md spec parser and validator
+    description: Python module that parses agent.md files and validates them against the AAIF specification
+    status: planned
+    acceptance_criteria:
+    - description: Parses agent.md frontmatter and body sections
+      validation: python3 -c "from agent_md_validator import validate; print(validate('test_agent.md'))"
+      met: false
+    - description: Checks for all 4 required sections (tech_stack, commands, examples, boundaries)
+      validation: validate agent.md missing a section returns violations list
+      met: false
+    - description: Validates three-tier boundaries format (always/ask_first/never)
+      validation: invalid boundary format returns specific violation
+      met: false
+    tasks:
+    - id: p96.d1.t1
+      title: Create agent_md_validator.py
+      status: planned
+      description: 'Create agent_md_validator.py with: (1) parse_agent_md(filepath): parse frontmatter (yaml)
+        and body (markdown), extract sections, (2) validate_structure(parsed): check for required sections --
+        tech_stack (language versions, framework versions, package manager), commands (build, test, lint, format
+        with exact flags), examples (at least 2 code snippets showing project patterns), boundaries (three-tier:
+        always/ask_first/never with at least 3 entries per tier), (3) validate_machine_readable(parsed): check
+        that commands section uses exact shell commands (not descriptions), that tech_stack has version numbers,
+        that examples are in fenced code blocks with language tags, (4) validate_consistency(parsed): check that
+        tech_stack languages match example code block languages, that commands reference tools that exist in tech_stack,
+        (5) score_agent_md(filepath): return 0-100 compliance score with breakdown by category.'
+      files:
+      - ~/zion/projects/agent-orchestration/agent_md_validator.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/agent_md_validator.py
+  - name: agent.md scanner integration
+    description: CLI command that scans repos for agent.md files and reports compliance
+    status: planned
+    acceptance_criteria:
+    - description: Scans a directory tree for agent.md/AI_GUIDE.md/AGENTS.md files
+      validation: run scanner on test directory with multiple agent.md files
+      met: false
+    - description: Outputs structured report (JSON + human-readable table)
+      validation: check both output formats
+      met: false
+    tasks:
+    - id: p96.d2.t1
+      title: Create scan_agent_md.py CLI
+      status: planned
+      description: 'Create scan_agent_md.py CLI: (1) scan_directory(path): recursively find agent.md/AI_GUIDE.md/AGENTS.md
+        files, (2) for each file, run validate_structure + validate_machine_readable + validate_consistency, (3)
+        output JSON report: {files_scanned, total_score, violations: [{file, category, severity, description,
+        suggestion}], recommendations: [...]}, (4) output human-readable table with color-coded scores, (5) --fix
+        flag: for auto-fixable violations (missing section headers, malformed frontmatter), write corrected version
+        to stdout, (6) integrate with orchestrator: can be called as a bash node in DAG pipelines.'
+      dependencies:
+      - p96.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/scan_agent_md.py
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/scan_agent_md.py
+  - name: agent.md linting as DAG pipeline sensor
+    description: Integrate agent.md validation into the DAG executor as a deterministic sensor node
+    status: planned
+    acceptance_criteria:
+    - description: LINT_AGENT_MD node type available in DAG YAML pipelines
+      validation: parse pipeline with lint_agent_md node
+      met: false
+    - description: Validation failures block pipeline progression (configurable strictness)
+      validation: pipeline with failing agent.md stops or warns based on config
+      met: false
+    tasks:
+    - id: p96.d3.t1
+      title: Add LINT_AGENT_MD node type to DAG executor
+      status: planned
+      description: 'Extend dag.py executor: (1) add LINT_AGENT_MD node type that runs agent_md_validator on
+        specified file paths, (2) node config: {type: lint_agent_md, paths: ["./agent.md", "./AI_GUIDE.md"], min_score:
+        80, strict: false}, (3) if score < min_score and strict=true, node fails (blocking pipeline), if strict=false,
+        node warns but continues, (4) outputs validation report to pipeline context for downstream nodes to consume,
+        (5) add agent-md-lint-pipeline.yaml template that runs lint before other nodes.'
+      dependencies:
+      - p96.d1.t1
+      - p96.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dag.py
+      - ~/zion/projects/agent-orchestration/pipelines/agent-md-lint-pipeline.yaml
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dag.py
+    - ~/zion/projects/agent-orchestration/pipelines/agent-md-lint-pipeline.yaml
+  - name: agent.md validator tests
+    description: Test parser, validator, scanner, and DAG integration
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover all validation rules, scanner modes, and DAG integration
+      validation: python3 -m pytest test_agent_md_validator.py -v
+      met: false
+    tasks:
+    - id: p96.d4.t1
+      title: Create test_agent_md_validator.py
+      status: planned
+      description: 'Create test_agent_md_validator.py: (1) test_parse_valid_agent_md: parse well-formed agent.md
+        with all sections, (2) test_parse_missing_sections: each missing section produces specific violation, (3)
+        test_validate_tech_stack: missing versions, invalid languages, (4) test_validate_commands: non-executable
+        commands (descriptions instead of shell), missing test command, (5) test_validate_examples: no code blocks,
+        no language tags, fewer than 2 examples, (6) test_validate_boundaries: invalid tiers, empty tiers, (7)
+        test_validate_consistency: language mismatch between tech_stack and examples, (8) test_score_calculation:
+        perfect score for compliant file, partial scores for partially compliant, (9) test_scanner_multiple_files:
+        scan directory with 3 agent.md files, correct aggregate report, (10) test_scanner_fix_mode: auto-fix correctable
+        violations, (11) test_dag_integration: lint_agent_md node in pipeline, strict mode blocks, non-strict
+        warns, (12) test_edge_cases: empty file, binary file, yaml-only file (no body), markdown-only file (no
+        frontmatter).'
+      dependencies:
+      - p96.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_agent_md_validator.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_agent_md_validator.py
+  dependencies:
+  - source: phase-55
+    target: phase-96
+    type: soft
+    reason: agent.md generator from phase 55 produces the files that this phase validates
+  - source: phase-10
+    target: phase-96
+    type: soft
+    reason: Garbage collector from phase 10 can run periodic agent.md compliance scans
+  - source: phase-5
+    target: phase-96
+    type: soft
+    reason: DAG executor from phase 5 is extended with the LINT_AGENT_MD node type
+  - source: phase-17
+    target: phase-96
+    type: soft
+    reason: Structural invariants from phase 17 provide the pattern for defining and checking structural rules
+  - source: phase-12
+    target: phase-96
+    type: soft
+    reason: Agent-legible self-documentation from phase 12 defines the documentation standards that agent.md
+      should reflect
+  technical_notes: 'The agent.md specification is still evolving (AAIF is relatively new). The validator should
+    be configurable with a rules schema so new checks can be added without code changes. Consider supporting
+    multiple spec levels (minimal, recommended, strict) to accommodate different project maturity levels. The
+    research found that the most successful agent.md files prioritize executable commands and explicit boundaries
+    -- the validator should weight these more heavily in the compliance score. Integration with the project onboarding
+    bootstrap (phase 24) means newly onboarded projects get their agent.md validated immediately.'
+  risks:
+  - agent.md spec is not yet fully standardized -- validator rules may need frequent updates
+  - Overly strict validation could reject useful but non-standard agent.md formats
+  - Auto-fix mode could alter intended content -- always show diff before applying
+  scope_lines_total: 450
+  test_target: 12
+- id: phase-97
+  title: Multi-Session Task Chaining with Context Marshaling
+  status: planned
+  goal: Enable long-running tasks to span multiple agent sessions with automatic context handoff, implementing
+    the research's core pattern of persistence through externalized artifacts
+  description: 'The research describes the Ralph Wiggum pattern where agents run in autonomous loops until completion,
+    with context reset at every iteration to stay in the "smart zone." While phase 20 handles context window
+    budgeting and phase 65 handles stop hooks for single-session loops, no phase implements the CHAINING pattern
+    -- where a task too large for one session is automatically decomposed across multiple sessions, with each
+    session''s output becoming the next session''s input. The research specifically highlights this as the key
+    to handling "large-scale refactors or complex migrations" that exceed single-session capacity. This phase
+    creates the session chain manager that: detects when a task needs multi-session execution, saves intermediate
+    state (partial results, decisions made, files modified), creates a new session with marshaled context sized
+    to fit the smart zone, and tracks the chain of sessions for a single logical task.'
+  deliverables:
+  - name: Session chain manager core
+    description: Module that manages multi-session task chains with automatic context marshaling between sessions
+    status: planned
+    acceptance_criteria:
+    - description: Creates session chains with unique chain IDs tracking all sessions for a logical task
+      validation: create_chain returns chain_id, list_sessions(chain_id) shows all sessions
+      met: false
+    - description: Marshals context between sessions (partial results, modified files, decisions)
+      validation: end_session saves state, begin_next_session loads it correctly
+      met: false
+    - description: Respects context budget from phase 20 when constructing session prompts
+      validation: marshaled context fits within configured budget limit
+      met: false
+    tasks:
+    - id: p97.d1.t1
+      title: Create session_chain.py
+      status: planned
+      description: 'Create session_chain.py with: (1) create_chain(task_description, workspace_path): initialize
+        a new chain with chain_id (UUID), store metadata in ~/.orchestrator/chains/{chain_id}/chain.json, (2)
+        start_session(chain_id, prompt): create a new session within the chain, generate context_brief from previous
+        sessions (using context_budget module from phase 20), store session metadata, (3) end_session(chain_id,
+        session_id, result): save session outcome -- files_modified (git diff names), decisions_made (extracted
+        from agent output), partial_results (key findings or progress notes), next_steps (what remains to be done),
+        (4) get_chain_context(chain_id, max_tokens): marshal context from all previous sessions into a brief that
+        fits within max_tokens, prioritizing: task description (always included), last session outcome (always
+        included), cumulative file change list (truncated if needed), key decisions (summarized), (5) is_chain_complete(chain_id):
+        check if the original task description has been fulfilled based on completion criteria in last session
+        outcome, (6) list_chains(): list all active and completed chains with status, session count, total duration.'
+      files:
+      - ~/zion/projects/agent-orchestration/session_chain.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/session_chain.py
+  - name: Chain-aware orchestrator integration
+    description: Extend the orchestrator to detect tasks needing multi-session execution and manage chains
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator detects when a task exceeds single-session capacity and creates a chain
+      validation: large issue triggers chain creation instead of single-session execution
+      met: false
+    - description: Chain progress is visible in status dashboard
+      validation: status.sh shows active chains with session counts
+      met: false
+    tasks:
+    - id: p97.d2.t1
+      title: Integrate session chains into orchestrator
+      status: planned
+      description: 'Extend orchestrator.py: (1) add task_size_estimator(task_description, workspace): estimate
+        whether a task needs multi-session execution based on: description length, number of files likely affected
+        (from grep), historical data for similar tasks (from execution history phase 8), (2) if estimated as multi-session,
+        create_chain and run first session, (3) after first session completes, check is_chain_complete, if not
+        complete, schedule next session via cron with chained context, (4) chain_status in orchestrator state:
+        active_chains count, chains_completed count, average_sessions_per_chain, (5) update status.sh to show
+        chain information: chain_id, task title, sessions completed, estimated remaining sessions, current status.'
+      dependencies:
+      - p97.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+      - ~/zion/projects/agent-orchestration/status.sh
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+    - ~/zion/projects/agent-orchestration/status.sh
+  - name: Chain context DAG pipeline node
+    description: Add CHAIN_CONTEXT node type to DAG executor for multi-session pipeline steps
+    status: planned
+    acceptance_criteria:
+    - description: CHAIN_CONTEXT node resumes a chain and provides marshaled context to downstream AI nodes
+      validation: pipeline with chain_context node correctly loads previous session context
+      met: false
+    - description: CHAIN_COMPLETE node checks if a chain is done and branches pipeline accordingly
+      validation: pipeline branches on chain completion status
+      met: false
+    tasks:
+    - id: p97.d3.t1
+      title: Add chain nodes to DAG executor
+      status: planned
+      description: 'Extend dag.py executor: (1) CHAIN_CONTEXT node type: {type: chain_context, chain_id: "auto"
+        | "<uuid>", max_tokens: 8000}, loads chain context and injects into pipeline context for downstream AI
+        nodes, (2) CHAIN_COMPLETE node type: {type: chain_complete, chain_id: "auto"}, checks if chain is complete,
+        outputs boolean to pipeline context for conditional branching (Dependency node), (3) CHAIN_END_SESSION
+        node type: {type: chain_end_session, chain_id: "auto"}, saves current session results to chain, (4) add
+        multi-session-pipeline.yaml template: AI(plan) -> BASH(test plan) -> CHAIN_CONTEXT -> AI(implement batch
+        1) -> CHAIN_END_SESSION -> CHAIN_COMPLETE -> [if not complete] -> loop back to CHAIN_CONTEXT, (5) chain
+        nodes integrate with execution log (phase 8) for full traceability.'
+      dependencies:
+      - p97.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dag.py
+      - ~/zion/projects/agent-orchestration/pipelines/multi-session-pipeline.yaml
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dag.py
+    - ~/zion/projects/agent-orchestration/pipelines/multi-session-pipeline.yaml
+  - name: Session chain tests
+    description: Test chain creation, context marshaling, orchestrator integration, and DAG nodes
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover chain lifecycle, context marshaling, budget enforcement, and DAG integration
+      validation: python3 -m pytest test_session_chain.py -v
+      met: false
+    tasks:
+    - id: p97.d4.t1
+      title: Create test_session_chain.py
+      status: planned
+      description: 'Create test_session_chain.py: (1) test_create_chain: creates chain with unique ID, stores
+        metadata, (2) test_start_end_session: creates session within chain, saves results on end, (3) test_context_marshaling:
+        multi-session chain produces context brief within budget, includes task desc + last outcome, (4) test_context_budget_respected:
+        set max_tokens=500, verify marshaled context is truncated appropriately, (5) test_chain_completion: chain
+        marked complete when last session outcome includes completion flag, (6) test_task_size_estimator: large
+        task detected as multi-session, small task detected as single-session, (7) test_orchestrator_chain_flow:
+        mock large issue, verify chain created, first session run, second session scheduled with chained context,
+        (8) test_dag_chain_context_node: pipeline with CHAIN_CONTEXT loads correct context, (9) test_dag_chain_complete_node:
+        pipeline branches correctly on chain completion status, (10) test_dag_chain_end_session_node: session results
+        saved correctly, (11) test_chain_persistence: chains survive process restart (files on disk), (12) test_chain_listing:
+        list_chains returns all chains with correct metadata.'
+      dependencies:
+      - p97.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_session_chain.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_session_chain.py
+  dependencies:
+  - source: phase-20
+    target: phase-97
+    type: soft
+    reason: Context window optimization from phase 20 provides the budget calculation that context marshaling
+      must respect
+  - source: phase-65
+    target: phase-97
+    type: soft
+    reason: Stop hooks from phase 65 handle single-session loop control; session chaining extends this to multi-session
+  - source: phase-8
+    target: phase-97
+    type: soft
+    reason: Execution history from phase 8 records individual sessions; chain tracking adds logical task grouping
+      on top
+  - source: phase-5
+    target: phase-97
+    type: soft
+    reason: DAG executor from phase 5 is extended with CHAIN_CONTEXT, CHAIN_COMPLETE, and CHAIN_END_SESSION nodes
+  - source: phase-47
+    target: phase-97
+    type: soft
+    reason: Knowledge persistence from phase 47 and session chaining both externalize agent state -- they should
+      share the persistence layer
+  - source: phase-68
+    target: phase-97
+    type: soft
+    reason: Session identity from phase 68 provides per-session profiling; chaining adds cross-session identity
+  technical_notes: 'Session chaining is the key architectural pattern that enables agents to handle tasks of arbitrary
+    complexity. The research describes this as "persistence through externalized artifacts" -- code, git history,
+    and test results carry forward while conversation history is reset. The critical design decision is how much
+    context to marshal between sessions: too little and the next session repeats work, too much and it exceeds
+    the smart zone (phase 20). The context_budget module from phase 20 should be reused here. Chain state should
+    be file-backed (like execution history from phase 8) for crash recovery. The task_size_estimator is necessarily
+    heuristic -- it should be configurable and learn from historical data in execution history (phase 8).'
+  risks:
+  - Task size estimation may be inaccurate, leading to unnecessary multi-session chains or single-session attempts
+    on tasks that need chaining
+  - Context marshaling could lose critical information between sessions, causing agents to repeat or contradict
+    prior work
+  - Chain state files could grow large for very long chains -- implement retention/archival for completed chains
+  - Multi-session chains consume more tokens than single-session execution -- cost tracking (phase 32) should
+    account for chain overhead
+  - Chain scheduling via cron adds latency between sessions -- consider background process for active chains
+  scope_lines_total: 480
+  test_target: 12
 
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -13199,6 +13547,11 @@ global_risks:
 - Auto-remediation (phase 95) could make things worse (kill wrong worker, reset wrong workspace) -- extensive testing required
 - Remediation rate limits (phase 95) could prevent fixing legitimate issues during outage storms
 - Workspace reset (phase 95) could lose uncommitted work -- always checkpoint before remediation
+- agent.md validator (phase 96) may reject useful but non-standard agent.md formats as the spec evolves
+- agent.md auto-fix (phase 96) could alter intended content -- always show diff before applying
+- Task size estimation (phase 97) may be inaccurate -- conservative defaults with learning from historical data
+- Context marshaling (phase 97) could lose critical information between sessions -- prioritize task description and last session outcome
+- Chain state files (phase 97) could grow large -- implement retention/archival for completed chains
 - Webhook server (phase 37) requires network exposure -- needs security review for production use
 - Cross-project knowledge (phase 38) could leak proprietary patterns between repos -- need per-repo knowledge isolation controls
 - Browser automation (phase 39) requires Chrome/Chromium -- adds a heavy runtime dependency and may not work in all CI environments
@@ -13283,8 +13636,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 95
-  estimated_weeks: 108-127
+  phases_total: 97
+  estimated_weeks: 110-130
   updated: '2026-05-02'
   phases_added:
   - 13
@@ -13370,6 +13723,8 @@ meta:
   - 93
   - 94
   - 95
+  - 96
+  - 97
   phases_added_from: >-
     Phase 59-64: Six new phases derived from gap analysis of the research document
     against the existing 58-phase roadmap. Phase 59 (PR Velocity Metrics) addresses
@@ -13511,4 +13866,21 @@ meta:
     the research's "self-correcting codebase" vision at the orchestrator level: detecting
     stuck workers, corrupted workspaces, config drift, and recurring failures, then
     automatically fixing them with verification and escalation.
+    Phase 96-97: Two new phases derived from an eighth gap analysis pass -- a systematic
+    cross-reference of all 51 concepts extracted from the research document against all
+    95 existing phases. This analysis found that 49/51 concepts (96.1%) are already covered
+    by existing phases, confirming the roadmap is extremely comprehensive. The 2 remaining
+    gaps are: (1) agent.md validation/linting -- the research emphasizes agent.md as a
+    standardized AAIF spec, with analysis of 2,500+ repos identifying 4 required sections,
+    but phase 55 only generates agent.md files without validating them. Phase 96 closes
+    this gap with a deterministic sensor that checks agent.md files against the spec,
+    analogous to having a code formatter without a linter. (2) Multi-session task chaining
+    -- the research describes the Ralph Wiggum pattern where agents persist across sessions
+    via externalized artifacts, and specifically calls out "large-scale refactors or complex
+    migrations" as the target use case. While phase 20 handles context budgeting and phase
+    65 handles stop hooks for single-session loops, nothing implements the CHAINING pattern
+    where one session's output becomes the next session's input with automatic context
+    marshaling. Phase 97 closes this gap with a session chain manager that detects when
+    tasks need multi-session execution, saves intermediate state, and creates new sessions
+    with smart-zone-compliant context briefs.
 
