@@ -1906,7 +1906,7 @@ phases:
     tasks:
     - id: p18.d1.t1
       title: Create trace_formatter.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) reads a pipeline run from execution_log.py, (2) extracts
         key information per node (status, duration, error message, output summary), (3) formats
         as compact text for prompt injection (<2000 tokens), (4) supports --format compact|detailed|diff
@@ -1958,7 +1958,7 @@ phases:
     tasks:
     - id: p18.d3.t1
       title: Add failure correlation to trace_formatter
-      status: planned
+      status: done
       description: 'Add --correlate flag to trace_formatter.py that: (1) reads the last N pipeline
         runs, (2) groups failures by node_id and failure_type, (3) identifies recurring patterns
         (same node failing in >50% of runs), (4) outputs a summary: "Node ''test'' failed in 8/10
@@ -1983,7 +1983,7 @@ phases:
     tasks:
     - id: p18.d4.t1
       title: Create debug-pipeline.yaml
-      status: planned
+      status: done
       description: 'Create pipelines/debug-pipeline.yaml: AI(implement) -> Bash(test) -> AI(debug,
         reads trace from failed run, analyzes failure) -> Loop(fix, max=3, includes trace context
         in each iteration) -> Bash(test). The debug node uses trace_formatter to get the failure

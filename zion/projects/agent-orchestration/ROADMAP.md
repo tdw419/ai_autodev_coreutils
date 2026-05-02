@@ -6,7 +6,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 
 **Deliverables:** 65/187 complete
 
-**Tasks:** 67/187 complete
+**Tasks:** 70/187 complete
 
 ## Scope Summary
 
@@ -1051,7 +1051,7 @@ Phase 8 adds execution history for humans to review after runs. The Harness Engi
 ### Deliverables
 
 - [ ] **Agent-readable trace formatter** -- Module that converts execution logs into a concise, agent-optimized format suitable for inclusion in prompts
-  - [ ] `p18.d1.t1` Create trace_formatter.py module (depends: p8.d1.t1)
+  - [x] `p18.d1.t1` Create trace_formatter.py module (depends: p8.d1.t1)
     > Python module that: (1) reads a pipeline run from execution_log.py, (2) extracts key information per node (status, duration, error message, output summary), (3) formats as compact text for prompt injection (<2000 tokens), (4) supports --format compact|detailed|diff modes, (5) highlights failure chain (which nodes failed and why), (6) includes context about what files were touched. The compact format is designed to be prepended to an AI node's prompt so the agent can understand previous failures.
     _Files: ~/zion/projects/agent-orchestration/trace_formatter.py_
   - [ ] Can format a pipeline run trace into a compact summary (node status, error messages, key outputs) under 2000 tokens
@@ -1067,14 +1067,14 @@ Phase 8 adds execution history for humans to review after runs. The Harness Engi
     _Validation: execute pipeline with failure, check retry prompt includes trace_
   _~60 LOC_
 - [ ] **Cross-run failure correlation** -- Analyze multiple pipeline runs to find recurring failure patterns
-  - [ ] `p18.d3.t1` Add failure correlation to trace_formatter (depends: p18.d1.t1)
+  - [x] `p18.d3.t1` Add failure correlation to trace_formatter (depends: p18.d1.t1)
     > Add --correlate flag to trace_formatter.py that: (1) reads the last N pipeline runs, (2) groups failures by node_id and failure_type, (3) identifies recurring patterns (same node failing in >50% of runs), (4) outputs a summary: "Node 'test' failed in 8/10 recent runs. Common error: ImportError. Suggested fix: check dependencies." This enables the orchestrator or a human to spot systemic issues.
     _Files: ~/zion/projects/agent-orchestration/trace_formatter.py_
   - [ ] Can identify that a specific node type or pipeline step fails repeatedly across runs
     _Validation: python3 trace_formatter.py --correlate --last 20_
   _~80 LOC_
 - [ ] **Self-debug pipeline template** -- Pipeline YAML that uses trace tools to enable agents to debug and fix their own failures
-  - [ ] `p18.d4.t1` Create debug-pipeline.yaml (depends: p18.d2.t1, p5.d3.t1)
+  - [x] `p18.d4.t1` Create debug-pipeline.yaml (depends: p18.d2.t1, p5.d3.t1)
     > Create pipelines/debug-pipeline.yaml: AI(implement) -> Bash(test) -> AI(debug, reads trace from failed run, analyzes failure) -> Loop(fix, max=3, includes trace context in each iteration) -> Bash(test). The debug node uses trace_formatter to get the failure context, then formulates a targeted fix. The loop retries with increasing trace history so the agent can see what it already tried.
     _Files: ~/zion/projects/agent-orchestration/pipelines/debug-pipeline.yaml_
   - [ ] Pipeline includes a debug node that reads previous failure traces and formulates a fix strategy

@@ -1,0 +1,144 @@
+# Debug Pipeline
+# AI(implement) -> Bash(test) -> AI(debug) -> Loop(fix, max=3) -> Bash(test)
+#
+# This pipeline is designed for self-debugging: when an implementation fails,
+# the debug node reads the execution trace, analyzes the failure, and
+# formulates a targeted fix strategy. The fix loop retries with increasing
+# trace history.
+#
+# Usage:
+#   python3 executor.py pipelines/debug-pipeline.yaml --context task="Fix the login bug"
+
+name: debug-pipeline
+description: Self-debugging pipeline that analyzes failures and retries with trace context
+version: "1.0"
+
+nodes:
+  implement:
+    type: ai
+    name: Implement
+    description: Attempt to implement the task
+    prompt: |
+      You are an implementation agent. Implement the following task.
+
+      Task: {{task}}
+
+      Steps:
+      1. Read the relevant source files
+      2. Make the necessary code changes
+      3. Follow existing code patterns and conventions
+    max_turns: 15
+
+  test:
+    type: bash
+    name: Test
+    description: Run tests to verify the implementation
+    command: |
+      echo "=== Running tests ==="
+      if [ -f "pytest.ini" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+        python3 -m pytest --tb=short -q 2>&1
+      elif [ -f "package.json" ]; then
+        npm test 2>&1
+      elif [ -f "Cargo.toml" ]; then
+        cargo test -- --test-threads=2 2>&1
+      elif [ -f "Makefile" ]; then
+        make test 2>&1
+      else
+        echo "No recognized test framework. Skipping."
+        exit 0
+      fi
+    depends_on: [implement]
+    timeout_seconds: 120
+
+  debug:
+    type: ai
+    name: Debug
+    description: Analyze the failure trace and formulate a fix strategy
+    prompt: |
+      You are a debugging agent. The previous implementation attempt failed.
+
+      Task: {{task}}
+
+      Your job is to:
+      1. Read the test output to understand what failed
+      2. Read the relevant source files to understand the current state
+      3. Identify the root cause of the failure
+      4. Formulate a specific fix strategy
+
+      Output your analysis as:
+      ## Root Cause
+      [What went wrong]
+
+      ## Fix Strategy
+      [Specific steps to fix it, including which files to change and how]
+
+      Do NOT make any changes. Only analyze and plan the fix.
+    depends_on: [test]
+    max_turns: 10
+
+  fix:
+    type: ai
+    name: Fix
+    description: Apply the fix strategy from the debug analysis
+    prompt: |
+      You are a fix agent. The previous attempt failed and a debug analysis has been done.
+
+      Task: {{task}}
+
+      Your job is to:
+      1. Read the debug analysis from the previous node's output
+      2. Apply the fix strategy described in the analysis
+      3. Make targeted, minimal changes to fix the issue
+      4. Do not change anything that isn't related to the fix
+
+      Keep your changes minimal and focused on the root cause.
+    depends_on: [debug]
+    max_turns: 15
+
+  retest:
+    type: bash
+    name: Retest
+    description: Run tests again after the fix
+    command: |
+      echo "=== Retesting after fix ==="
+      if [ -f "pytest.ini" ] || [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+        python3 -m pytest --tb=short -q 2>&1
+      elif [ -f "package.json" ]; then
+        npm test 2>&1
+      elif [ -f "Cargo.toml" ]; then
+        cargo test -- --test-threads=2 2>&1
+      elif [ -f "Makefile" ]; then
+        make test 2>&1
+      else
+        echo "No recognized test framework. Skipping."
+        exit 0
+      fi
+    depends_on: [fix]
+    timeout_seconds: 120
+
+  fix_loop:
+    type: loop
+    name: Fix Loop
+    description: Retry debug-fix cycle up to 3 times
+    depends_on: [retest]
+    max_iterations: 3
+    until: "exit_code == 0"
+    children: [debug, fix, retest]
+
+  commit:
+    type: bash
+    name: Commit
+    description: Commit the final working solution
+    command: |
+      echo "=== Committing fix ==="
+      if git diff --quiet && git diff --cached --quiet; then
+        echo "No changes to commit."
+        exit 0
+      fi
+      git add -A
+      git commit -m "fix: resolve issue identified by debug pipeline
+
+      Pipeline: debug-pipeline
+      Debug cycles: {{fix_loop.iterations}}"
+    depends_on: [fix_loop]
+    timeout_seconds: 30
