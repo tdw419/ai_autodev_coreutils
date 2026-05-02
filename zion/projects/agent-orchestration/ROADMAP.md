@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 17/58 phases complete, 0 in progress
+**Progress:** 17/64 phases complete, 0 in progress
 
-**Deliverables:** 67/231 complete
+**Deliverables:** 67/255 complete
 
-**Tasks:** 74/231 complete
+**Tasks:** 74/255 complete
 
 ## Scope Summary
 
@@ -70,6 +70,12 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-56 Symphony Spec Compliance Adapter | PLANNED | 0/4 | 560 | 12 |
 | phase-57 Skill Registry and Reusable Role Templates | PLANNED | 0/4 | 490 | 10 |
 | phase-58 Agent Session Replay and Forensic Analysis | PLANNED | 0/4 | 560 | 10 |
+| phase-59 PR Velocity Metrics and Orchestrator ROI Tracking | PLANNED | 0/4 | 460 | 8 |
+| phase-60 Human-Agent Workflow Optimization | PLANNED | 0/4 | 460 | 8 |
+| phase-61 Agent Quality Regression Testing | PLANNED | 0/4 | 510 | 10 |
+| phase-62 Prompt Engineering as Infrastructure | PLANNED | 0/4 | 460 | 8 |
+| phase-63 Orchestrator REST API and Platform Layer | PLANNED | 0/4 | 560 | 10 |
+| phase-64 Workspace Sandboxing and OS-Level Isolation | PLANNED | 0/4 | 480 | 12 |
 
 ## Dependencies
 
@@ -255,6 +261,36 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-19 | phase-58 | soft | Self-improvement loop from phase 19 consumes forensic analysis results |
 | phase-20 | phase-58 | soft | Context window optimization from phase 20 benefits from context degradation detection |
 | phase-46 | phase-58 | soft | Golden principles from phase 46 can be derived from forensic analysis patterns |
+| phase-8 | phase-59 | soft | Execution history from phase 8 provides cost data for ROI computation |
+| phase-13 | phase-59 | soft | PR automation from phase 13 is the primary source of agent-created PRs |
+| phase-32 | phase-59 | soft | Cost tracking from phase 32 provides token cost data for cost-per-PR computation |
+| phase-44 | phase-59 | soft | Health scorecard from phase 44 provides system metrics that complement business metrics |
+| phase-9 | phase-59 | soft | Review sensor scores from phase 9 provide quality signals for trend analysis |
+| phase-4 | phase-60 | soft | Orchestrator from phase 4 creates the issues and PRs that the human workflow tooling manages |
+| phase-9 | phase-60 | soft | Review sensor scores from phase 9 are used in PR review queue prioritization |
+| phase-13 | phase-60 | soft | PR automation from phase 13 creates the PRs that appear in the review queue |
+| phase-49 | phase-60 | soft | Feedback capture from phase 49 provides the data for tracking human review patterns |
+| phase-59 | phase-60 | soft | Velocity metrics from phase 59 include human review time tracking |
+| phase-5 | phase-61 | soft | DAG executor from phase 5 is used to run benchmark tasks through the full pipeline |
+| phase-7 | phase-61 | soft | Test infrastructure from phase 7 ensures the orchestrator code itself is reliable before benchmarking |
+| phase-9 | phase-61 | soft | Review sensor from phase 9 provides quality scores for benchmark results |
+| phase-19 | phase-61 | soft | Self-improvement from phase 19 consumes benchmark results to identify improvement opportunities |
+| phase-29 | phase-61 | soft | A/B testing from phase 29 generates the comparison data that benchmarks validate |
+| phase-32 | phase-61 | soft | Cost tracking from phase 32 provides token efficiency data for benchmark scoring |
+| phase-5 | phase-62 | soft | DAG executor from phase 5 uses prompts that the library will manage |
+| phase-6 | phase-62 | soft | Role system from phase 6 has embedded prompts that should be extracted to the library |
+| phase-36 | phase-62 | soft | Dynamic policy engine from phase 36 and prompt library both manage agent instructions -- they should be coordinated |
+| phase-52 | phase-62 | soft | Provenance tracking from phase 52 should log which prompt version was used for each execution |
+| phase-4 | phase-63 | soft | REST API wraps the orchestrator core from phase 4 |
+| phase-8 | phase-63 | soft | Execution history from phase 8 provides data for API status/metrics endpoints |
+| phase-9 | phase-63 | soft | Review sensor scores from phase 9 are exposed via metrics endpoint |
+| phase-32 | phase-63 | soft | Cost tracking from phase 32 is exposed via metrics endpoint |
+| phase-59 | phase-63 | soft | Velocity metrics from phase 59 are exposed via API metrics endpoint |
+| phase-11 | phase-64 | soft | Workspace lifecycle from phase 11 manages the workspaces that sandboxing protects |
+| phase-15 | phase-64 | soft | Safety policies from phase 15 define what actions should be blocked -- sandboxing enforces them |
+| phase-35 | phase-64 | hard | Dark factory mode from phase 35 requires sandboxing as a prerequisite -- no human review means isolation must be robust |
+| phase-5 | phase-64 | soft | DAG executor from phase 5 creates the worker processes that need sandboxing |
+| phase-8 | phase-64 | soft | Execution logs from phase 8 should include sandbox audit events |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -3144,6 +3180,276 @@ Session replay is the "black box flight recorder" for agents. The key design dec
 - Forensic analysis heuristics may produce false positives -- treat as suggestions, not facts
 - Full context snapshots may be too large for complex sessions -- use diff-based approach
 
+## [ ] phase-59: PR Velocity Metrics and Orchestrator ROI Tracking (PLANNED)
+
+**Goal:** Build a dedicated metrics layer that measures the orchestrator's business impact -- PR throughput, time-to-merge, cost-per-PR, and quality trends over time
+
+The research opens with a striking claim: "teams adopting this scaffolding approach saw a 500% increase in landed pull requests within the first three weeks." Yet no existing phase measures this. Phase 44 (Health Scorecard) covers system health (uptime, resource usage), but not business-value metrics. The economic argument is central to the research: "code is free, but attention is scarce" and "the primary cost center shifts from implementation to verification and infrastructure." This phase builds the measurement infrastructure to validate these claims for the Hermes orchestrator: (1) track PR creation rate, merge rate, time-to-merge, and cycle time, (2) compute cost-per-PR using data from phase 32 (cost tracker), (3) measure quality trends (PR revert rate, post-merge bug rate), (4) generate weekly/monthly ROI reports comparing agent-assisted vs manual development, (5) surface actionable insights (e.g., "role X produces 40% faster merges than role Y"). This transforms the orchestrator from a technical tool into a business dashboard that justifies continued investment in harness engineering.
+
+### Deliverables
+
+- [ ] **PR velocity data collector** -- Collect and aggregate PR lifecycle metrics from GitHub
+  - [ ] `p59.d1.t1` Create velocity_metrics.py data collector
+    > Create velocity_metrics.py: (1) collect command using gh CLI to fetch PRs with timestamps (created_at, merged_at, closed_at, review_submitted_at), (2) track PR lifecycle stages: created -> first_review -> approved -> merged (or closed without merge), (3) compute per-PR metrics: time_to_first_review, time_to_merge, cycle_time, files_changed, lines_added, lines_removed, (4) detect reverts: PRs whose description or commits reference a previous PR number, (5) store metrics as JSONL in ~/.orchestrator/metrics/velocity/{repo}.jsonl, (6) support incremental collection (only fetch new PRs since last collection), (7) tag PRs with metadata: agent_role (from phase 6), pipeline (from phase 5), issue_labels.
+    _Files: ~/zion/projects/agent-orchestration/velocity_metrics.py_
+  - [ ] PR creation, review, merge, and revert events are tracked
+    _Validation: python3 velocity_metrics.py collect --repo OWNER/REPO --days 30_
+  - [ ] Data is stored in a queryable format for trend analysis
+    _Validation: query historical data across date ranges_
+- [ ] **Cost-per-PR computation** -- Combine PR metrics with cost tracking data to compute economic efficiency
+  - [ ] `p59.d2.t1` Add cost-per-PR computation to velocity_metrics.py (depends: p59.d1.t1, p32.d1.t1)
+    > Add roi command: (1) correlate PR metrics with execution_log cost data from phase 8/32, (2) compute cost_per_pr = total_tokens_cost / merged_pr_count, (3) compute cost_per_line = total_tokens_cost / lines_merged, (4) compute cost_efficiency_trend: rolling 7-day and 30-day averages, (5) compare agent-assisted PRs vs manually-created PRs (detect via commit messages or labels), (6) estimate human-hours-saved: time_to_merge_agent vs historical manual average, (7) output as table with trend arrows. This is the "token billionaire strategy" made measurable.
+    _Files: ~/zion/projects/agent-orchestration/velocity_metrics.py_
+  - [ ] Cost-per-PR is computed and tracked over time
+    _Validation: python3 velocity_metrics.py roi --repo OWNER/REPO --days 30_
+- [ ] **Quality trend analysis** -- Track code quality metrics over time to detect improvements or regressions
+  - [ ] `p59.d3.t1` Add quality trend analysis to velocity_metrics.py (depends: p59.d1.t1)
+    > Add quality command: (1) compute revert_rate = reverted_prs / total_merged_prs per week, (2) compute post_merge_failure_rate using CI results from PR merge commits, (3) track review_sensor scores from phase 9 as quality proxy, (4) compute test_coverage_delta: change in test coverage per PR batch, (5) detect quality regressions: alert when revert_rate or failure_rate increases by >20% week-over-week, (6) correlate quality with agent role and pipeline to identify which configurations produce the best quality. Store results in ~/.orchestrator/metrics/quality/.
+    _Files: ~/zion/projects/agent-orchestration/velocity_metrics.py_
+  - [ ] PR revert rate and post-merge failure rate are tracked
+    _Validation: python3 velocity_metrics.py quality --repo OWNER/REPO --days 30_
+- [ ] **ROI report generator** -- Generate weekly/monthly reports summarizing orchestrator business impact
+  - [ ] `p59.d4.t1` Add report generator to velocity_metrics.py (depends: p59.d2.t1, p59.d3.t1)
+    > Add report command: (1) aggregate velocity, cost, and quality data for the report period, (2) compute key KPIs: PRs_landed, avg_time_to_merge, cost_per_pr, revert_rate, total_tokens_spent, (3) compute trend comparison: this_period vs previous_period (with % change), (4) identify highlights: "fastest merge", "most expensive PR", "role with highest quality", (5) generate actionable recommendations: "switch role X to role Y for task type Z based on quality data", (6) output as markdown report saved to ~/.orchestrator/metrics/reports/{date}.md, (7) support --format json for programmatic consumption. This is the report that justifies the orchestrator investment.
+    _Files: ~/zion/projects/agent-orchestration/velocity_metrics.py_
+  - [ ] Can generate a structured report with key metrics and trends
+    _Validation: python3 velocity_metrics.py report --period weekly_
+
+### Technical Notes
+
+This is the "prove the ROI" phase. The research claims 500% PR increase -- this phase builds the infrastructure to measure that claim for Hermes. The key design decision: metrics are collected passively (no extra agent calls), only from gh CLI and existing execution logs. The report format should be shareable -- this is what gets shown to stakeholders to justify the orchestrator. Cost-per-PR is the single most important metric: it directly answers "is this worth it?"
+
+### Risks
+
+- gh CLI rate limits on large repos -- use incremental collection and caching
+- Cost attribution is imprecise (execution logs may not map 1:1 to PRs) -- use best-effort correlation
+- Historical manual-baseline data may not exist -- start measuring from day 1 and compare against itself over time
+- Quality metrics (revert rate) are lagging indicators -- complement with leading indicators from review sensor
+
+## [ ] phase-60: Human-Agent Workflow Optimization (PLANNED)
+
+**Goal:** Build tooling that optimizes the human side of the orchestrator workflow -- streamlined ticket filing, PR review queues, triage automation, and the human's "command center" experience
+
+The research describes a fundamental role transformation: "engineers shift their role from supervising execution to filing speculative tickets and reviewing completed work at the end of the pipeline." Phase 49 captures human feedback, but no phase builds the tooling to make this new workflow efficient. The human's experience is the bottleneck the research identifies: "the human-as-a-bottleneck problem, where a developer could only effectively manage a limited number of concurrent AI interactions." This phase builds: (1) smart ticket templates that auto-populate from codebase context (the "speculative ticket" pattern), (2) a PR review queue that prioritizes and summarizes agent-created PRs for efficient human review, (3) triage automation that classifies incoming issues and suggests agent-readiness, (4) a lightweight "command center" CLI that gives humans a single interface for all orchestrator interactions (file tickets, review PRs, check status, adjust config). This is the "from coder to architect" transformation made practical.
+
+### Deliverables
+
+- [ ] **Smart ticket filing with codebase context** -- Auto-populate ticket templates with relevant codebase context for efficient issue creation
+  - [ ] `p60.d1.t1` Create human_workflow.py with smart ticket filing
+    > Create human_workflow.py: (1) ticket command that creates GitHub Issues via gh CLI, (2) auto-detect relevant files from issue title using grep/search, (3) auto-detect affected tests from file paths, (4) suggest appropriate labels based on issue content (bug, feature, refactor, agent-ready), (5) suggest appropriate agent role based on issue type, (6) include a "complexity estimate" based on affected files and test coverage, (7) output the issue body in markdown for review before creation, (8) support --dry-run to preview without creating. The goal: a human should be able to file a well-structured, agent-ready ticket in under 60 seconds.
+    _Files: ~/zion/projects/agent-orchestration/human_workflow.py_
+  - [ ] Can create a ticket with auto-detected codebase context
+    _Validation: python3 human_workflow.py ticket --title "Add logging" --repo OWNER/REPO_
+- [ ] **PR review queue and summarizer** -- Prioritized queue of agent-created PRs with AI-generated summaries for efficient human review
+  - [ ] `p60.d2.t1` Add PR review queue to human_workflow.py (depends: p60.d1.t1)
+    > Add review-queue command: (1) fetch open PRs via gh CLI, (2) filter to agent-created PRs (by author or label), (3) generate a one-line summary of each PR (title + files changed + test status), (4) sort by priority: blocking PRs first (other PRs depend on them), then by age (oldest first), then by review_score (lowest score = needs most attention), (5) show review sensor scores from phase 9, (6) batch mode: show 5 PRs at a time for review marathon sessions, (7) approve/merge shortcuts via gh CLI, (8) track human review time to feed back into velocity metrics (phase 59).
+    _Files: ~/zion/projects/agent-orchestration/human_workflow.py_
+  - [ ] Can list pending agent-created PRs sorted by priority
+    _Validation: python3 human_workflow.py review-queue --repo OWNER/REPO_
+- [ ] **Issue triage automation** -- Classify incoming issues and suggest agent-readiness with confidence scores
+  - [ ] `p60.d3.t1` Add issue triage to human_workflow.py (depends: p60.d1.t1)
+    > Add triage command: (1) fetch open untriaged issues via gh CLI, (2) classify each issue: bug/feature/refactor/docs/test, using keyword heuristics from title and body, (3) estimate complexity: small (1-2 files), medium (3-5 files, existing tests), large (6+ files or new modules), (4) assess agent-readiness: ready (clear requirements, existing tests), needs-refinement (ambiguous scope), not-suitable (requires human judgment, security implications), (5) auto-label issues: agent-ready, needs-human, blocked, (6) estimate effort in agent turns based on complexity, (7) output as a triage table with recommendations. This automates the "filing speculative tickets" workflow from the research.
+    _Files: ~/zion/projects/agent-orchestration/human_workflow.py_
+  - [ ] Can classify issues and suggest agent-readiness
+    _Validation: python3 human_workflow.py triage --repo OWNER/REPO_
+- [ ] **Command center CLI** -- Single unified CLI for all human-orchestrator interactions
+  - [ ] `p60.d4.t1` Add unified command center to human_workflow.py (depends: p60.d1.t1, p60.d2.t1, p60.d3.t1)
+    > Add status command and unified entry point: (1) status -- show: open issues by status (triage/ready/in-progress/review), PRs in review queue, active workers, recent completions (last 24h), (2) config -- quick access to orchestrator config (max_concurrent, active repos, polling interval), (3) history -- recent human actions (tickets filed, PRs reviewed, config changes), (4) alias support: common workflows as shortcuts (e.g., "morning-review" = triage + review-queue + status), (5) --watch mode for status that auto-refreshes. This is the human's "command center" -- the single interface they need to interact with the orchestrator.
+    _Files: ~/zion/projects/agent-orchestration/human_workflow.py_
+  - [ ] Can perform all common human workflows from a single CLI
+    _Validation: python3 human_workflow.py status && python3 human_workflow.py ticket --help && python3 human_workflow.py review-queue --help_
+
+### Technical Notes
+
+The key insight from the research: the human bottleneck is the real constraint, not the agents. The orchestrator can run 24/7, but humans can only review so many PRs per day. This phase maximizes the human's throughput: better ticket templates reduce filing time, better review queues reduce triage time, better summaries reduce per-PR review time. The triage classifier is deliberately heuristic (keyword-based), not LLM-based, to keep it fast and deterministic.
+
+### Risks
+
+- Auto-classification may mislabel issues -- always require human confirmation before labeling
+- Review summaries may miss important context -- show full PR details on demand, don''t rely solely on summaries
+- Command center CLI could become bloated -- keep it focused on the top 5 human workflows
+- gh CLI rate limits on large repos -- cache results and use conditional requests
+
+## [ ] phase-61: Agent Quality Regression Testing (PLANNED)
+
+**Goal:** Create a benchmarking framework that measures agent output quality on canonical tasks over time, catching regressions as models or configurations change
+
+The research emphasizes that quality comes from the harness: "the team focused on building the harness: the skills, documentation, and automated review agents that together defined what 'good' code looked like." Phase 7 tests the orchestrator's own code, but no phase systematically measures the quality of agent output. This is critical because: (1) model updates can silently degrade agent performance, (2) configuration changes (new roles, pipelines, policies) can have unintended quality impacts, (3) without baseline measurements, you can't prove the orchestrator is improving. This phase creates: (1) a benchmark suite of canonical tasks with known-good outputs, (2) automated benchmark runner that executes tasks through the full pipeline and scores results, (3) quality metrics: correctness (tests pass), style compliance (linters pass), review score (from phase 9 sensor), efficiency (tokens used, turns taken), (4) regression detection: alert when benchmark scores drop below thresholds, (5) trend tracking: visualize quality over time across model versions and config changes. This is the "agent CI" -- continuous integration for agent quality.
+
+### Deliverables
+
+- [ ] **Benchmark task suite** -- Curated set of canonical tasks with known-good reference implementations
+  - [ ] `p61.d1.t1` Create benchmark task definitions
+    > Create benchmarks/ directory with task definitions in YAML: (1) each task has: id, title, description, difficulty (small/medium/large), category (bug-fix, feature, refactor, test, docs), (2) setup: files to create, code state before task, (3) acceptance: tests that must pass, linters that must pass, files that must exist, (4) reference_solution: a known-good implementation for comparison, (5) scoring_weights: correctness, style, efficiency weights for composite score. Start with 10 tasks across all categories.
+    _Files: ~/zion/projects/agent-orchestration/benchmarks/, ~/zion/projects/agent-orchestration/quality_bench.py_
+  - [ ] At least 10 benchmark tasks covering different complexity levels
+    _Validation: python3 quality_bench.py list -- show task catalog_
+  - [ ] Each task has a reference solution and scoring criteria
+    _Validation: inspect task definition YAML files_
+- [ ] **Benchmark runner** -- Execute benchmark tasks through the full agent pipeline and score results
+  - [ ] `p61.d2.t1` Create benchmark runner in quality_bench.py (depends: p61.d1.t1)
+    > Create quality_bench.py run command: (1) load task definition from YAML, (2) create isolated workspace with task setup files, (3) execute task through the DAG pipeline from phase 5 (plan -> implement -> test -> review), (4) score results: correctness (all acceptance tests pass = 100%, partial pass = proportional), style (linters pass = bonus points), review_score (from phase 9 sensor if available), efficiency (fewer tokens/turns = bonus), (5) capture full execution for forensic analysis (phase 58), (6) output structured results as JSON, (7) support --save to store results in ~/.orchestrator/benchmarks/results/{task_id}/{timestamp}.json, (8) support --baseline to compare against a previous run.
+    _Files: ~/zion/projects/agent-orchestration/quality_bench.py_
+  - [ ] Can run a benchmark task end-to-end and produce a score
+    _Validation: python3 quality_bench.py run --task bug-fix-001_
+- [ ] **Regression detection** -- Detect quality regressions by comparing benchmark results over time
+  - [ ] `p61.d3.t1` Add regression detection to quality_bench.py (depends: p61.d2.t1)
+    > Add regress command: (1) load historical benchmark results, (2) compare latest run against baseline (previous run or N-run average), (3) regression criteria: score dropped by >10% (configurable per task), new test failures, linter failures, (4) output regression report: which tasks regressed, by how much, possible causes (config changes, model version), (5) support --threshold to set custom regression sensitivity, (6) exit code 1 on regression (CI-friendly), (7) suggest investigation actions: "review phase 58 forensic analysis for regressed task".
+    _Files: ~/zion/projects/agent-orchestration/quality_bench.py_
+  - [ ] Alerts when benchmark scores drop below configurable thresholds
+    _Validation: deliberately degrade a benchmark, run regression check, verify alert_
+- [ ] **Quality trend visualization** -- Track and visualize agent quality trends over time across configurations
+  - [ ] `p61.d4.t1` Add trend tracking to quality_bench.py (depends: p61.d3.t1)
+    > Add trends command: (1) aggregate benchmark results by day/week, (2) compute quality trend: overall score trajectory, per-category scores, per-role scores, (3) detect statistically significant changes (moving average crossover), (4) correlate quality with: model version, config changes (from git log), token budget (from phase 32), (5) output as markdown table with trend arrows, (6) identify "best configuration" per task type based on historical data, (7) feed insights into self-improvement loop (phase 19) and A/B testing (phase 29). This answers: "is our harness getting better or worse over time?"
+    _Files: ~/zion/projects/agent-orchestration/quality_bench.py_
+  - [ ] Can generate a trend report showing quality over time
+    _Validation: python3 quality_bench.py trends --days 30_
+
+### Technical Notes
+
+Benchmarks must be deterministic: same task definition should produce comparable results across runs. The key challenge is task design: tasks must be self-contained (no external dependencies), have clear acceptance criteria, and cover a representative range of real-world work. Start with 10 tasks, grow to 30+. Benchmark results are the "source of truth" for agent quality -- they should be version-controlled alongside the orchestrator config.
+
+### Risks
+
+- Benchmark tasks may not represent real-world complexity -- include diverse task types and定期 update
+- Agent performance varies between runs (non-deterministic) -- use median of 3 runs for stability
+- Benchmark execution is expensive (uses real tokens) -- run weekly, not on every commit
+- Task setup/teardown may leave residual state -- use isolated workspaces with cleanup
+
+## [ ] phase-62: Prompt Engineering as Infrastructure (PLANNED)
+
+**Goal:** Treat agent prompts as version-controlled, testable, and iterable code artifacts -- the "Guides" layer of the outer harness made into infrastructure
+
+The research repeatedly emphasizes that the outer harness -- specifically "guides" like agent.md files and playbooks -- is where enterprise value is created: "the majority of enterprise-specific value is created, as it encodes the specific quality gates and compliance standards of the organization." Phase 3 upgraded AI_GUIDE.md templates and phase 36 adds dynamic policy loading, but prompts themselves are not treated as first-class code artifacts. Currently, prompts are embedded in role YAMLs, pipeline configs, and Python code with no versioning, testing, or iteration infrastructure. This phase builds: (1) a prompt library that stores prompt templates as versioned YAML files, (2) prompt diff and rollback tools, (3) a prompt testing framework (input/output pairs with expected behavior), (4) automated prompt quality scoring (conciseness, clarity, instruction-following), (5) integration with the DAG executor so prompts are loaded from the library rather than embedded in code. This makes the "guides" layer as rigorously maintained as the code itself.
+
+### Deliverables
+
+- [ ] **Prompt template library** -- Version-controlled prompt templates stored as structured YAML files
+  - [ ] `p62.d1.t1` Create prompt library in prompts/ directory
+    > Create prompts/ directory and prompt_lib.py: (1) each prompt template is a YAML file: id, name, description, version, category (planning, implementation, review, testing, triage), variables (with types and defaults), template (the actual prompt text with {{variable}} placeholders), metadata (created_by, last_modified, usage_count), (2) prompt_lib.py init -- scaffold a new prompt template, (3) prompt_lib.py list -- list all templates with metadata, (4) prompt_lib.py show ID -- display a template with variable descriptions, (5) prompt_lib.py render ID --var=value -- render a template with specific variable values, (6) prompt_lib.py history ID -- show git log of changes to this prompt. Prompts are plain YAML files tracked in git -- no database needed.
+    _Files: ~/zion/projects/agent-orchestration/prompts/, ~/zion/projects/agent-orchestration/prompt_lib.py_
+  - [ ] Prompt templates can be stored, listed, and loaded
+    _Validation: python3 prompt_lib.py list && python3 prompt_lib.py show implement_
+- [ ] **Prompt testing framework** -- Test prompt templates against input/output test cases to verify behavior
+  - [ ] `p62.d2.t1` Add prompt testing to prompt_lib.py (depends: p62.d1.t1)
+    > Add test command: (1) test cases defined alongside prompts in prompts/{id}_tests.yaml: input variables, expected_output_patterns (regex), forbidden_output_patterns (things the prompt should NOT produce), (2) test ID -- render prompt with test inputs, check output against expected/forbidden patterns, (3) test --all -- run all test suites, (4) test --watch -- re-run tests when prompt files change, (5) test --score -- rate prompt quality: instruction clarity (does output follow all instructions), conciseness (is output appropriately concise), consistency (do multiple runs with same input produce similar output), (6) output test results as TAP format for CI integration. This is "unit testing for prompts."
+    _Files: ~/zion/projects/agent-orchestration/prompt_lib.py_
+  - [ ] Can define test cases and run them against a prompt template
+    _Validation: python3 prompt_lib.py test implement_
+- [ ] **Prompt diff and rollback** -- Compare prompt versions and rollback to previous versions
+  - [ ] `p62.d3.t1` Add diff and rollback to prompt_lib.py (depends: p62.d1.t1)
+    > Add diff and rollback commands: (1) diff ID --compare VERSION -- show word-level diff between two versions of a prompt, (2) diff ID --last -- compare against the previous version, (3) diff ID --baseline -- compare against the original version, (4) highlight meaningful changes: added/removed instructions, changed variable defaults, modified constraints, (5) rollback ID --version VERSION -- restore a specific version from git history, (6) rollback ID --last -- undo the most recent change, (7) support --dry-run for rollback (preview without changing). Since prompts are YAML files in git, all versioning uses git under the hood.
+    _Files: ~/zion/projects/agent-orchestration/prompt_lib.py_
+  - [ ] Can diff two versions of a prompt and rollback
+    _Validation: modify a prompt, run diff, run rollback, verify restored_
+- [ ] **Prompt executor integration** -- Wire the prompt library into the DAG executor and role system
+  - [ ] `p62.d4.t1` Integrate prompt library with executor and roles (depends: p62.d1.t1)
+    > Modify executor.py and roles.py: (1) AI nodes in pipeline YAML can reference prompts by ID: prompt_ref: "implement" instead of embedding prompt text, (2) role YAMLs can reference prompt templates for their system prompt, (3) executor resolves prompt_ref by loading from prompt library, substituting variables from pipeline context, (4) fallback: if prompt_ref not found, use inline prompt (backward compatible), (5) log which prompt version was used for each execution (for audit trail in phase 52), (6) support prompt overrides per-repo (repo-local prompts/ directory takes precedence over global). This makes prompts centrally managed and version-controlled.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/roles.py_
+  - [ ] DAG executor loads prompts from the prompt library instead of embedded strings
+    _Validation: configure a pipeline to use a prompt from the library, execute it_
+
+### Technical Notes
+
+The research insight: "The outer harness is characterized by guides -- feedforward controls that shape behavior before the agent acts." Currently these guides are scattered across YAML files, Python code, and markdown. Centralizing them in a version-controlled library makes them maintainable, testable, and auditable. The key design decision: prompts are YAML files in git, not a database. This keeps them simple, diffable, and branchable. The testing framework is deliberately lightweight: regex pattern matching, not LLM-based evaluation.
+
+### Risks
+
+- Prompt template abstraction may add complexity without clear benefit for small teams -- keep the CLI simple
+- Test cases for prompts are inherently subjective -- use pattern matching, not exact matching
+- Prompt versioning depends on git discipline -- enforce commit messages on prompt changes
+- Centralized prompt library could conflict with per-repo customization -- support both global and local prompts
+
+## [ ] phase-63: Orchestrator REST API and Platform Layer (PLANNED)
+
+**Goal:** Expose the orchestrator's capabilities as a REST API for integration with external tools, IDEs, and dashboards
+
+The research describes Symphony as "an open specification that allows any organization to transform their project board into a command center for the next generation of autonomous digital labor." Currently the Hermes orchestrator is Hermes-internal: all interaction is through CLI scripts and cron jobs. This limits integration with external tools (IDE plugins, CI/CD systems, team dashboards, other orchestration frameworks). This phase builds: (1) a lightweight REST API server using Python's built-in http.server (no Flask/FastAPI dependency), (2) endpoints for core operations: submit work, check status, list workers, get metrics, manage config, (3) webhook receiver for GitHub events (PR merged, issue labeled) that triggers orchestrator actions, (4) API key authentication and rate limiting, (5) OpenAPI spec for discoverability. This transforms the orchestrator from a Hermes-internal tool into a platform that any tool can integrate with.
+
+### Deliverables
+
+- [ ] **REST API server** -- Lightweight HTTP server exposing orchestrator capabilities
+  - [ ] `p63.d1.t1` Create api_server.py REST API server
+    > Create api_server.py using Python's http.server: (1) GET /health -- health check, (2) GET /api/v1/status -- orchestrator status (active workers, queue depth, recent completions), (3) GET /api/v1/workers -- list active workers with details, (4) GET /api/v1/workers/{id} -- specific worker status, (5) POST /api/v1/work -- submit work item (title, description, repo, labels), (6) GET /api/v1/work/{id} -- work item status, (7) GET /api/v1/metrics -- recent metrics (PR velocity, costs, quality scores from phases 59/32/9), (8) GET /api/v1/config -- current config (read-only), (9) all responses as JSON, (10) proper HTTP status codes, (11) CORS headers for browser-based dashboards, (12) structured error responses. No external dependencies -- pure Python stdlib.
+    _Files: ~/zion/projects/agent-orchestration/api_server.py_
+  - [ ] API server starts and responds to health check
+    _Validation: python3 api_server.py start && curl localhost:8080/health_
+- [ ] **Webhook receiver** -- Receive GitHub webhooks and trigger orchestrator actions
+  - [ ] `p63.d2.t1` Add webhook receiver to api_server.py (depends: p63.d1.t1)
+    > Add webhook endpoints: (1) POST /api/v1/webhooks/github -- receive GitHub webhook events, (2) validate webhook signature (X-Hub-Signature-256), (3) handle events: issues (labeled, opened, closed), pull_request (opened, closed, merged), (4) on issue labeled "agent-ready": add to orchestrator queue, (5) on PR merged: record completion, update metrics, trigger cleanup, (6) on PR closed without merge: record failure, trigger forensic analysis (phase 58), (7) support configurable event-to-action mapping in orchestrator.yaml, (8) webhook secret stored in config. This is the event-driven complement to polling (phase 4).
+    _Files: ~/zion/projects/agent-orchestration/api_server.py_
+  - [ ] Can receive a webhook and trigger an orchestrator action
+    _Validation: send test webhook payload, verify action triggered_
+- [ ] **Authentication and rate limiting** -- API key authentication and request rate limiting
+  - [ ] `p63.d3.t1` Add auth and rate limiting to api_server.py (depends: p63.d1.t1)
+    > Add security: (1) API key authentication: X-API-Key header, keys stored in ~/.orchestrator/api_keys.yaml, (2) key metadata: name, created, permissions (read/write/admin), rate_limit, (3) rate limiting: per-key requests per minute, configurable per key, (4) admin endpoints (POST/DELETE config, manage keys) require admin permission, (5) audit log: all API requests logged with timestamp, key, endpoint, status, (6) support API key rotation: generate new key, revoke old key with grace period. No OAuth -- API keys are sufficient for internal use.
+    _Files: ~/zion/projects/agent-orchestration/api_server.py_
+  - [ ] Unauthenticated requests are rejected
+    _Validation: curl without API key returns 401_
+- [ ] **OpenAPI spec and CLI client** -- Generate OpenAPI specification and a CLI client for the API
+  - [ ] `p63.d4.t1` Create OpenAPI spec and api_client.py (depends: p63.d1.t1)
+    > Create: (1) openapi.yaml -- OpenAPI 3.0 spec describing all endpoints, request/response schemas, authentication, (2) api_client.py -- CLI client that wraps the REST API: api_client.py status, api_client.py submit --title X --repo Y, api_client.py workers, api_client.py metrics, (3) api_client.py uses urllib (no requests dependency), (4) api_client.py supports --server and --api-key flags, (5) api_client.py --json for machine-readable output, (6) api_client.py watch -- follow status changes in real-time. The API client makes the orchestrator accessible from any environment, not just the Hermes host.
+    _Files: ~/zion/projects/agent-orchestration/openapi.yaml, ~/zion/projects/agent-orchestration/api_client.py_
+  - [ ] OpenAPI spec is generated and a CLI client can interact with the API
+    _Validation: python3 api_client.py status --api-key KEY --server localhost:8080_
+
+### Technical Notes
+
+Deliberately lightweight: Python stdlib http.server, no Flask/FastAPI/requests. The API server is single-threaded (sufficient for internal use) but supports threading via ThreadingHTTPServer. The webhook receiver is the most impactful feature: it eliminates polling latency by reacting to events in real-time. The API client is the "remote control" for the orchestrator -- it enables scriptable access from any machine.
+
+### Risks
+
+- API server exposes internal state -- authentication is critical, never run without API keys
+- Webhook receiver requires network exposure -- needs firewall rules and TLS in production
+- Single-threaded server may not handle concurrent requests well -- use ThreadingHTTPServer
+- No database -- all state is in-memory from existing modules -- restart loses transient state
+- API versioning (v1) must be maintained for backward compatibility as the API evolves
+
+## [ ] phase-64: Workspace Sandboxing and OS-Level Isolation (PLANNED)
+
+**Goal:** Add OS-level sandboxing to agent workspaces -- filesystem restrictions, network policies, and resource limits to prevent agents from causing unintended side effects
+
+The research describes Symphony's approach to workspace isolation: "strict safety invariants are enforced to ensure path normalization and sanitization, preventing agents from escaping their assigned boundaries." Phase 11 (Workspace Lifecycle) manages workspace creation/cleanup but provides only directory-level isolation. In the Dark Factory model (phase 35) where agents run fully autonomously with no human review, stronger isolation is essential. This phase builds: (1) filesystem sandboxing using Linux namespaces or chroot to restrict agent file access to their workspace, (2) network policy enforcement (allow/deny specific hosts/ports), (3) resource limits (CPU, memory, disk, wall-clock time) using cgroups or ulimit, (4) capability auditing -- log all system calls that agents attempt, flagging suspicious ones, (5) a "sandbox policy" YAML that defines per-role isolation levels (implementer gets full network, reviewer gets none). This makes the "high-trust environment" from the research actually trustworthy.
+
+### Deliverables
+
+- [ ] **Filesystem sandboxing module** -- Restrict agent file access to their workspace directory
+  - [ ] `p64.d1.t1` Create sandbox.py filesystem isolation module
+    > Create sandbox.py: (1) SandboxContext class that sets up filesystem isolation for a workspace, (2) support multiple isolation levels: none (current behavior), soft (warning on escape attempts), hard (block escape attempts), (3) soft mode: use a custom file opener that logs but allows access outside workspace, (4) hard mode: use chroot or mount namespace to restrict filesystem access to workspace directory, (5) allowlist for read-only access outside workspace (e.g., /usr/lib for Python packages, system PATH), (6) path sanitization: normalize all paths, reject symlinks that escape workspace, (7) integration with workspace_manager.py from phase 11 -- sandbox setup as part of workspace initialization, (8) detect and log escape attempts even in soft mode. Start with soft mode as default -- hard mode requires root.
+    _Files: ~/zion/projects/agent-orchestration/sandbox.py_
+  - [ ] Agent cannot access files outside their workspace
+    _Validation: run agent in sandbox, attempt to read /etc/passwd, verify blocked_
+- [ ] **Network policy enforcement** -- Control which network hosts and ports agents can access
+  - [ ] `p64.d2.t1` Add network policy to sandbox.py (depends: p64.d1.t1)
+    > Add network policy to SandboxContext: (1) network_policy in sandbox YAML: allowlist (hosts, ports, protocols), denylist, default_deny, (2) preset policies: open (no restrictions -- for implementer role), restricted (allow github.com, pypi.org, npmjs.org -- for dependency installation), locked (deny all -- for reviewer role), (3) enforcement via iptables rules (requires root) or LD_PRELOAD socket interceptor (user-space, no root needed), (4) DNS resolution filtering, (5) log all connection attempts (allowed and denied), (6) per-role default policies in roles/ directory. The LD_PRELOAD approach is preferred for zero-root deployment.
+    _Files: ~/zion/projects/agent-orchestration/sandbox.py_
+  - [ ] Agent network access is restricted per policy
+    _Validation: configure deny-all policy, run agent, verify network calls blocked_
+- [ ] **Resource limits and timeouts** -- Enforce CPU, memory, disk, and wall-clock time limits per workspace
+  - [ ] `p64.d3.t1` Add resource limits to sandbox.py (depends: p64.d1.t1)
+    > Add resource limits to SandboxContext: (1) resource_limits in sandbox YAML: max_cpu_percent, max_memory_mb, max_disk_mb, max_wall_time_seconds, max_processes, (2) enforcement via resource module (Python-level) and ulimit (system-level), (3) graceful shutdown: send SIGTERM, wait grace_period, then SIGKILL, (4) track resource usage during execution: peak memory, CPU time, disk usage, (5) report resource usage in execution logs (phase 8), (6) per-role default limits: implementer gets more resources, reviewer gets less, (7) detect resource exhaustion before it happens: warn at 80% of limit. Start with Python-level enforcement (resource module) which works without root.
+    _Files: ~/zion/projects/agent-orchestration/sandbox.py_
+  - [ ] Agent processes are killed when exceeding resource limits
+    _Validation: set memory limit to 100MB, run agent that allocates 500MB, verify killed_
+- [ ] **Capability auditing and policy configuration** -- Log all privileged operations and provide per-role sandbox policies
+  - [ ] `p64.d4.t1` Add auditing and policy config to sandbox.py (depends: p64.d2.t1, p64.d3.t1)
+    > Add auditing and configuration: (1) audit log: record all sandbox events (file access outside workspace, network connections, resource limit approaches, escape attempts), (2) audit log stored in ~/.orchestrator/audit/{session_id}.jsonl, (3) sandbox_policy.yaml: per-role policies defining isolation_level, network_policy, resource_limits, (4) integrate with executor.py: apply sandbox when creating worker process, (5) integrate with safety.py from phase 15: sandbox violations trigger safety policy actions, (6) report command: summarize sandbox events for a session (operations attempted, blocked, allowed), (7) strict mode: any sandbox violation immediately terminates the agent and flags the execution. This is the "strict safety invariants" from the research made enforceable.
+    _Files: ~/zion/projects/agent-orchestration/sandbox.py, ~/zion/projects/agent-orchestration/sandbox_policy.yaml_
+  - [ ] All filesystem/network/privilege operations are logged
+    _Validation: run agent, check audit log for all system operations_
+
+### Technical Notes
+
+Start with soft-mode filesystem restrictions and Python-level resource limits (no root required). Hard-mode isolation (chroot, namespaces, iptables) is available but optional -- it requires root and may not work in all environments. The LD_PRELOAD network interceptor is the key innovation: it provides network filtering without root, without containers, and without modifying agent code. The sandbox policy is per-role: implementers need network access (pip install), reviewers don't. This is defense-in-depth: even if an agent goes rogue, it can't escape its sandbox.
+
+### Risks
+
+- Hard-mode isolation requires root -- may not work in all deployment environments
+- LD_PRELOAD may not work with statically-linked binaries or some Python builds
+- Overly restrictive sandboxing could break legitimate agent operations (package installs, git operations)
+- Resource limits may kill agents mid-task, losing work -- implement checkpoint before limit
+- Chroot escape is possible for root processes -- never run agents as root inside sandbox
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -3194,6 +3500,16 @@ Session replay is the "black box flight recorder" for agents. The key design dec
 - No centralized skill registry (phase 57) means discovery depends on documentation
 - Session recordings (phase 58) could expose secrets in agent context -- redaction essential
 - Forensic analysis (phase 58) heuristics may produce false positives -- treat as suggestions
+- Velocity metrics (phase 59) depend on GitHub API availability and rate limits
+- Cost-per-PR attribution (phase 59) is imprecise -- execution logs may not map 1:1 to PRs
+- Human workflow auto-classification (phase 60) may mislabel issues -- require human confirmation
+- Benchmark tasks (phase 61) may not represent real-world complexity -- include diverse task types
+- Benchmark execution (phase 61) uses real tokens -- run weekly not per-commit to control costs
+- Prompt library centralization (phase 62) could conflict with per-repo customization -- support overrides
+- REST API (phase 63) exposes internal orchestrator state -- authentication is critical
+- Webhook receiver (phase 63) requires network exposure -- needs firewall rules and TLS
+- LD_PRELOAD sandboxing (phase 64) may not work with statically-linked binaries
+- Overly restrictive sandboxing (phase 64) could break legitimate agent operations (pip, git)
 
 ## Conventions
 
