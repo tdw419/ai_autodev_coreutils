@@ -7506,12 +7506,490 @@ conventions:
   - No consensus protocol -- federation is eventually consistent, not strongly consistent
   scope_lines_total: 420
   test_target: 12
+- id: phase-52
+  title: Agent Output Provenance Tracking
+  status: planned
+  goal: Track which agent, role, session, and pipeline produced each line of code for full auditability and attribution
+  description: 'The research describes the Dark Factory experiment where "every line of the million-line
+    codebase was authored by Codex agents." This level of provenance is essential for auditing, debugging,
+    and understanding agent contributions over time. The current orchestrator records pipeline-level results
+    in execution logs (phase 8) but has no code-level provenance. This phase adds git-based provenance:
+    each agent commit is tagged with metadata (agent role, pipeline name, run ID, issue number), a provenance
+    CLI can query which agent modified any given file or line range, and a summary report shows per-agent
+    contribution stats. This enables the "who wrote what" question that is critical for the Dark Factory
+    model and for understanding agent productivity patterns. The research emphasizes that "when agents failed,
+    the team analyzed the environment" -- provenance data makes this analysis possible at the code level.'
+  deliverables:
+  - name: Provenance metadata in git commits
+    description: Tag each agent commit with structured metadata (role, pipeline, run ID, issue)
+    status: planned
+    acceptance_criteria:
+    - description: Agent commits include structured metadata in commit message footer
+      validation: inspect git log for agent commits, check metadata format
+      met: false
+    - description: Metadata is machine-parseable (structured footer format)
+      validation: python3 provenance.py parse <commit-hash>
+      met: false
+    tasks:
+    - id: p52.d1.t1
+      title: Add provenance metadata to spawner.py commits
+      status: planned
+      description: 'Modify spawner.py (or the PR creator from phase 13) to include a structured
+        provenance footer in every agent commit: "Agent-Role: implementer", "Pipeline: standard-pipeline",
+        "Run-ID: <uuid>", "Issue: #42", "Session: <timestamp>". Use git trailer format (--trailer)
+        for clean separation from commit body. Also store the mapping in a local provenance DB (JSON
+        file at ~/.orchestrator/provenance/) for fast queries.'
+      files:
+      - ~/zion/projects/agent-orchestration/spawner.py
+      - ~/zion/projects/agent-orchestration/pr_automation.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/spawner.py
+    - ~/zion/projects/agent-orchestration/pr_automation.py
+  - name: Provenance query CLI
+    description: CLI tool to query which agent modified any file or line range
+    status: planned
+    acceptance_criteria:
+    - description: Can query provenance for a specific file or line range
+      validation: python3 provenance.py blame --file foo.py --lines 10-20
+      met: false
+    - description: Can show contribution summary per agent/role
+      validation: python3 provenance.py summary --repo owner/repo
+      met: false
+    tasks:
+    - id: p52.d2.t1
+      title: Create provenance.py CLI
+      status: planned
+      description: 'Create provenance.py with subcommands: (1) blame --file <path> [--lines N-M] --
+        shows which agent commits touched the given file/lines, parsed from git trailers, (2) summary
+        [--role] [--since DATE] -- shows lines added/modified per agent role, (3) history --issue N
+        -- shows all commits made for a specific issue, (4) export --format json -- exports full provenance
+        data. Uses git log --format="" --grep to find agent commits, parses trailers with git interpret-trailers.'
+      files:
+      - ~/zion/projects/agent-orchestration/provenance.py
+      dependencies:
+      - p52.d1.t1
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/provenance.py
+  - name: Provenance in execution history
+    description: Link execution log entries to git commits for end-to-end traceability
+    status: planned
+    acceptance_criteria:
+    - description: Execution log entries reference the git commits they produced
+      validation: check execution log JSON for commit hash field
+      met: false
+    tasks:
+    - id: p52.d3.t1
+      title: Link execution logs to git commits
+      status: planned
+      description: 'Modify execution_log.py to include a "commits" field in the run record. After
+        a pipeline completes, use git log to find commits in the workspace and record their hashes
+        in the execution log. Update orch_history.py show command to display associated commits.'
+      files:
+      - ~/zion/projects/agent-orchestration/execution_log.py
+      - ~/zion/projects/agent-orchestration/orch_history.py
+      dependencies:
+      - p52.d1.t1
+    scope_lines: 60
+    scope_files:
+    - ~/zion/projects/agent-orchestration/execution_log.py
+    - ~/zion/projects/agent-orchestration/orch_history.py
+  - name: Contribution analytics
+    description: Generate analytics on agent productivity patterns from provenance data
+    status: planned
+    acceptance_criteria:
+    - description: Can generate per-role, per-pipeline, and per-issue productivity reports
+      validation: python3 provenance.py analytics --last 30d
+      met: false
+    tasks:
+    - id: p52.d4.t1
+      title: Add analytics subcommand to provenance.py
+      status: planned
+      description: 'Add analytics subcommand that aggregates provenance data: (1) lines per role
+        (implementer vs reviewer vs tester), (2) avg lines per session, (3) pipeline success rate
+        by role, (4) time-to-merge by role, (5) files most frequently modified by agents. Output as
+        terminal table. This data feeds into the self-improvement loop (phase 19) and A/B testing
+        analytics (phase 29) to identify which roles and pipelines are most productive.'
+      files:
+      - ~/zion/projects/agent-orchestration/provenance.py
+      dependencies:
+      - p52.d2.t1
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/provenance.py
+  dependencies:
+  - source: phase-8
+    target: phase-52
+    type: soft
+    reason: Provenance data is stored alongside execution logs from phase 8
+  - source: phase-13
+    target: phase-52
+    type: soft
+    reason: PR automation from phase 13 is where git commits are created
+  - source: phase-6
+    target: phase-52
+    type: soft
+    reason: Role specialization from phase 6 provides the agent roles that provenance tracks
+  - source: phase-19
+    target: phase-52
+    type: soft
+    reason: Self-improvement analysis from phase 19 benefits from provenance data
+  - source: phase-29
+    target: phase-52
+    type: soft
+    reason: A/B testing analytics from phase 29 can use provenance for attribution
+  technical_notes: 'Git trailers are the cleanest way to embed agent metadata in commits -- they
+    are structured, parseable, and don''t interfere with commit body content. The provenance CLI
+    uses git log filtering (not a custom database) for queries, keeping it simple and git-native.
+    For the local provenance index (fast queries), use a simple JSON file updated after each pipeline
+    run.'
+  risks:
+  - Provenance metadata could bloat commit messages -- keep it concise (trailer format)
+  - Git blame with agent metadata may be confusing for human developers -- provide a human-readable summary mode
+  - Provenance data may be sensitive (agent identity, pipeline performance) -- consider access controls
+  scope_lines_total: 390
+  test_target: 8
+- id: phase-53
+  title: Dynamic Workforce Autoscaling
+  status: planned
+  goal: Automatically scale the worker pool up and down based on queue depth and system resources
+  description: 'The research describes Symphony''s max_concurrent config and Gas Town managing 20-30
+    Claude Code instances. The current orchestrator has a static max_concurrent limit (phase 4) and
+    priority queuing (phase 41), but the pool size never changes based on demand. This is analogous
+    to running Kubernetes with a fixed replica count. This phase adds autoscaling: monitor queue depth
+    and system resources (CPU, memory, token budget), dynamically adjust max_concurrent up/down within
+    configured bounds, and implement cooldown periods to prevent thrashing. The scaling decisions
+    are logged for analysis and feed into the cost optimization (phase 48) and health monitoring
+    (phase 14) systems. This enables the "elastic workforce" pattern where the orchestrator naturally
+    handles burst workloads (many issues filed at once) without manual config changes, and conserves
+    resources during quiet periods.'
+  deliverables:
+  - name: Workforce autoscaler module
+    description: Python module that monitors queue depth and resources, adjusts max_concurrent accordingly
+    status: planned
+    acceptance_criteria:
+    - description: Autoscaler increases workers when queue depth exceeds threshold
+      validation: simulate queue backlog, verify worker count increases
+      met: false
+    - description: Autoscaler decreases workers when queue is empty and resources are idle
+      validation: simulate empty queue, verify worker count decreases
+      met: false
+    - description: Scaling respects configured min/max bounds
+      validation: set min=1 max=5, verify autoscaler stays within bounds
+      met: false
+    tasks:
+    - id: p53.d1.t1
+      title: Create autoscaler.py module
+      status: planned
+      description: 'Create autoscaler.py that: (1) takes current queue depth (from poller), active
+        worker count, and system metrics (CPU%, memory%, token budget remaining from phase 32), (2)
+        applies scaling rules: scale_up when queue_depth > (active_workers * scale_up_threshold) and
+        resources available, scale_down when queue_depth == 0 and idle_time > cooldown_period, (3)
+        respects bounds: min_workers (default 1), max_workers (default 10), scale_step (default 1),
+        cooldown_seconds (default 300), (4) returns new_target_workers count, (5) logs every scaling
+        decision with reason, (6) supports --dry-run mode for simulation. Scaling formula: target
+        = min(max(queue_depth * aggressiveness, min_workers), max_workers) where aggressiveness is
+        configurable (default 0.5 = conservative).'
+      files:
+      - ~/zion/projects/agent-orchestration/autoscaler.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/autoscaler.py
+  - name: Autoscaler integration with orchestrator
+    description: Hook autoscaler into the orchestrator main loop
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator calls autoscaler each loop iteration and adjusts spawn behavior
+      validation: run orchestrator with autoscaling enabled, check logs for scaling events
+      met: false
+    tasks:
+    - id: p53.d2.t1
+      title: Integrate autoscaler into orchestrator.py
+      status: planned
+      description: 'Modify orchestrator.py run_loop(): (1) add autoscaling section to orchestrator.yaml:
+        enabled (bool), min_workers, max_workers, scale_up_threshold, scale_down_cooldown, aggressiveness,
+        resource_checks (cpu, memory, token_budget), (2) at the start of each loop iteration, call
+        autoscaler.calculate_target(queue_depth, active_workers, system_metrics), (3) use the returned
+        target as the effective max_concurrent for this iteration (instead of the static config value),
+        (4) log scaling events, (5) add --no-autoscale flag to disable (default: use static max_concurrent
+        as before).'
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+      - ~/zion/projects/agent-orchestration/orchestrator.yaml
+      dependencies:
+      - p53.d1.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+    - ~/zion/projects/agent-orchestration/orchestrator.yaml
+  - name: Resource-aware scaling policies
+    description: Use system resources (CPU, memory, token budget) as additional scaling signals
+    status: planned
+    acceptance_criteria:
+    - description: Scaling is blocked or reversed when system resources are constrained
+      validation: simulate high CPU, verify no scale-up
+      met: false
+    - description: Token budget from phase 32 is used as a scaling constraint
+      validation: set low token budget, verify scale-down
+      met: false
+    tasks:
+    - id: p53.d3.t1
+      title: Add resource-aware policies to autoscaler
+      status: planned
+      description: 'Extend autoscaler.py with resource checks: (1) CPU check: read /proc/loadavg or
+        use psutil, don''t scale up if CPU > 80%, (2) Memory check: don''t scale up if available memory
+        < 2GB, (3) Token budget check: integrate with cost_tracker.py (phase 32), don''t scale up if
+        remaining budget < cost_per_worker_estimate * scale_duration, (4) Disk check: don''t scale
+        up if disk < 1GB free (workspace isolation needs disk), (5) Each check is optional and configurable
+        in orchestrator.yaml.'
+      files:
+      - ~/zion/projects/agent-orchestration/autoscaler.py
+      dependencies:
+      - p53.d1.t1
+      - p32.d1.t1
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/autoscaler.py
+  - name: Scaling history and analytics
+    description: Track scaling events and provide analytics on workforce utilization
+    status: planned
+    acceptance_criteria:
+    - description: Scaling events are logged and queryable
+      validation: python3 autoscaler.py history --last 7d
+      met: false
+    tasks:
+    - id: p53.d4.t1
+      title: Add scaling history to autoscaler
+      status: planned
+      description: 'Append scaling events to ~/.orchestrator/logs/scaling.jsonl (timestamp, action,
+        old_workers, new_workers, queue_depth, reason, resource_snapshot). Add history subcommand that
+        shows: scaling events timeline, avg/max/min workforce size over a period, queue depth vs workforce
+        correlation, resource utilization during peak. Feed this data into the health scorecard (phase
+        44) for the "resource efficiency" signal.'
+      files:
+      - ~/zion/projects/agent-orchestration/autoscaler.py
+      dependencies:
+      - p53.d2.t1
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/autoscaler.py
+  dependencies:
+  - source: phase-4
+    target: phase-53
+    type: soft
+    reason: Autoscaling modifies the orchestrator loop from phase 4
+  - source: phase-14
+    target: phase-53
+    type: soft
+    reason: Health monitoring from phase 14 provides resource metrics that autoscaling uses
+  - source: phase-32
+    target: phase-53
+    type: soft
+    reason: Token budget tracking from phase 32 provides cost constraint for scaling decisions
+  - source: phase-41
+    target: phase-53
+    type: soft
+    reason: Priority queuing from phase 41 determines which work is queued (input to scaling decisions)
+  - source: phase-44
+    target: phase-53
+    type: soft
+    reason: Health scorecard from phase 44 includes resource efficiency metrics from autoscaling
+  technical_notes: 'Autoscaling should be conservative by default -- scale up slowly, scale down
+    faster (to save resources). Cooldown periods prevent thrashing. The resource checks are optional
+    guards; the primary signal is queue depth. The scaling formula is deliberately simple: no ML-based
+    prediction, just reactive scaling based on current state. This is the "cattle" pattern applied
+    to worker count.'
+  risks:
+  - Aggressive autoscaling could overwhelm the system -- default to conservative settings
+  - Scaling down too fast could kill workers mid-task -- only scale down by not replacing finished workers
+  - Token budget estimation is imprecise -- use conservative estimates and hard floor
+  - Autoscaling adds complexity to the orchestrator loop -- must be easily disableable
+  scope_lines_total: 410
+  test_target: 10
+- id: phase-54
+  title: Version-Controlled Work Graph (Beads Pattern)
+  status: planned
+  goal: Implement a dependency-aware work graph that tracks work items, their relationships, and state
+    transitions with full history, inspired by Gas Town's Beads/Dolt state management
+  description: 'Gas Town''s Beads is described as "a version-controlled SQL database built on Dolt"
+    that "replaces messy markdown plans with a dependency-aware graph that tracks every molecule of
+    work." It enables a pull-based execution model where agents pull work from their hooks as soon
+    as it becomes available, rather than relying on a central scheduler. Phase 30 covers inter-agent
+    communication (message passing between agents), but does not address the work graph itself -- the
+    structured representation of work items, their dependencies, and state transitions. This phase
+    implements a lightweight work graph: (1) work items are nodes in a directed graph with dependency
+    edges, (2) state transitions (pending -> ready -> in_progress -> done -> blocked) are tracked with
+    timestamps and provenance, (3) agents pull ready work items (no central push), (4) the graph is
+    persisted as YAML/JSON (version-controllable alongside the codebase), and (5) the graph enables
+    intelligent scheduling -- an item only becomes ready when all its dependencies are satisfied. This
+    transforms the flat issue queue into a dependency-aware work graph that Gas Town calls the "pull-based
+    execution model."'
+  deliverables:
+  - name: Work graph data model and persistence
+    description: Define the work graph schema (nodes, edges, states) and persist it as version-controllable
+      YAML/JSON
+    status: planned
+    acceptance_criteria:
+    - description: Work items can be created with dependencies on other items
+      validation: python3 work_graph.py add --id W1 --depends-on W0
+      met: false
+    - description: State transitions are tracked with timestamps
+      validation: python3 work_graph.py show W1, check state history
+      met: false
+    - description: Graph is persisted as YAML (version-controllable)
+      validation: check work_graph.yaml exists and is valid
+      met: false
+    tasks:
+    - id: p54.d1.t1
+      title: Create work_graph.py module
+      status: planned
+      description: 'Create work_graph.py with: (1) WorkItem dataclass: id, title, description, state
+        (pending/ready/in_progress/done/blocked/failed), dependencies (list of IDs), assignee, role,
+        created_at, started_at, completed_at, provenance (issue_number, pipeline, run_id), metadata
+        (arbitrary key-value), (2) WorkGraph class: add_item, add_dependency, get_ready_items (items
+        whose deps are all done), transition_state, topological_order, get_critical_path, detect_cycles,
+        (3) Persistence: save/load as YAML to work_graph.yaml (version-controllable), auto-save on every
+        mutation, (4) CLI: add, remove, depends-on, show, ready, transition, graph (ASCII art of dependency
+        graph), critical-path. States follow the Beads model: pending (deps not met), ready (deps met,
+        not started), in_progress (agent working), done (completed), blocked (dep failed).'
+      files:
+      - ~/zion/projects/agent-orchestration/work_graph.py
+    scope_lines: 200
+    scope_files:
+    - ~/zion/projects/agent-orchestration/work_graph.py
+  - name: Pull-based work assignment
+    description: Agents pull ready work items instead of being pushed by the orchestrator
+    status: planned
+    acceptance_criteria:
+    - description: Agent can query for and claim the next ready work item
+      validation: python3 work_graph.py pull --role implementer
+      met: false
+    - description: Claiming an item transitions it to in_progress and blocks re-claim
+      validation: two agents pulling simultaneously results in one getting the item
+      met: false
+    tasks:
+    - id: p54.d2.t1
+      title: Add pull-based assignment to work_graph.py
+      status: planned
+      description: 'Add to work_graph.py: (1) pull_ready(role=None) -> WorkItem: atomically claims
+        the next ready item matching the optional role filter, transitions to in_progress, sets started_at
+        and assignee, returns the item, (2) release(item_id, state="pending"): releases a claimed item
+        back to ready or pending, (3) complete(item_id): transitions to done, checks if any blocked
+        items become ready (dependency resolution), (4) fail(item_id, reason): transitions to failed,
+        marks all downstream dependents as blocked, (5) File-based locking for atomic claim (use fcntl
+        or lockfile). The pull model means no central scheduler decides what to work on -- agents
+        ask "what can I do?" and the graph answers based on dependency state. This is the GUPP principle
+        applied to work assignment.'
+      files:
+      - ~/zion/projects/agent-orchestration/work_graph.py
+      dependencies:
+      - p54.d1.t1
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/work_graph.py
+  - name: Issue-to-graph synchronization
+    description: Sync GitHub Issues into the work graph, maintaining the issue tracker as control plane
+    status: planned
+    acceptance_criteria:
+    - description: GitHub Issues are automatically imported as work graph items
+      validation: python3 work_graph.py sync --repo owner/repo
+      met: false
+    - description: Issue dependencies (blocked-by) are preserved as graph edges
+      validation: sync issues with dependencies, check graph edges
+      met: false
+    tasks:
+    - id: p54.d3.t1
+      title: Add issue sync to work_graph.py
+      status: planned
+      description: 'Add sync_from_github(repo, labels) to work_graph.py: (1) uses gh CLI to list
+        issues with specified labels, (2) creates/updates WorkItems for each issue, (3) parses dependency
+        references from issue body (e.g. "Depends on #42" or "Blocked by #43"), (4) adds dependency
+        edges for referenced issues, (5) marks issues as done if they are closed on GitHub, (6) handles
+        merge conflicts (local graph changes vs GitHub state -- GitHub wins for issue state, local
+        graph wins for dependency edges). Also add a --watch mode that syncs periodically.'
+      files:
+      - ~/zion/projects/agent-orchestration/work_graph.py
+      dependencies:
+      - p54.d1.t1
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/work_graph.py
+  - name: Graph-aware orchestrator scheduling
+    description: Replace the flat issue queue with graph-aware scheduling in the orchestrator
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator uses work graph for scheduling instead of flat issue list
+      validation: enable graph mode in orchestrator, check that dependency order is respected
+      met: false
+    - description: Graph can be enabled/disabled via config (backward compatible)
+      validation: 'set scheduling.mode: flat, verify old behavior'
+      met: false
+    tasks:
+    - id: p54.d4.t1
+      title: Integrate work graph into orchestrator.py
+      status: planned
+      description: 'Modify orchestrator.py: (1) add scheduling section to orchestrator.yaml: mode
+        (flat|graph), graph_file (path to work_graph.yaml), auto_sync (bool), (2) in graph mode:
+        instead of poller -> spawner, do: sync issues to graph -> pull ready items -> spawn workers
+        for pulled items -> on completion, mark graph items done (which may unblock dependents), (3)
+        the graph mode respects dependency ordering -- an issue blocked by an open dependency will not
+        be scheduled even if it has the agent-ready label, (4) add status.sh section showing graph
+        state: ready items, blocked items, critical path, dependency chains. Flat mode remains the
+        default for backward compatibility.'
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+      - ~/zion/projects/agent-orchestration/orchestrator.yaml
+      - ~/zion/projects/agent-orchestration/status.sh
+      dependencies:
+      - p54.d2.t1
+      - p54.d3.t1
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+    - ~/zion/projects/agent-orchestration/orchestrator.yaml
+    - ~/zion/projects/agent-orchestration/status.sh
+  dependencies:
+  - source: phase-4
+    target: phase-54
+    type: soft
+    reason: Work graph replaces the flat issue queue from phase 4 with dependency-aware scheduling
+  - source: phase-6
+    target: phase-54
+    type: soft
+    reason: Role specialization from phase 6 is used for role-based work pulling
+  - source: phase-26
+    target: phase-54
+    type: soft
+    reason: Work decomposition from phase 26 (Mayor pattern) creates the work items that the graph tracks
+  - source: phase-30
+    target: phase-54
+    type: soft
+    reason: Inter-agent communication from phase 30 provides the notification channel for dependency resolution
+  - source: phase-41
+    target: phase-54
+    type: soft
+    reason: Priority queuing from phase 41 can prioritize within the set of ready graph items
+  technical_notes: 'The work graph is deliberately file-based (YAML), not database-backed. This makes
+    it version-controllable alongside the codebase -- a key insight from Beads/Dolt. The pull model
+    is simpler than push: agents don''t need to register for notifications, they just ask "what''s
+    ready?" The graph handles dependency resolution, blocking, and critical path calculation. For
+    multi-instance coordination (phase 51), the pull model with file locking is naturally compatible
+    with the federation approach.'
+  risks:
+  - Circular dependencies could deadlock the graph -- cycle detection is critical
+  - File-based locking may not work well across NFS/S3 -- document limitations
+  - Graph sync with GitHub could be slow for repos with many issues -- batch and cache
+  - The graph adds complexity compared to the flat queue -- must be optional and well-tested
+  - Dependency parsing from issue body is fragile -- provide structured syntax (e.g. "Depends-On: #42")
+  scope_lines_total: 520
+  test_target: 12
 meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 51
-  estimated_weeks: 55-65
+  phases_total: 54
+  estimated_weeks: 60-72
   updated: '2026-05-01'
-  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
-  phases_added_from: 'Phase 48-51: Cost Optimization and Intelligent Model Routing (analyzing token spending patterns and suggesting cost optimizations -- model tier recommendations based on historical success rates, cost-aware pipeline parameter tuning), Human Feedback Capture and Agent Behavior Tuning (capturing human review decisions on agent-generated PRs, analyzing rejection patterns, and generating adaptive prompt improvements), Orchestrator Chaos Engineering and Fault Injection Testing (testing orchestrator resilience under failure conditions -- worker crashes, API timeouts, disk full, config corruption -- with a resilience score gating dark factory mode), and Orchestrator Federation and Cross-Instance Coordination (enabling multiple Hermes orchestrator instances to coordinate via distributed locking, shared status, and work stealing -- the "Kubernetes for Agents" pattern at the orchestrator level). Added based on deeper analysis of research doc concepts around token economics ($2-3K/day spend), human-in-the-loop feedback as the bridge between "human defines taste" and "agents learn taste", Elixir/BEAM fault tolerance patterns, and Gas Town multi-instance management (20-30 concurrent agents).'
+  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54]
+  phases_added_from: 'Phase 52-54: Agent Output Provenance Tracking (git-based code attribution tracking which agent/role/session produced each line of code -- critical for the Dark Factory model where "every line was authored by Codex agents"), Dynamic Workforce Autoscaling (elastic worker pool that scales up/down based on queue depth and system resources -- analogous to Kubernetes HPA for agents, enabling burst handling without manual config changes), and Version-Controlled Work Graph / Beads Pattern (dependency-aware work graph that replaces the flat issue queue with a pull-based execution model inspired by Gas Town''s Beads/Dolt -- work items become nodes, dependencies become edges, and agents pull ready work instead of being pushed). Added based on deeper analysis of research doc concepts around code provenance in the 1M LOC Dark Factory experiment, Symphony''s max_concurrent config and Gas Town''s 20-30 agent management as elastic scaling signals, and Beads'' "dependency-aware graph that tracks every molecule of work" as a fundamentally different scheduling model from the flat issue queue.'
