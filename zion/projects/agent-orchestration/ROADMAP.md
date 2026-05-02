@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 19/80 phases complete, 0 in progress
+**Progress:** 20/80 phases complete, 0 in progress
 
-**Deliverables:** 75/319 complete
+**Deliverables:** 79/319 complete
 
-**Tasks:** 75/319 complete
+**Tasks:** 79/319 complete
 
 ## Scope Summary
 
@@ -31,7 +31,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-17 Structural Invariants Engine | COMPLETE | 4/4 | 390 | 10 |
 | phase-18 Agent Self-Debugging and Trace Tools | COMPLETE | 4/4 | 320 | 5 |
 | phase-19 Continuous Self-Improvement Loop | COMPLETE | 4/4 | 380 | 5 |
-| phase-20 Context Window Optimization (Smart Zone) | PLANNED | 0/4 | 300 | 5 |
+| phase-20 Context Window Optimization (Smart Zone) | COMPLETE | 4/4 | 300 | 5 |
 | phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | PLANNED | 0/4 | 410 | 10 |
 | phase-22 Config Hot-Reload and Live Tuning | PLANNED | 0/4 | 270 | 5 |
 | phase-23 End-to-End Integration and Real-World Validation | PLANNED | 0/4 | 550 | 15 |
@@ -1324,7 +1324,7 @@ The self-improvement loop is the most "meta" phase -- the system improving itsel
 - The improvement loop could get stuck in a cycle (change parameters -> different failures -> change back)
 - Analysis quality depends on having enough execution history -- needs a minimum of 20-30 runs to be meaningful
 
-## [ ] phase-20: Context Window Optimization (Smart Zone) (PLANNED)
+## [x] phase-20: Context Window Optimization (Smart Zone) (COMPLETE)
 
 **Goal:** Implement context budget management for AI nodes so agents stay in the 'smart zone' and avoid reasoning decay
 
@@ -1332,36 +1332,36 @@ The Ralph Wiggum pattern from the research emphasizes that AI models exhibit rea
 
 ### Deliverables
 
-- [ ] **Context budget estimator** -- Python module that estimates token counts for prompt components and manages context budgets
-  - [ ] `p20.d1.t1` Create context_budget.py module
+- [x] **Context budget estimator** -- Python module that estimates token counts for prompt components and manages context budgets
+  - [x] `p20.d1.t1` Create context_budget.py module
     > Python module that: (1) estimates token count using tiktoken or a simple word*1.3 heuristic, (2) accepts a list of prompt components with priorities (issue_body=high, ai_guide=medium, previous_context=low), (3) when total exceeds budget, truncates lowest-priority components first, (4) supports summarize mode that extracts key points from truncated sections, (5) logs actual vs estimated token usage per run. Default budget: 80% of model context window (leaving 20% for response).
     _Files: ~/zion/projects/agent-orchestration/context_budget.py_
-  - [ ] Module can estimate token count for a string with reasonable accuracy (within 10%)
+  - [x] Module can estimate token count for a string with reasonable accuracy (within 10%)
     _Validation: python3 context_budget.py --estimate --text "test string"_
-  - [ ] Supports configurable budget with per-component priority weights
+  - [x] Supports configurable budget with per-component priority weights
     _Validation: test with different budget limits and priorities_
   _~120 LOC_
-- [ ] **Budget-aware prompt builder in executor** -- Update the DAG executor to use context budgeting when constructing AI node prompts
-  - [ ] `p20.d2.t1` Integrate context_budget into executor AI node builder (depends: p20.d1.t1)
+- [x] **Budget-aware prompt builder in executor** -- Update the DAG executor to use context budgeting when constructing AI node prompts
+  - [x] `p20.d2.t1` Integrate context_budget into executor AI node builder (depends: p20.d1.t1)
     > Modify executor.py build_ai_prompt() to: (1) pass prompt components (issue body, AI_GUIDE.md, role prompt, pipeline context, previous results) to context_budget.fit_to_budget(), (2) include budget stats (estimated_tokens, budget, truncation_applied) in the execution log, (3) support a --budget flag on the executor CLI to override default budget, (4) warn in logs when more than 30% of context is truncated.
     _Files: ~/zion/projects/agent-orchestration/executor.py_
-  - [ ] AI node prompts are constructed with budget awareness
+  - [x] AI node prompts are constructed with budget awareness
     _Validation: run executor with large issue body, check prompt is truncated appropriately_
-  - [ ] Budget usage is logged per AI node execution
+  - [x] Budget usage is logged per AI node execution
     _Validation: check execution log for budget fields_
   _~60 LOC_
-- [ ] **Context budget configuration** -- YAML config for per-pipeline and per-role context budgets
-  - [ ] `p20.d3.t1` Create context_config.yaml (depends: p20.d1.t1)
+- [x] **Context budget configuration** -- YAML config for per-pipeline and per-role context budgets
+  - [x] `p20.d3.t1` Create context_config.yaml (depends: p20.d1.t1)
     > Create context_config.yaml with: default_budget_tokens (80000 for claude models), per_role_overrides (reviewer gets more context, coordinator gets less), per_pipeline_overrides (review-pipeline gets more budget for diff context), component_priorities (ordered list of prompt components with priority weights), summarize_threshold (at what truncation level to switch from truncation to summarization).
     _Files: ~/zion/projects/agent-orchestration/context_config.yaml_
-  - [ ] context_config.yaml exists with per-role and per-pipeline budget overrides
+  - [x] context_config.yaml exists with per-role and per-pipeline budget overrides
     _Validation: read YAML file_
   _~40 LOC_
-- [ ] **Context usage analytics** -- Track and report context window usage patterns across pipeline runs
-  - [ ] `p20.d4.t1` Add context usage analytics to context_budget.py (depends: p20.d1.t1, p8.d1.t1)
+- [x] **Context usage analytics** -- Track and report context window usage patterns across pipeline runs
+  - [x] `p20.d4.t1` Add context usage analytics to context_budget.py (depends: p20.d1.t1, p8.d1.t1)
     > Add --stats mode to context_budget.py that: (1) reads execution logs for budget fields, (2) computes average context usage per node type, per role, per pipeline, (3) identifies nodes that frequently hit budget limits (sign of oversized prompts), (4) suggests budget adjustments based on usage patterns. Output as table or JSON.
     _Files: ~/zion/projects/agent-orchestration/context_budget.py_
-  - [ ] Can report average context usage per node type and role
+  - [x] Can report average context usage per node type and role
     _Validation: python3 context_budget.py --stats --last 20_
   _~80 LOC_
 
