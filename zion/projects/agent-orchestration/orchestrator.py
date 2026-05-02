@@ -82,6 +82,33 @@ def _get_conflicting_workspaces() -> set[str]:
         return set()
 
 
+# Global config watcher instance (initialized on first use)
+_config_watcher = None
+
+
+def _get_config_watcher() -> object:
+    """Get or create the global config watcher."""
+    global _config_watcher
+    if _config_watcher is None:
+        try:
+            from config_watcher import ConfigWatcher
+            _config_watcher = ConfigWatcher()
+        except Exception:
+            _config_watcher = False  # Sentinel: watcher unavailable
+    return _config_watcher if _config_watcher else None
+
+
+def _check_config_changes() -> list[dict]:
+    """Check for config changes using the watcher. Returns events."""
+    watcher = _get_config_watcher()
+    if watcher is None:
+        return []
+    try:
+        return watcher.check()
+    except Exception:
+        return []
+
+
 # Default per-repo config keys
 REPO_DEFAULTS = {
     "labels": ["agent-ready"],
@@ -258,6 +285,22 @@ def run_loop(config: dict, dry_run: bool = False, filter_repo: str | None = None
         summary["skipped_full"] = True
         print(f"All {global_max} global worker slots occupied. Skipping poll.", file=sys.stderr)
         return summary
+
+    # Check for config changes (hot-reload)
+    config_changes = _check_config_changes()
+    if config_changes:
+        summary["config_changes"] = config_changes
+        # Reload config if orchestrator.yaml changed
+        for change in config_changes:
+            if change["config_type"] == "orchestrator":
+                new_config = load_config()
+                if new_config.get("repos"):
+                    repos = new_config.get("repos", [])
+                    global_max = new_config.get("max_concurrent", 10)
+                    total_active = get_worker_count()
+                    global_available = max(0, global_max - total_active)
+                    config = new_config
+                    print(f"Config reloaded: {len(repos)} repo(s), max_concurrent={global_max}", file=sys.stderr)
 
     for repo_config in repos:
         repo_url = repo_config["url"]
