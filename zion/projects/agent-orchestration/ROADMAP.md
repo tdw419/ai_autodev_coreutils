@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 17/80 phases complete, 0 in progress
+**Progress:** 18/80 phases complete, 0 in progress
 
-**Deliverables:** 67/319 complete
+**Deliverables:** 71/319 complete
 
-**Tasks:** 74/319 complete
+**Tasks:** 75/319 complete
 
 ## Scope Summary
 
@@ -29,7 +29,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-15 Safety Policies and Approval Gates | COMPLETE | 4/4 | 360 | 15 |
 | phase-16 Multi-Repo Orchestration | COMPLETE | 4/4 | 320 | 10 |
 | phase-17 Structural Invariants Engine | COMPLETE | 4/4 | 390 | 10 |
-| phase-18 Agent Self-Debugging and Trace Tools | PLANNED | 0/4 | 320 | 5 |
+| phase-18 Agent Self-Debugging and Trace Tools | COMPLETE | 4/4 | 320 | 5 |
 | phase-19 Continuous Self-Improvement Loop | PLANNED | 0/4 | 380 | 5 |
 | phase-20 Context Window Optimization (Smart Zone) | PLANNED | 0/4 | 300 | 5 |
 | phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | PLANNED | 0/4 | 410 | 10 |
@@ -1227,7 +1227,7 @@ Use Python AST module for import analysis -- no external dependencies. Layer enf
 - Defining good architectural invariants requires domain knowledge of the target project
 - Overly strict invariants can slow down development if not tuned carefully
 
-## [ ] phase-18: Agent Self-Debugging and Trace Tools (PLANNED)
+## [x] phase-18: Agent Self-Debugging and Trace Tools (COMPLETE)
 
 **Goal:** Give agents the ability to read their own execution traces, inspect logs, and debug failures during pipeline execution
 
@@ -1235,34 +1235,34 @@ Phase 8 adds execution history for humans to review after runs. The Harness Engi
 
 ### Deliverables
 
-- [ ] **Agent-readable trace formatter** -- Module that converts execution logs into a concise, agent-optimized format suitable for inclusion in prompts
+- [x] **Agent-readable trace formatter** -- Module that converts execution logs into a concise, agent-optimized format suitable for inclusion in prompts
   - [x] `p18.d1.t1` Create trace_formatter.py module (depends: p8.d1.t1)
     > Python module that: (1) reads a pipeline run from execution_log.py, (2) extracts key information per node (status, duration, error message, output summary), (3) formats as compact text for prompt injection (<2000 tokens), (4) supports --format compact|detailed|diff modes, (5) highlights failure chain (which nodes failed and why), (6) includes context about what files were touched. The compact format is designed to be prepended to an AI node's prompt so the agent can understand previous failures.
     _Files: ~/zion/projects/agent-orchestration/trace_formatter.py_
-  - [ ] Can format a pipeline run trace into a compact summary (node status, error messages, key outputs) under 2000 tokens
+  - [x] Can format a pipeline run trace into a compact summary (node status, error messages, key outputs) under 2000 tokens
     _Validation: python3 trace_formatter.py --run RUN_ID --compact_
-  - [ ] Supports multiple output formats: compact (for prompts), detailed (for debugging), diff-focused (shows what changed at each node)
+  - [x] Supports multiple output formats: compact (for prompts), detailed (for debugging), diff-focused (shows what changed at each node)
     _Validation: run with different format flags_
   _~120 LOC_
-- [ ] **Debug context builder for executor** -- Enhance the DAG executor to build debug context for AI nodes when previous runs failed
-  - [ ] `p18.d2.t1` Add debug context to executor AI nodes (depends: p18.d1.t1, p5.d2.t1)
+- [x] **Debug context builder for executor** -- Enhance the DAG executor to build debug context for AI nodes when previous runs failed
+  - [x] `p18.d2.t1` Add debug context to executor AI nodes (depends: p18.d1.t1, p5.d2.t1)
     > Modify executor.py to: (1) when an AI node runs after a previous failure in the same pipeline execution, automatically call trace_formatter to build a debug context, (2) inject the debug context into the AI node's prompt as a "Previous attempt failed:" section, (3) include the specific error message and which node failed, (4) for Loop nodes, include iteration count and failure history. This enables AI nodes to learn from their own failures within a single pipeline run.
     _Files: ~/zion/projects/agent-orchestration/executor.py_
-  - [ ] Executor automatically builds a debug context string when retrying a failed pipeline
+  - [x] Executor automatically builds a debug context string when retrying a failed pipeline
     _Validation: execute pipeline with failure, check retry prompt includes trace_
   _~60 LOC_
-- [ ] **Cross-run failure correlation** -- Analyze multiple pipeline runs to find recurring failure patterns
+- [x] **Cross-run failure correlation** -- Analyze multiple pipeline runs to find recurring failure patterns
   - [x] `p18.d3.t1` Add failure correlation to trace_formatter (depends: p18.d1.t1)
     > Add --correlate flag to trace_formatter.py that: (1) reads the last N pipeline runs, (2) groups failures by node_id and failure_type, (3) identifies recurring patterns (same node failing in >50% of runs), (4) outputs a summary: "Node 'test' failed in 8/10 recent runs. Common error: ImportError. Suggested fix: check dependencies." This enables the orchestrator or a human to spot systemic issues.
     _Files: ~/zion/projects/agent-orchestration/trace_formatter.py_
-  - [ ] Can identify that a specific node type or pipeline step fails repeatedly across runs
+  - [x] Can identify that a specific node type or pipeline step fails repeatedly across runs
     _Validation: python3 trace_formatter.py --correlate --last 20_
   _~80 LOC_
-- [ ] **Self-debug pipeline template** -- Pipeline YAML that uses trace tools to enable agents to debug and fix their own failures
+- [x] **Self-debug pipeline template** -- Pipeline YAML that uses trace tools to enable agents to debug and fix their own failures
   - [x] `p18.d4.t1` Create debug-pipeline.yaml (depends: p18.d2.t1, p5.d3.t1)
     > Create pipelines/debug-pipeline.yaml: AI(implement) -> Bash(test) -> AI(debug, reads trace from failed run, analyzes failure) -> Loop(fix, max=3, includes trace context in each iteration) -> Bash(test). The debug node uses trace_formatter to get the failure context, then formulates a targeted fix. The loop retries with increasing trace history so the agent can see what it already tried.
     _Files: ~/zion/projects/agent-orchestration/pipelines/debug-pipeline.yaml_
-  - [ ] Pipeline includes a debug node that reads previous failure traces and formulates a fix strategy
+  - [x] Pipeline includes a debug node that reads previous failure traces and formulates a fix strategy
     _Validation: read pipeline YAML, trace through nodes_
   _~60 LOC_
 
