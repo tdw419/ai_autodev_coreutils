@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 17/64 phases complete, 0 in progress
+**Progress:** 17/69 phases complete, 0 in progress
 
-**Deliverables:** 67/255 complete
+**Deliverables:** 67/275 complete
 
-**Tasks:** 74/255 complete
+**Tasks:** 74/275 complete
 
 ## Scope Summary
 
@@ -76,6 +76,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-62 Prompt Engineering as Infrastructure | PLANNED | 0/4 | 460 | 8 |
 | phase-63 Orchestrator REST API and Platform Layer | PLANNED | 0/4 | 560 | 10 |
 | phase-64 Workspace Sandboxing and OS-Level Isolation | PLANNED | 0/4 | 480 | 12 |
+| phase-65 Stop Hooks and Agent Loop Control | PLANNED | 0/4 | 420 | 10 |
+| phase-66 Scheduled Periodic Maintenance Automation | PLANNED | 0/4 | 420 | 10 |
+| phase-67 Pre-PR Self-Verification Gate | PLANNED | 0/4 | 400 | 10 |
+| phase-68 Agent Session Identity and Continuity | PLANNED | 0/4 | 400 | 10 |
+| phase-69 Orchestrator Integration Test Suite | PLANNED | 0/4 | 420 | 15 |
 
 ## Dependencies
 
@@ -291,6 +296,27 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-35 | phase-64 | hard | Dark factory mode from phase 35 requires sandboxing as a prerequisite -- no human review means isolation must be robust |
 | phase-5 | phase-64 | soft | DAG executor from phase 5 creates the worker processes that need sandboxing |
 | phase-8 | phase-64 | soft | Execution logs from phase 8 should include sandbox audit events |
+| phase-20 | phase-65 | soft | Context budgeting from phase 20 ensures iteration summaries fit in smart zone limits |
+| phase-8 | phase-65 | soft | Execution logs from phase 8 record each loop iteration for debugging |
+| phase-5 | phase-65 | soft | DAG executor loop nodes from phase 5 are extended with stop hook support |
+| phase-10 | phase-66 | soft | Garbage collector from phase 10 is the primary maintenance task to schedule |
+| phase-14 | phase-66 | soft | Health monitoring from phase 14 provides daily health check data |
+| phase-17 | phase-66 | soft | Invariant checker from phase 17 provides weekly architecture scans |
+| phase-19 | phase-66 | soft | Self-improvement from phase 19 provides weekly analysis |
+| phase-46 | phase-66 | soft | Golden principles from phase 46 provide the "deviations from golden principles" scanning target |
+| phase-32 | phase-66 | soft | Cost tracking from phase 32 provides daily cost reports |
+| phase-9 | phase-67 | soft | Review sensor from phase 9 provides the inferential verification check |
+| phase-17 | phase-67 | soft | Invariant checker from phase 17 provides the architectural verification check |
+| phase-13 | phase-67 | soft | PR automation from phase 13 is extended with pre-PR verification |
+| phase-65 | phase-67 | soft | Stop hooks from phase 65 can use verification gate as a completion criterion |
+| phase-8 | phase-68 | soft | Execution logs from phase 8 provide the historical data for agent profiling |
+| phase-11 | phase-68 | soft | Workspace lifecycle from phase 11 provides session state for handoff detection |
+| phase-6 | phase-68 | soft | Role profiles from phase 6 define the roles that affinity tracking applies to |
+| phase-18 | phase-68 | soft | Trace formatter from phase 18 creates compact summaries for session handoff |
+| phase-7 | phase-69 | soft | Unit tests from phase 7 provide the foundation that integration tests build on |
+| phase-4 | phase-69 | soft | Orchestrator from phase 4 is the primary system under test |
+| phase-5 | phase-69 | soft | DAG executor from phase 5 is a core component tested by integration suite |
+| phase-23 | phase-69 | soft | E2E validation from phase 23 provides integration test scenarios |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -3450,6 +3476,274 @@ Start with soft-mode filesystem restrictions and Python-level resource limits (n
 - Resource limits may kill agents mid-task, losing work -- implement checkpoint before limit
 - Chroot escape is possible for root processes -- never run agents as root inside sandbox
 
+## [ ] phase-65: Stop Hooks and Agent Loop Control (PLANNED)
+
+**Goal:** Implement the "stop hooks" mechanism from the Ralph Wiggum pattern to intercept agent termination, check for completion tags, and re-feed prompts when work remains
+
+The research describes stop hooks as the mechanism that makes Ralph Wiggum loops work: "stop hooks that intercept the agent's attempt to exit, check for completion tags, and re-feed the prompt if work remains." This phase implements that mechanism as a reusable module that wraps around delegate_task sessions, enabling autonomous multi-iteration agent loops with fresh context per iteration.
+Without stop hooks, the Ralph Wiggum pattern is a concept without an implementation -- agents simply exit when done and there is no mechanism to detect incomplete work and restart with fresh context.
+
+### Deliverables
+
+- [ ] **Stop hook framework module** -- Create stop_hooks.py that intercepts agent session termination and decides whether to re-feed the prompt or allow exit
+  - [ ] `p65.d1.t1` Create stop_hooks.py with core framework
+    > Create stop_hooks.py with: (1) StopHook class with before_exit(session_state) -> continue|stop decision, (2) CompletionCriteria enum: TAG_FOUND, ALL_TESTS_PASS, EXIT_CODE, FILE_PATTERN, CUSTOM_SCRIPT, (3) SessionState dataclass: workspace_path, iteration_count, last_output, test_results, completion_tags_found, (4) LoopController that wraps a delegate_task session: run loop until hook returns stop or max_iterations reached, (5) each iteration starts fresh context (Ralph Wiggum smart zone), (6) persistent artifacts carry over (git history, workspace files), (7) iteration summary logged to execution_log, (8) CLI: python3 stop_hooks.py --workspace PATH --max-iterations 10 --criteria tag:IMPLEMENTATION_COMPLETE
+    _Files: ~/zion/projects/agent-orchestration/stop_hooks.py_
+  - [ ] Hook can intercept agent exit and inspect completion state
+    _Validation: unit test with mock agent that exits with various states_
+  - [ ] Hook supports configurable completion criteria (tags, file patterns, exit codes, test results)
+    _Validation: test with each criterion type_
+  - [ ] Hook enforces max_iterations to prevent infinite loops
+    _Validation: test that agent stops after N iterations_
+- [ ] **Completion tag detection** -- Detect completion markers in agent output and workspace files
+  - [ ] `p65.d2.t1` Add completion detection to stop_hooks.py (depends: p65.d1.t1)
+    > Add completion detection: (1) tag scanning in agent output: look for patterns like [DONE], [COMPLETE], IMPLEMENTATION_COMPLETE, <!-- READY -->, (2) file-based detection: check for completion marker files in workspace (.done, .complete), (3) TODO detection: count TODO/FIXME comments before and after, consider complete if all resolved, (4) test result detection: if tests were run, check if they pass, (5) git diff detection: if agent made no changes since last iteration, consider stuck, (6) configurable tag patterns via YAML config, (7) compound criteria: ALL must be met (AND) or ANY must be met (OR)
+    _Files: ~/zion/projects/agent-orchestration/stop_hooks.py_
+  - [ ] Detects standard completion tags in agent output text
+    _Validation: test with output containing various tag formats_
+  - [ ] Detects completion markers in workspace files (e.g., TODO comments resolved)
+    _Validation: test with workspace containing marker files_
+- [ ] **Loop context management** -- Manage context reset between iterations, carrying over only persistent artifacts
+  - [ ] `p65.d3.t1` Add context management to stop_hooks.py (depends: p65.d1.t1)
+    > Add context management: (1) iteration summary: extract key facts from previous iteration (what was done, what failed, what remains), (2) summary injected as context for next iteration (not full conversation), (3) workspace snapshot: save workspace state at end of each iteration for rollback, (4) progressive context: iteration N gets summary of iterations 1..N-1 (not full history), (5) smart zone enforcement: use context_budget.py from phase 20 to ensure summaries fit in budget, (6) failure context: if previous iteration failed, include error analysis in next iteration prompt, (7) test results carry over: include test output from previous iteration to help agent fix failures
+    _Files: ~/zion/projects/agent-orchestration/stop_hooks.py_
+  - [ ] Each iteration starts with fresh prompt context
+    _Validation: test that iteration N+1 does not include iteration N conversation_
+  - [ ] Persistent artifacts (git, files, test results) carry over
+    _Validation: test that workspace state persists across iterations_
+- [ ] **Integration with executor and tests** -- Integrate stop hooks with the DAG executor and add comprehensive tests
+  - [ ] `p65.d4.t1` Integrate stop_hooks with executor and add tests (depends: p65.d2.t1, p65.d3.t1)
+    > Integration and tests: (1) add LOOP_HOOK config option to Loop node in dag.py, (2) executor.py uses stop_hooks when loop node has hook config, (3) test_stop_hooks.py: test tag detection, file detection, test result detection, max_iterations enforcement, context carry-over, stuck detection, compound criteria, (4) test integration with executor: DAG with loop node using stop hooks, (5) test context budget integration: verify summaries fit in smart zone, (6) edge case tests: agent produces no output, agent crashes, workspace deleted mid-loop, completion tag in wrong format
+    _Files: ~/zion/projects/agent-orchestration/stop_hooks.py, ~/zion/projects/agent-orchestration/test_stop_hooks.py, ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Loop node in DAG executor can use stop hooks for termination
+    _Validation: test DAG with loop node that uses stop hooks_
+  - [ ] Tests cover all completion criteria types and edge cases
+    _Validation: pytest coverage_
+
+### Technical Notes
+
+Stop hooks are the missing implementation piece for the Ralph Wiggum pattern. The research describes them as essential but no existing module implements them. The key insight is that stop hooks check for MACHINE-VERIFIABLE completion criteria, not agent self-assessment. This makes them deterministic and reliable. The fresh-context-per-iteration approach keeps agents in the "smart zone" (30-60% of context window) throughout long-running tasks.
+
+### Risks
+
+- Completion tag detection could have false positives (tag in comments, docs) -- use specific tag formats
+- Stuck detection (no changes) could trigger too early on legitimate debugging sessions
+- Context summaries could lose important details from previous iterations
+- Infinite loop prevention relies on max_iterations -- if set too high, wastes tokens
+- Stop hooks add complexity to the agent execution path -- must be optional and default-off
+
+## [ ] phase-66: Scheduled Periodic Maintenance Automation (PLANNED)
+
+**Goal:** Implement scheduled background maintenance tasks that run periodically (daily, weekly) to keep the codebase healthy, modeled on the research's "Garbage Collection Loops run weekly as background tasks"
+
+The research describes a future where "Garbage Collection Loops run weekly as background tasks, scanning for deviations from 'golden principles' and opening targeted refactoring pull requests." Phase 10 implements GC scanning but not the scheduling layer. This phase adds a cron-compatible scheduler that automates periodic maintenance: GC scans, invariant checks, health reports, cost summaries, and self-improvement analysis.
+
+### Deliverables
+
+- [ ] **Maintenance scheduler module** -- Create maintenance.py that defines, schedules, and runs periodic maintenance tasks
+  - [ ] `p66.d1.t1` Create maintenance.py with scheduler framework
+    > Create maintenance.py with: (1) MaintenanceTask dataclass: name, schedule (daily/weekly/custom cron), last_run, last_result, enabled, (2) TaskRegistry: collection of registered maintenance tasks with config, (3) run_due_tasks(): check which tasks are due and run them, (4) run_task(name): run a specific task and record result, (5) state stored in ~/.orchestrator/maintenance/state.json, (6) results stored in ~/.orchestrator/maintenance/results/{task_name}/, (7) CLI: python3 maintenance.py --run-due, --run TASK, --schedule, --status, --history TASK, (8) --dry-run mode to show what would run without executing, (9) integration with orchestrator.py: add --maintenance flag to run due tasks before polling
+    _Files: ~/zion/projects/agent-orchestration/maintenance.py_
+  - [ ] Scheduler supports daily and weekly intervals
+    _Validation: test with various interval configurations_
+  - [ ] Each maintenance task has its own config, last-run timestamp, and result history
+    _Validation: inspect state files after running_
+- [ ] **Built-in maintenance tasks** -- Register the core maintenance tasks: GC scan, invariant check, health report, cost summary, self-improvement analysis
+  - [ ] `p66.d2.t1` Register built-in maintenance tasks in maintenance.py (depends: p66.d1.t1)
+    > Register these built-in tasks: (1) daily_gc_scan: run garbage_collector.py scan, schedule daily, output stale workspaces and convention violations, (2) daily_health_check: run health_monitor.py check, schedule daily, output stuck workspaces and alerts, (3) daily_cost_report: run cost_tracker.py report, schedule daily, output cost summary per repo, (4) weekly_invariant_scan: run invariant_checker.py on target repos, schedule weekly, output violations and trends, (5) weekly_self_improve: run self_improve.py analyze, schedule weekly, output improvement suggestions, (6) weekly_golden_principles_scan: scan repos for deviations from golden principles (phase 46), open issues for violations, (7) each task has configurable parameters (e.g., gc max_age, health thresholds), (8) task results include: count of findings, severity distribution, trend vs previous run, actionable items
+    _Files: ~/zion/projects/agent-orchestration/maintenance.py_
+  - [ ] At least 5 maintenance tasks are registered and runnable
+    _Validation: python3 maintenance.py --schedule shows all tasks_
+  - [ ] Each task produces a structured result with actionable findings
+    _Validation: run each task and inspect output_
+- [ ] **Maintenance task result tracking and trends** -- Track results over time to identify trends and recurring issues
+  - [ ] `p66.d3.t1` Add result tracking and trend analysis to maintenance.py (depends: p66.d2.t1)
+    > Add tracking: (1) result history: store each run result as JSON with timestamp, task_name, findings, summary, (2) trend calculation: compare current run to N previous runs (same day last week, same day last month), (3) trend indicators: increasing, stable, decreasing, new (first occurrence), (4) digest command: summarize all recent maintenance results in a single report, (5) alert thresholds: alert if findings increase by >50% week-over-week, (6) retention policy: keep last 90 days of results, archive older, (7) --digest CLI: python3 maintenance.py --digest --period week, output formatted report suitable for human review
+    _Files: ~/zion/projects/agent-orchestration/maintenance.py_
+  - [ ] Results are stored with timestamps and comparable across runs
+    _Validation: run task twice, compare results_
+  - [ ] Trend analysis shows whether findings are increasing or decreasing
+    _Validation: run task 3+ times with different data, check trend output_
+- [ ] **Cron integration and automated PR creation** -- Enable maintenance tasks to automatically file issues or PRs for findings
+  - [ ] `p66.d4.t1` Add GitHub issue creation and cron integration to maintenance.py (depends: p66.d3.t1)
+    > Add automation: (1) auto-file-issues: for each actionable finding, create a GitHub issue with structured template (task name, finding, severity, suggested fix), (2) dedup: check if issue already exists for same finding before creating, (3) auto-file-prs: for invariant violations with known fixes, create PR with remediation (using garbage_collector.py remediation), (4) approval gate: auto-PRs go through safety.py approval (phase 15), (5) cron integration: maintenance.py --run-due exits 0 on success (suitable for cron), logs to ~/.orchestrator/logs/maintenance/, (6) notification: if findings exceed threshold, print summary to stdout for cron delivery, (7) test_maintenance.py: test scheduler, task registration, result tracking, trend analysis, issue dedup, cron exit codes
+    _Files: ~/zion/projects/agent-orchestration/maintenance.py, ~/zion/projects/agent-orchestration/test_maintenance.py_
+  - [ ] Maintenance tasks can create GitHub issues for actionable findings
+    _Validation: dry-run shows issue that would be created_
+  - [ ] Task can be run via Hermes cron scheduler
+    _Validation: cron job runs maintenance.py --run-due successfully_
+
+### Technical Notes
+
+The research specifically envisions GC loops as "weekly background tasks." This phase makes that vision operational by adding a scheduling layer on top of existing scanning/analysis modules. The key design decision is that maintenance tasks are composable -- each is a standalone module that the scheduler invokes, rather than a monolithic maintenance script. This allows tasks from different phases to be scheduled independently.
+
+### Risks
+
+- Auto-filing issues could spam the repo if maintenance tasks produce too many findings
+- Auto-filing PRs without human review is risky -- require safety.py approval gate
+- Scheduled tasks could conflict with active agent work (e.g., GC deleting workspace in use)
+- Trend analysis needs enough history to be meaningful -- first few runs will have no trends
+- Cron job failures could go unnoticed -- need alerting mechanism
+
+## [ ] phase-67: Pre-PR Self-Verification Gate (PLANNED)
+
+**Goal:** Create a pipeline gate that combines deterministic and inferential checks, requiring agents to verify their own work before PR submission
+
+The research states agents can "drive application-level tools (Chrome DevTools, CLI scripts) to verify their own work before submitting a pull request." This phase creates a pre-PR verification gate that runs a battery of checks (tests, lints, invariant checks, review sensor) and only allows PR creation when all checks pass. This is the "self-verify" step that turns agent output from "probably correct" to "verified correct."
+
+### Deliverables
+
+- [ ] **Pre-PR verification gate module** -- Create verify_gate.py that runs verification checks and produces a pass/fail verdict
+  - [ ] `p67.d1.t1` Create verify_gate.py with verification framework
+    > Create verify_gate.py with: (1) VerifyCheck dataclass: name, type (deterministic/inferential), command_or_function, timeout, required (fatal if fails), (2) VerifyResult dataclass: check_name, passed, output, duration, severity, (3) VerifyGate class: register checks, run all, produce verdict, (4) built-in check types: BASH_CHECK (run shell command, check exit code), PYTHON_TEST (run pytest, parse results), INFERENTIAL (call review_sensor.py, check threshold), FILE_PATTERN (check for/against file patterns), INTEGRATION_TEST (run integration test command), (5) gate config in YAML: verify_gate.yaml with check definitions, thresholds, required/optional flags, (6) CLI: python3 verify_gate.py --workspace PATH --config verify_gate.yaml, (7) exit code 0 = all required checks pass, exit code 1 = failures, (8) JSON output mode for programmatic consumption
+    _Files: ~/zion/projects/agent-orchestration/verify_gate.py, ~/zion/projects/agent-orchestration/verify_gate.yaml_
+  - [ ] Gate runs configurable set of verification checks in sequence
+    _Validation: test with mock checks that pass and fail_
+  - [ ] Gate produces structured report with per-check results
+    _Validation: inspect output report_
+- [ ] **Integration with existing verification tools** -- Wire up the gate to use existing modules: invariant_checker, review_sensor, executor tests
+  - [ ] `p67.d2.t1` Wire verify_gate to existing verification modules (depends: p67.d1.t1)
+    > Wire integrations: (1) INFERENTIAL check type calls review_sensor.py evaluate(), (2) INVARIANT check type calls invariant_checker.py check_directory(), (3) add VERIFY_GATE node type to dag.py: runs verify_gate.py as a pipeline stage, (4) executor.py handles VERIFY_GATE node: runs gate, passes result to context, fails pipeline if required checks fail, (5) default gate config: include pytest (deterministic), invariant check (deterministic), review sensor (inferential), file pattern checks for common anti-patterns, (6) workspace-relative paths: all checks run from workspace directory
+    _Files: ~/zion/projects/agent-orchestration/verify_gate.py, ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Gate can invoke invariant_checker.py and review_sensor.py as checks
+    _Validation: test gate with these modules_
+  - [ ] Gate integrates with executor.py as a pipeline node
+    _Validation: test DAG with VERIFY_GATE node_
+- [ ] **Self-verification loop with auto-remediation** -- When verification fails, automatically attempt fixes and re-verify
+  - [ ] `p67.d3.t1` Add auto-remediation loop to verify_gate.py (depends: p67.d2.t1)
+    > Add remediation: (1) per-check fix_command: optional shell command to run when check fails, (2) fix cycle: run check -> if fail, run fix_command -> re-run check -> repeat up to max_fix_attempts (default 3), (3) fix context: include check failure output in the prompt/context for the fix command, (4) fix verification: after fix, run ALL checks again (not just the failed one) to catch regressions, (5) fix history: record each fix attempt (what failed, what fix ran, did it work), (6) fix summary: report which fixes were applied and which failures remain, (7) integrate with stop_hooks from phase 65: verification gate can be a stop hook criterion (loop until gate passes)
+    _Files: ~/zion/projects/agent-orchestration/verify_gate.py_
+  - [ ] Gate can run a fix cycle when checks fail
+    _Validation: test with a check that fails, then passes after fix_
+  - [ ] Fix cycle has max attempts to prevent infinite loops
+    _Validation: test that fix cycle stops after max attempts_
+- [ ] **Tests and PR automation integration** -- Integrate verification gate with PR automation and add tests
+  - [ ] `p67.d4.t1` Integrate verify_gate with pr_automation and add tests (depends: p67.d3.t1)
+    > Integration and tests: (1) pr_automation.py --create runs verify_gate.py before creating PR, (2) if gate fails, PR creation is aborted and failure report is attached to workspace, (3) --force flag skips gate (for emergency PRs), (4) gate results included in PR description as verification summary, (5) test_verify_gate.py: test pass/fail, fix cycle, timeout, integration with invariant_checker, integration with review_sensor, integration with pr_automation, edge cases (empty workspace, no config, all checks optional and all fail)
+    _Files: ~/zion/projects/agent-orchestration/verify_gate.py, ~/zion/projects/agent-orchestration/test_verify_gate.py, ~/zion/projects/agent-orchestration/pr_automation.py_
+  - [ ] PR automation runs verification gate before creating PR
+    _Validation: test PR creation with gate that passes and fails_
+  - [ ] Comprehensive test suite covers all gate behaviors
+    _Validation: pytest coverage_
+
+### Technical Notes
+
+The research emphasizes that agents should "verify their own work" -- this is the mechanism. The gate is a pipeline-level construct (not agent-level) which makes it deterministic and reliable. The auto-remediation loop bridges the gap between "check failed" and "PR ready" by attempting fixes automatically, turning the gate from a pass/fail checkpoint into a self-correcting mechanism.
+
+### Risks
+
+- Verification gate could be too strict, blocking legitimate PRs -- make checks configurable
+- Auto-remediation could introduce new bugs -- always re-run full check suite after fixes
+- Inferential checks (LLM judge) are inconsistent -- don't make them required by default
+- Fix commands could be destructive -- require safety.py approval for fix commands
+- Gate adds latency to PR creation -- parallelize independent checks
+
+## [ ] phase-68: Agent Session Identity and Continuity (PLANNED)
+
+**Goal:** Implement persistent agent identity across restarts, following the research's "cattle sessions, pet identity" pattern
+
+The research describes treating "individual agent sessions as ephemeral cattle, while treating the agent's identity and the project's state as persistent pets." Currently, each agent session is anonymous -- there is no way to correlate work across sessions, track an agent's history, or resume interrupted work. This phase adds a session identity layer that persists across restarts, enabling work continuity and historical tracking.
+
+### Deliverables
+
+- [ ] **Agent identity module** -- Create agent_identity.py that generates, tracks, and persists agent identities
+  - [ ] `p68.d1.t1` Create agent_identity.py with identity framework
+    > Create agent_identity.py with: (1) AgentIdentity dataclass: agent_id (UUID), role, created_at, last_seen, total_sessions, total_tasks_completed, total_tokens_used, specialties (learned strengths), (2) AgentRegistry: manages agent identities in ~/.orchestrator/identities/, (3) assign_identity(role): create or reuse identity for a role, (4) update_activity(agent_id): update last_seen and stats, (5) get_history(agent_id): list all tasks completed by this agent, (6) get_stats(agent_id): performance statistics (success rate, avg duration, preferred task types), (7) identity file format: YAML with full identity record, (8) CLI: python3 agent_identity.py --list, --show ID, --stats ID, --history ID, --retire ID
+    _Files: ~/zion/projects/agent-orchestration/agent_identity.py_
+  - [ ] Each agent session gets a unique but consistent identity
+    _Validation: create session, restart, verify same identity_
+  - [ ] Identity persists across orchestrator restarts
+    _Validation: restart orchestrator, check identity state files_
+- [ ] **Session continuity and work resumption** -- Enable agents to resume interrupted work from previous sessions
+  - [ ] `p68.d2.t1` Add session continuity to agent_identity.py (depends: p68.d1.t1)
+    > Add continuity: (1) SessionHandoff: when a session ends (voluntarily or crash), create a handoff record: what was being worked on, what was completed, what remains, any in-progress state, (2) handoff stored in ~/.orchestrator/handoffs/{agent_id}/{session_id}.yaml, (3) resume_session(agent_id): check for pending handoff, if found, inject handoff context into new session prompt, (4) handoff context includes: task description, work completed so far, files modified, test results, errors encountered, next steps identified by previous session, (5) merge with workspace_manager: when workspace transitions to failed/crashed, create automatic handoff, (6) handoff expiry: if handoff is older than 24 hours, mark as stale and start fresh (configurable), (7) handoff summary: use trace_formatter.py from phase 18 to create compact summary for context injection
+    _Files: ~/zion/projects/agent-orchestration/agent_identity.py_
+  - [ ] Agent can pick up where a previous session left off
+    _Validation: interrupt session, start new one, verify work continues_
+  - [ ] Work context from previous session is available to new session
+    _Validation: check that new session has access to previous session's state_
+- [ ] **Agent profiling and role affinity** -- Track agent performance across tasks to build role affinity profiles
+  - [ ] `p68.d3.t1` Add agent profiling to agent_identity.py (depends: p68.d1.t1)
+    > Add profiling: (1) TaskProfile: record of task type, outcome, duration, tokens used for each completed task, (2) RoleAffinity: calculated score for how well an agent identity performs in each role, based on historical success rate and efficiency, (3) update_profile(agent_id, task_result): update agent profile with latest task outcome, (4) get_affinity(agent_id, role): return affinity score (0.0-1.0) for agent in given role, (5) best_agent_for_role(role): return agent identity with highest affinity for a role, (6) integrate with spawner.py: when assigning role, prefer agent with highest affinity, (7) affinity decay: older performance data has less weight (exponential decay), (8) cold start: new agents get neutral affinity (0.5) for all roles
+    _Files: ~/zion/projects/agent-orchestration/agent_identity.py, ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] System tracks which task types each agent performs best on
+    _Validation: run agent on various tasks, check affinity scores_
+  - [ ] Role assignment considers agent affinity when available
+    _Validation: check that spawner uses affinity data_
+- [ ] **Tests and orchestrator integration** -- Integrate agent identity with the orchestrator and add tests
+  - [ ] `p68.d4.t1` Integrate agent_identity with orchestrator and add tests (depends: p68.d2.t1, p68.d3.t1)
+    > Integration and tests: (1) orchestrator.py: assign identity when spawning worker, update on completion, (2) execution_log.py: include agent_id in pipeline run records, (3) health_monitor.py: track identity activity in health checks (stale identities), (4) test_agent_identity.py: test identity creation, persistence, session handoff, affinity calculation, cold start, decay, integration with spawner, integration with orchestrator, edge cases (identity file corruption, handoff expiry, affinity ties)
+    _Files: ~/zion/projects/agent-orchestration/agent_identity.py, ~/zion/projects/agent-orchestration/test_agent_identity.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator assigns and tracks agent identities for all workers
+    _Validation: run orchestrator, check identity files created_
+  - [ ] Comprehensive tests cover identity lifecycle
+    _Validation: pytest coverage_
+
+### Technical Notes
+
+The "cattle vs pets" metaphor from the research is key: sessions (processes) are disposable cattle, but agent identity (the accumulated knowledge of what works) is a persistent pet. This phase makes that metaphor concrete by separating session lifecycle from identity lifecycle. Agent identity is NOT about the AI model itself -- it is about the orchestrator's accumulated knowledge about what works for different task types and roles.
+
+### Risks
+
+- Agent profiling could lead to unfair task distribution -- all tasks should be routable to any agent
+- Handoff context could leak sensitive information between sessions
+- Affinity scores could become stale if task types change -- implement decay
+- Identity files add state that must be managed (backup, cleanup, migration)
+- {'Cold start problem': 'new agents have no history, could be unfairly deprioritized'}
+
+## [ ] phase-69: Orchestrator Integration Test Suite (PLANNED)
+
+**Goal:** Create a comprehensive end-to-end test harness that validates the full orchestrator stack against mock or real GitHub issues
+
+The research emphasizes that the harness engineering approach requires rigorous testing: "the team focused on building the harness: the skills, documentation, and automated review agents that together defined what 'good' code looked like." While individual modules have tests (phase 7), there is no integration test that exercises the full pipeline from issue polling through PR creation. This phase creates an integration test suite that validates the orchestrator end-to-end with deterministic mock scenarios.
+
+### Deliverables
+
+- [ ] **Integration test harness** -- Create test_integration_full.py that exercises the full orchestrator pipeline
+  - [ ] `p69.d1.t1` Create test_integration_full.py with integration test harness
+    > Create test_integration_full.py with: (1) MockGitHubAPI: simulates GitHub Issues API for testing without real repo, (2) MockAgent: simulates delegate_task agent behavior, (3) IntegrationTestSuite class: sets up test environment, runs pipeline, tears down, (4) test_full_pipeline_happy_path: create mock issue, poll it, spawn worker, execute DAG, create PR, verify PR, (5) test_pipeline_with_failure: agent fails, verify failure is handled, workspace marked failed, (6) test_pipeline_with_retry: agent fails, retry succeeds, verify recovery, (7) test_multi_repo_pipeline: two repos with issues, verify correct routing, (8) test_concurrent_workers: two issues in parallel, verify no conflicts, (9) test_safety_gate: issue with dangerous operation, verify safety.py blocks it, (10) test_budget_enforcement: issue that would exceed budget, verify blocked
+    _Files: ~/zion/projects/agent-orchestration/test_integration_full.py_
+  - [ ] Test suite covers the full pipeline: poll -> spawn -> execute -> verify -> PR
+    _Validation: run test suite, verify all stages execute_
+  - [ ] Tests are deterministic (no external dependencies required)
+    _Validation: run tests in isolated environment, verify consistent results_
+- [ ] **Scenario-based integration tests** -- Add tests for specific real-world scenarios from the research
+  - [ ] `p69.d2.t1` Add scenario-based tests to test_integration_full.py (depends: p69.d1.t1)
+    > Add scenario tests: (1) test_speculative_ticket_workflow: file speculative ticket, agent explores approach, creates PR with findings (research: "filing speculative tickets"), (2) test_ralph_wiggum_loop: complex task requiring multiple iterations, verify context resets between iterations, (3) test_garbage_collection_workflow: GC scan finds violations, auto-fix creates PR, verify remediation, (4) test_role_specialization: issues with different labels routed to different roles, verify correct role behavior, (5) test_invariant_violation_detection: agent introduces layer violation, invariant checker catches it, agent fixes it, (6) test_self_verification_gate: agent completes work, verification gate runs, auto-fix cycle if needed, PR created, (7) test_health_monitoring: stuck workspace detected, alert triggered, workspace recovered, (8) test_session_continuity: agent crashes mid-task, new session resumes from handoff
+    _Files: ~/zion/projects/agent-orchestration/test_integration_full.py_
+  - [ ] Tests cover key research scenarios: speculative ticket, dark factory, multi-agent swarm
+    _Validation: review test names and descriptions_
+  - [ ] Each scenario test has clear pass/fail criteria based on research outcomes
+    _Validation: inspect test assertions_
+- [ ] **Performance and load testing** -- Add performance benchmarks to validate orchestrator scales under load
+  - [ ] `p69.d3.t1` Add performance benchmarks to test_integration_full.py (depends: p69.d2.t1)
+    > Add benchmarks: (1) BenchmarkSuite class: measures time, memory, token usage for pipeline stages, (2) benchmark_single_issue_latency: measure end-to-end time from issue creation to PR, (3) benchmark_throughput: measure issues processed per minute with N concurrent workers (1, 2, 5, 10), (4) benchmark_polling_overhead: measure time for poll cycle with varying numbers of issues, (5) benchmark_verification_gate: measure time for full verification suite, (6) memory_profile: track memory usage during pipeline execution, detect leaks, (7) benchmark_results stored in ~/.orchestrator/benchmarks/ for trend comparison, (8) CI integration: benchmark can be run in CI with --ci flag that sets baseline thresholds and fails if regressions detected
+    _Files: ~/zion/projects/agent-orchestration/test_integration_full.py_
+  - [ ] Benchmark measures throughput (issues/minute) and latency (time to PR)
+    _Validation: run benchmark, inspect results_
+  - [ ] Load test validates behavior with 10+ concurrent workers
+    _Validation: run load test, verify no deadlocks or resource exhaustion_
+- [ ] **Test fixtures and documentation** -- Create reusable test fixtures and document the integration test approach
+  - [ ] `p69.d4.t1` Create test fixtures and document integration testing (depends: p69.d3.t1)
+    > Create fixtures and docs: (1) conftest.py: shared pytest fixtures (mock workspace, mock issue, mock config, temp project dir), (2) fixtures/mock_project/: minimal Python project for testing (has tests, lintable code, known structure), (3) fixtures/mock_pipelines/: example DAG YAML files for testing various pipeline patterns, (4) fixtures/mock_roles/: example role profiles for testing role routing, (5) README_TESTING.md: how to run unit tests, integration tests, benchmarks; how to add new test scenarios; how to run in CI mode; how to interpret benchmark results, (6) test matrix: document which modules are tested by which test files, identify coverage gaps, (7) add to self_doc.py inventory: integration test suite as a module
+    _Files: ~/zion/projects/agent-orchestration/conftest.py, ~/zion/projects/agent-orchestration/README_TESTING.md_
+  - [ ] Test fixtures are reusable across integration tests
+    _Validation: fixtures imported and used by multiple tests_
+  - [ ] Documentation explains how to run and extend integration tests
+    _Validation: read docs, follow instructions, run tests_
+
+### Technical Notes
+
+The research emphasizes that the Dark Factory experiment achieved quality through the harness, not through human review. Integration testing is how we validate that the harness actually works end-to-end. Without integration tests, individual modules could all pass their unit tests while the overall system fails in subtle ways (e.g., context not properly passed between stages, state not properly cleaned up between runs). The mock-based approach ensures tests are deterministic and fast, while still exercising the real code paths.
+
+### Risks
+
+- Mock-based tests may not catch real-world issues (GitHub API quirks, file system permissions)
+- Integration tests could be slow if they exercise the full pipeline -- keep scenarios focused
+- Test fixtures could become outdated as the orchestrator evolves
+- Load tests could be flaky in CI environments with limited resources
+- Over-investment in testing could slow feature development -- keep test maintenance low
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -3510,6 +3804,11 @@ Start with soft-mode filesystem restrictions and Python-level resource limits (n
 - Webhook receiver (phase 63) requires network exposure -- needs firewall rules and TLS
 - LD_PRELOAD sandboxing (phase 64) may not work with statically-linked binaries
 - Overly restrictive sandboxing (phase 64) could break legitimate agent operations (pip, git)
+- Stop hooks (phase 65) could false-positive on completion tags -- use specific tag formats
+- Maintenance automation (phase 66) auto-filing issues could spam repos with findings
+- Pre-PR verification gate (phase 67) could block legitimate PRs if checks too strict
+- Agent identity (phase 68) profiling could create unfair task distribution over time
+- Integration tests (phase 69) mock-based approach may miss real-world GitHub API quirks
 
 ## Conventions
 
