@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 17/69 phases complete, 0 in progress
+**Progress:** 17/73 phases complete, 0 in progress
 
-**Deliverables:** 67/275 complete
+**Deliverables:** 67/291 complete
 
-**Tasks:** 74/275 complete
+**Tasks:** 74/291 complete
 
 ## Scope Summary
 
@@ -81,6 +81,10 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-67 Pre-PR Self-Verification Gate | PLANNED | 0/4 | 400 | 10 |
 | phase-68 Agent Session Identity and Continuity | PLANNED | 0/4 | 400 | 10 |
 | phase-69 Orchestrator Integration Test Suite | PLANNED | 0/4 | 420 | 15 |
+| phase-70 Backpressure and Rate Limit Management | PLANNED | 0/4 | 450 | 12 |
+| phase-71 Orchestrator Configuration Validation and Drift Detection | PLANNED | 0/4 | 460 | 12 |
+| phase-72 Structured Metrics and External Telemetry Pipeline | PLANNED | 0/4 | 500 | 10 |
+| phase-73 Agent Workspace Checkpoint and Incremental Restore | PLANNED | 0/4 | 390 | 8 |
 
 ## Dependencies
 
@@ -317,6 +321,27 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-4 | phase-69 | soft | Orchestrator from phase 4 is the primary system under test |
 | phase-5 | phase-69 | soft | DAG executor from phase 5 is a core component tested by integration suite |
 | phase-23 | phase-69 | soft | E2E validation from phase 23 provides integration test scenarios |
+| phase-4 | phase-70 | soft | Backpressure modifies the orchestrator loop from phase 4 |
+| phase-14 | phase-70 | soft | Health monitoring from phase 14 provides system resource metrics that backpressure uses |
+| phase-32 | phase-70 | soft | Cost tracker from phase 32 provides token usage data for model API rate limiting |
+| phase-53 | phase-70 | soft | Autoscaler from phase 53 should respect backpressure signals when scaling decisions |
+| phase-4 | phase-71 | soft | Config validation protects the orchestrator from phase 4 |
+| phase-5 | phase-71 | soft | Pipeline YAMLs from phase 5 need schema validation |
+| phase-6 | phase-71 | soft | Role profiles from phase 6 need schema validation |
+| phase-17 | phase-71 | soft | Invariants from phase 17 are a form of config that needs validation |
+| phase-22 | phase-71 | soft | Config hot-reload from phase 22 should validate before applying new config |
+| phase-51 | phase-71 | soft | Federation from phase 51 needs config consistency across instances |
+| phase-4 | phase-72 | soft | Metrics instrument the orchestrator from phase 4 |
+| phase-8 | phase-72 | soft | Execution history from phase 8 is a complementary data source for metrics |
+| phase-14 | phase-72 | soft | Health monitoring from phase 14 produces metrics that should be exported |
+| phase-32 | phase-72 | soft | Cost tracking from phase 32 produces token/cost metrics that should be exported |
+| phase-44 | phase-72 | soft | Health scorecard from phase 44 defines the KPIs that metrics should track |
+| phase-70 | phase-72 | soft | Backpressure signals from phase 70 should be exposed as metrics |
+| phase-5 | phase-73 | soft | Checkpoints integrate with the DAG executor from phase 5 |
+| phase-11 | phase-73 | soft | Workspace lifecycle from phase 11 manages the workspaces that checkpoints protect |
+| phase-25 | phase-73 | soft | State recovery from phase 25 complements workspace-level checkpointing |
+| phase-65 | phase-73 | soft | Stop hooks from phase 65 trigger checkpoints before agent loop termination |
+| phase-8 | phase-73 | soft | Execution logs from phase 8 record checkpoint events |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -3744,6 +3769,230 @@ The research emphasizes that the Dark Factory experiment achieved quality throug
 - Load tests could be flaky in CI environments with limited resources
 - Over-investment in testing could slow feature development -- keep test maintenance low
 
+## [ ] phase-70: Backpressure and Rate Limit Management (PLANNED)
+
+**Goal:** Protect the orchestrator and external APIs from overload by implementing backpressure mechanisms, rate limit tracking, and graceful degradation when limits are approached
+
+The research describes Gas Town managing "20 to 30 Claude Code instances working concurrently on the same codebase" and the Symphony reference implementation's max_concurrent parameter. However, none of the existing phases address what happens when the orchestrator approaches external API rate limits (GitHub API, model provider APIs), when system resources are constrained, or when downstream dependencies become slow. Without backpressure, the orchestrator can overwhelm APIs (causing rate-limit bans), exhaust system resources (causing OOM kills), or cascade failures across workers. This phase implements: (1) a rate limit tracker that monitors API usage and predicts when limits will be hit, (2) backpressure signals that throttle worker spawning when limits approach, (3) graceful degradation strategies (queue work instead of failing, reduce parallelism instead of stopping), (4) circuit breakers that temporarily stop calling flaky APIs, and (5) a rate limit budget allocator that distributes API capacity across workers fairly. This is the "traffic cop" pattern that prevents the orchestrator from being its own worst enemy at scale.
+
+### Deliverables
+
+- [ ] **Rate limit tracker module** -- Python module that tracks API usage rates, predicts limit exhaustion, and provides usage budgets
+  - [ ] `p70.d1.t1` Create rate_limiter.py module
+    > Create rate_limiter.py: (1) RateLimitTracker class that monitors API usage: GitHub (5000 req/hour for auth, 60/hour for search), model API (tokens per minute, requests per minute), (2) track usage by recording each API call timestamp in a sliding window, (3) predict exhaustion: remaining_limit / usage_rate = time_until_exhaustion, (4) allocate budget: given N workers, distribute available capacity evenly or by priority, (5) CLI: status --api github|model, predict --workers N --duration M, budget --workers N. Store rate limit state in ~/.orchestrator/rate_limits/. Use gh api rate_limit for GitHub limits.
+    _Files: ~/zion/projects/agent-orchestration/rate_limiter.py_
+  - [ ] Tracks GitHub API rate limit (requests remaining, reset time) via gh CLI headers
+    _Validation: python3 rate_limiter.py status --api github_
+  - [ ] Predicts time until rate limit exhaustion based on current usage rate
+    _Validation: set high usage rate, verify prediction matches actual limit hit_
+  _~150 LOC_
+- [ ] **Backpressure controller** -- Throttle orchestrator behavior when rate limits or resource constraints are approached
+  - [ ] `p70.d2.t1` Create backpressure.py module (depends: p70.d1.t1)
+    > Create backpressure.py: (1) BackpressureController class with signal levels: GREEN (full speed), YELLOW (reduce by 50%), RED (stop spawning, queue only), (2) inputs: rate limit tracker (p70.d1.t1), system metrics (CPU, memory, disk from health_monitor.py), active worker count, (3) throttling strategies: reduce_max_concurrent (lower the cap), delay_spawn (add wait time between spawns), queue_only (accept work but don't start workers), (4) configurable thresholds: yellow_at (default 70% of limit), red_at (default 90% of limit), recovery_cooldown (default 60s), (5) each signal change is logged with reason, (6) CLI: python3 backpressure.py status, --simulate --api github --workers 10
+    _Files: ~/zion/projects/agent-orchestration/backpressure.py_
+  - [ ] Orchestrator reduces worker spawning when rate limit is near exhaustion
+    _Validation: simulate near-limit, verify throttling_
+  - [ ] Backpressure is gradual (not binary) — scales down smoothly
+    _Validation: check spawn rate decreases proportionally as limit approaches_
+  _~120 LOC_
+- [ ] **Circuit breaker for flaky APIs** -- Temporarily stop calling APIs that are failing repeatedly, with automatic recovery
+  - [ ] `p70.d3.t1` Add circuit breaker to backpressure.py (depends: p70.d2.t1)
+    > Add CircuitBreaker class to backpressure.py: (1) states: CLOSED (normal), OPEN (rejecting calls), HALF_OPEN (testing recovery), (2) config: failure_threshold (default 5), recovery_timeout (default 60s), half_open_max_calls (default 1), (3) on each call: if CLOSED, track success/failure; if failure_count >= threshold, transition to OPEN; if OPEN and timeout elapsed, transition to HALF_OPEN; if HALF_OPEN and test call succeeds, transition to CLOSED, (4) per-API circuit breakers (GitHub, model API), (5) CLI: python3 backpressure.py circuits --show, --reset API. This prevents cascading failures when an API is down — instead of N workers all hitting a broken API and getting rate-limited or timed out, the circuit breaker stops all calls immediately.
+    _Files: ~/zion/projects/agent-orchestration/backpressure.py_
+  - [ ] API that fails 5 consecutive times triggers circuit breaker (stop calling for cooldown period)
+    _Validation: simulate failures, verify circuit opens_
+  - [ ] Circuit breaker auto-recovers after cooldown and tests with a single request
+    _Validation: wait for cooldown, verify half-open state and recovery_
+  _~100 LOC_
+- [ ] **Backpressure integration with orchestrator** -- Hook backpressure controller into the orchestrator main loop
+  - [ ] `p70.d4.t1` Integrate backpressure into orchestrator.py (depends: p70.d2.t1, p70.d3.t1, p4.d3.t1)
+    > Modify orchestrator.py run_loop(): (1) add backpressure section to orchestrator.yaml: enabled (bool), yellow_threshold, red_threshold, circuit_breaker_enabled, (2) at the start of each loop iteration, check backpressure controller signal, (3) if YELLOW: reduce max_concurrent by 50% for this iteration, log warning, (4) if RED: skip spawning entirely, just poll and queue, log critical, (5) after each API call (poll, PR creation, label update), feed result to circuit breaker, (6) add backpressure section to status.sh showing: signal level, active circuit breakers, rate limit budgets, suggested actions. Backpressure is disabled by default (backward compatible).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/orchestrator.yaml, ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Orchestrator checks backpressure before each spawn decision
+    _Validation: run orchestrator with backpressure enabled, verify throttling on rate limit approach_
+  - [ ] Backpressure status visible in status.sh
+    _Validation: check status.sh output for backpressure signal_
+  _~80 LOC_
+
+### Technical Notes
+
+Backpressure is the missing piece for production orchestrator operation. The research describes 20-30 concurrent agents but doesn't address the operational reality: GitHub has hard rate limits (5000/hour), model APIs have TPM/RPM limits, and system resources are finite. Without backpressure, the orchestrator will hit these limits and either fail loudly or get temporarily banned. The circuit breaker pattern (from Netflix Hystrix) is well-established for this use case. The key insight: it's better to slow down than to fail. Queue work, reduce parallelism, wait for limits to reset.
+
+### Risks
+
+- Rate limit tracking adds overhead to every API call
+- Circuit breaker recovery timeout may be too short or too long — needs tuning per API
+- Backpressure could cause work to pile up if limits are sustained — need queue depth monitoring
+- GitHub rate limit headers may not be available via gh CLI in all configurations
+- Model API rate limits vary by provider and plan — need configurable limits per provider
+
+## [ ] phase-71: Orchestrator Configuration Validation and Drift Detection (PLANNED)
+
+**Goal:** Validate orchestrator configuration files for correctness, detect configuration drift across instances, and alert on misconfigurations before they cause production issues
+
+The Harness Engineering research emphasizes that "the team focused on building the harness" as their competitive advantage — the quality of the harness directly determines agent output quality. Phase 17 validates structural invariants in application code, and Phase 22 covers config hot-reload, but neither validates the orchestrator's own configuration. As the orchestrator grows more complex (69+ phases, multi-repo, federation, backpressure, safety policies), misconfiguration becomes a significant risk: a typo in orchestrator.yaml could disable safety gates, a stale role profile could route critical work to the wrong agent, or a federation config mismatch could cause duplicate work. This phase creates: (1) a config schema validator that checks all orchestrator YAML files against known schemas, (2) cross-config consistency checks (role referenced in pipeline exists, pipeline referenced in orchestrator config exists, approval policy matches safety gates), (3) drift detection that compares configs across instances (federation) or against a git-tracked baseline, (4) a config linting CLI that runs as part of CI and before orchestrator startup, and (5) automatic config migration when schema versions change. This is the "meta-harness": using the same validation rigor on the orchestrator itself that the orchestrator applies to agent code.
+
+### Deliverables
+
+- [ ] **Config schema validator** -- Validate all orchestrator YAML configs against defined schemas
+  - [ ] `p71.d1.t1` Create config_validator.py module
+    > Create config_validator.py: (1) define JSON schemas for: orchestrator.yaml (repo, labels, max_concurrent, polling, safety, backpressure, federation, autoscaling sections), role YAMLs (name, description, system_prompt, tools, quality_gates), pipeline YAMLs (nodes, edges, node types), invariants.yaml (rules, severity, patterns), (2) validate() function: load YAML, check against schema, report errors, (3) cross-reference checks: role files referenced in orchestrator.yaml exist, pipeline files referenced in config exist, labels referenced in poller are valid GitHub label format, approval policy values match safety.py supported policies, (4) CLI: validate --all, validate --file orchestrator.yaml, validate --schema orchestrator|role|pipeline|invariant, (5) exit code 0 on success, 1 on validation error (CI-friendly), (6) support --fix for auto-fixable issues (missing default values, deprecated field names).
+    _Files: ~/zion/projects/agent-orchestration/config_validator.py_
+  - [ ] Validates orchestrator.yaml, role YAMLs, pipeline YAMLs, and invariants.yaml
+    _Validation: python3 config_validator.py validate --all_
+  - [ ] Reports specific errors with line numbers and fix suggestions
+    _Validation: introduce a deliberate config error, verify error message is actionable_
+  _~180 LOC_
+- [ ] **Configuration drift detection** -- Detect and report configuration drift between instances or against a git baseline
+  - [ ] `p71.d2.t1` Add drift detection to config_validator.py (depends: p71.d1.t1)
+    > Add drift detection: (1) baseline mode: compare current config files against git HEAD (or a specified commit), report any uncommitted changes, (2) instance mode: compare config files between federation instances (via federation_status.py from phase 51 or direct file comparison), (3) drift types: added_keys (new config not in baseline), removed_keys (baseline config missing in current), changed_values (same key, different value), type_changes (value type changed, e.g. int to string), (4) severity: critical (safety gates disabled, approval policy changed), warning (max_concurrent changed, polling interval changed), info (cosmetic changes), (5) CLI: drift --baseline HEAD, drift --instance other-instance, (6) support --ignore for known acceptable drifts (stored in .driftignore). Drift detection is critical for federation (phase 51) where config consistency across instances prevents duplicate work.
+    _Files: ~/zion/projects/agent-orchestration/config_validator.py_
+  - [ ] Can compare running config against git-tracked baseline and report differences
+    _Validation: modify running config, run drift check, verify diff reported_
+  - [ ] Can compare configs across federation instances
+    _Validation: simulate two instances with different configs, verify drift reported_
+  _~120 LOC_
+- [ ] **Config migration framework** -- Automatically migrate config files when schema versions change
+  - [ ] `p71.d3.t1` Add config migration to config_validator.py (depends: p71.d1.t1)
+    > Add migration framework: (1) each config type has a version field (default v1), (2) migration registry: map (config_type, from_version, to_version) -> migration_function, (3) migration_function: transforms old format to new format, preserving all data, adding new defaults for new fields, (4) migrate command: detect current version, apply all migrations up to latest, validate result, (5) --dry-run to preview changes without modifying files, (6) auto-backup: save pre-migration config as .bak before modifying, (7) CLI: migrate --all, migrate --config orchestrator.yaml, migrate --dry-run. Example migration: when approval_policy changes from boolean to enum (true -> "on-failure", false -> "never").
+    _Files: ~/zion/projects/agent-orchestration/config_validator.py_
+  - [ ] Can migrate old config format to new format without data loss
+    _Validation: provide v1 config, run migrate, verify v2 config is valid_
+  _~100 LOC_
+- [ ] **Pre-flight config check in orchestrator startup** -- Run config validation before orchestrator starts, preventing misconfigurations from reaching production
+  - [ ] `p71.d4.t1` Integrate config validation into orchestrator startup (depends: p71.d1.t1, p4.d3.t1)
+    > Modify orchestrator.py: (1) on startup, run config_validator.py validate --all before entering main loop, (2) if validation fails, print errors and exit with code 1 (don't start with bad config), (3) add --skip-validation flag for emergency bypass (logs a warning), (4) if drift detected against git baseline, print warning but continue (drift is not a blocking error), (5) add preflight section to status.sh showing last validation result and any drift, (6) add validation to the DAG executor startup (phase 5) to validate pipeline YAMLs before execution. This ensures the orchestrator never runs with a configuration that would violate safety gates or produce incorrect behavior.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Orchestrator refuses to start if config validation fails
+    _Validation: introduce config error, start orchestrator, verify startup fails with clear message_
+  _~60 LOC_
+
+### Technical Notes
+
+Config validation is the "structural invariants for the orchestrator itself." The same rigor applied to application code in phase 17 should apply to orchestrator configuration. As the system grows, config files become the most common source of bugs: a misplaced YAML indent, a renamed field, a changed enum value. The migration framework ensures config evolution doesn't break existing deployments. Drift detection is especially important for federation (phase 51) where two instances with different max_concurrent settings could race for the same issues.
+
+### Risks
+
+- Schema definitions may lag behind new features — need discipline to update schemas with every config change
+- Migration could corrupt configs if migration functions have bugs — always backup before migrating
+- Drift detection may produce false positives for intentionally different per-instance configs
+- Validation on every startup adds latency — should be fast (<1 second for typical configs)
+- Overly strict validation could prevent legitimate config experiments — support --skip-validation
+
+## [ ] phase-72: Structured Metrics and External Telemetry Pipeline (PLANNED)
+
+**Goal:** Expose orchestrator metrics in standard formats (Prometheus, StatsD, JSON) for integration with external monitoring systems, completing the research''s "Status Surface" component
+
+The research describes Symphony's "Status Surface" as a component that "provides real-time visibility into agent turns and workspace state" using a Phoenix-based live dashboard. Phase 8 covers execution history logging, Phase 14 covers health monitoring, and Phase 27 covers a live terminal dashboard, but none of these produce structured metrics in standard formats that external monitoring systems (Prometheus, Grafana, Datadog, CloudWatch) can consume. Without structured metrics, the orchestrator is a black box to existing DevOps infrastructure. This phase creates: (1) a metrics collector that tracks orchestrator KPIs (queue depth, active workers, success rate, latency, token usage) as time-series data, (2) exporters for standard formats (Prometheus /metrics endpoint, StatsD, JSON), (3) a lightweight HTTP metrics server that serves the /metrics endpoint, (4) metric definitions aligned with the health scorecard (phase 44) for consistency, and (5) pre-built Grafana dashboard templates for common orchestrator views. This completes the observability stack: logs (phase 8), health checks (phase 14), dashboard (phase 27), and now structured metrics for external systems.
+
+### Deliverables
+
+- [ ] **Metrics collector module** -- Track orchestrator KPIs as time-series metrics with labels
+  - [ ] `p72.d1.t1` Create metrics.py module
+    > Create metrics.py with: (1) Counter metric type: monotonic increasing (total_issues_processed, total_prs_created, total_tokens_used, total_errors), (2) Gauge metric type: current value (active_workers, queue_depth, pending_prs, health_score, backpressure_signal), (3) Histogram metric type: distribution (issue_latency_seconds, pipeline_duration_seconds, tokens_per_issue), (4) all metrics support labels: repo, role, pipeline, status (success/failure), (5) metrics are stored in memory with configurable retention (default 1 hour of high-res, 7 days of aggregated), (6) thread-safe (atomic increments), (7) CLI: list, snapshot, query --metric active_workers --label repo=owner/repo. Metric definitions: orch_queue_depth{repo}, orch_active_workers{repo}, orch_issues_total{repo,status}, orch_prs_total{repo,status}, orch_pipeline_duration_seconds{repo,pipeline}, orch_tokens_total{repo,role}, orch_errors_total{repo,type}, orch_health_score{repo}, orch_backpressure_signal{repo}, orch_worker_spawn_latency_seconds{repo}.
+    _Files: ~/zion/projects/agent-orchestration/metrics.py_
+  - [ ] Tracks at least 15 metrics across orchestrator operations
+    _Validation: python3 metrics.py list_
+  - [ ] Metrics support labels for dimensional analysis (per-repo, per-role, per-pipeline)
+    _Validation: query metrics with label filters_
+  _~180 LOC_
+- [ ] **Prometheus and StatsD exporters** -- Export metrics in standard formats for external monitoring systems
+  - [ ] `p72.d2.t1` Add exporters to metrics.py (depends: p72.d1.t1)
+    > Add exporter functions to metrics.py: (1) Prometheus exporter: output in Prometheus text exposition format (TYPE, HELP, metric lines with labels), support /metrics HTTP endpoint format, include process metrics (uptime, memory, goroutine-equivalent thread count), (2) StatsD exporter: format as StatsD protocol (metric_name:value|type|@sample_rate), support both UDP and TCP transport, (3) JSON exporter: output as structured JSON with timestamps, suitable for custom dashboards or API consumption, (4) CLI: export --format prometheus|statsd|json [--output FILE], (5) each exporter is a separate function/class for easy extension (future: OpenTelemetry, CloudWatch).
+    _Files: ~/zion/projects/agent-orchestration/metrics.py_
+  - [ ] Can export metrics in Prometheus text format
+    _Validation: python3 metrics.py export --format prometheus, verify output format_
+  - [ ] Can export metrics in StatsD format
+    _Validation: python3 metrics.py export --format statsd, verify output format_
+  _~120 LOC_
+- [ ] **Lightweight metrics HTTP server** -- HTTP server that serves /metrics endpoint for Prometheus scraping
+  - [ ] `p72.d3.t1` Create metrics_server.py (depends: p72.d2.t1)
+    > Create metrics_server.py: (1) lightweight HTTP server using http.server (stdlib, no dependencies), (2) endpoints: /metrics (Prometheus format), /health (health check), /metrics/json (JSON format), (3) configurable port (default 9090), (4) optional basic auth (for non-local access), (5) runs as a background thread within the orchestrator process (no separate service), (6) graceful shutdown on orchestrator exit, (7) CLI: python3 metrics_server.py --port 9090 --auth user:pass. The server is intentionally minimal — no Flask/FastAPI dependency, just stdlib http.server. For production, users can put nginx in front for TLS and auth.
+    _Files: ~/zion/projects/agent-orchestration/metrics_server.py_
+  - [ ] HTTP server serves metrics at /metrics on configurable port
+    _Validation: start server, curl localhost:PORT/metrics, verify response_
+  - [ ] Server is lightweight (<10MB memory) and doesn't interfere with orchestrator
+    _Validation: check memory usage while server is running_
+  _~80 LOC_
+- [ ] **Metrics integration with orchestrator and Grafana templates** -- Instrument the orchestrator with metrics collection and provide Grafana dashboard templates
+  - [ ] `p72.d4.t1` Integrate metrics into orchestrator and create Grafana templates (depends: p72.d3.t1, p4.d3.t1)
+    > Modify orchestrator.py, executor.py, poller.py, spawner.py: (1) add metrics.record() calls at key points: poll cycle start/end, worker spawn, worker complete, PR creation, error, (2) wrap delegate_task calls with timer histograms, (3) update counters on every state transition, (4) start metrics_server.py as background thread on orchestrator startup, (5) create dashboards/ directory with Grafana JSON templates: overview (queue, workers, success rate), per-repo detail (latency, token usage, PR rate), cost analysis (tokens, cost per PR), health trend (health score over time, error rate), (6) add metrics section to status.sh showing current metric snapshot. The Grafana templates use Prometheus data source and include auto-refresh.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/poller.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/status.sh, ~/zion/projects/agent-orchestration/dashboards/_
+  - [ ] Orchestrator records metrics for all key operations
+    _Validation: run orchestrator, check metrics endpoint, verify data points_
+  - [ ] Grafana dashboard JSON template is provided for common views
+    _Validation: import template into Grafana, verify panels render_
+  _~120 LOC_
+
+### Technical Notes
+
+The metrics pipeline is the final piece of the observability stack. The research describes a "Phoenix-based live observability dashboard" — this phase provides the data layer that any dashboard (Grafana, custom, terminal) can consume. Using Prometheus format is the industry standard and enables integration with the entire Prometheus/Grafana ecosystem (alerting rules, recording rules, Thanos for long-term storage). The stdlib HTTP server keeps dependencies minimal — no Flask, no FastAPI, no gunicorn. For production, users typically put Prometheus behind a reverse proxy with TLS.
+
+### Risks
+
+- Metrics collection adds overhead to every operation — keep recording fast (in-memory, batched)
+- High-cardinality labels (e.g. per-issue) can explode Prometheus storage — use low-cardinality labels only
+- HTTP metrics server exposes internal state — require auth for non-localhost access
+- Metrics retention in memory could grow unbounded — implement configurable retention and aggregation
+- Grafana templates may need updates as metrics evolve — version templates alongside code
+
+## [ ] phase-73: Agent Workspace Checkpoint and Incremental Restore (PLANNED)
+
+**Goal:** Enable workspace-level snapshots and incremental restore so that crashed or interrupted agents can resume from their last good state instead of starting over
+
+The research describes Symphony's workspace isolation where "for each issue, the orchestrator creates a deterministic mapping between the issue ID and a local directory." Phase 25 covers orchestrator-level resilience (state recovery, checkpoint pipeline state) and Phase 11 covers workspace lifecycle management (creation, archival, cleanup), but neither addresses workspace-level checkpointing. When an agent is 80% through a complex task and crashes (OOM, timeout, network failure), the current system either restarts from scratch (wasting tokens and time) or archives the workspace as failed. This phase implements workspace checkpoints: (1) snapshot the workspace filesystem state at configurable intervals (every N pipeline steps or every M minutes), (2) on agent crash, restore from the last checkpoint instead of starting over, (3) incremental checkpoints that only store changes since the last snapshot (efficient for large workspaces), (4) checkpoint metadata that records the agent's context at checkpoint time (current pipeline step, tokens used, files modified), and (5) a checkpoint CLI for manual inspection and rollback. This directly supports the Ralph Wiggum pattern (phase 65) by making loop iterations truly resumable, and improves cost efficiency by avoiding re-work on long-running tasks.
+
+### Deliverables
+
+- [ ] **Workspace checkpoint module** -- Create and manage filesystem snapshots of agent workspaces
+  - [ ] `p73.d1.t1` Create checkpoint.py module
+    > Create checkpoint.py: (1) create(workspace, step_id, metadata) function: snapshot workspace state, (2) snapshot strategy: use rsync --link-dest for incremental snapshots (hardlinks unchanged files, copies changed files), store in ~/.orchestrator/checkpoints/{workspace_id}/{step_id}/, (3) metadata: step_id, pipeline_step, timestamp, files_changed (diff from previous), disk_usage, agent_context_summary (truncated), (4) list(workspace) -> list of checkpoints with metadata, (5) restore(workspace, step_id) -> restore workspace to checkpoint state, (6) prune(workspace, keep_last=N) -> delete old checkpoints to save disk, (7) estimate_size(workspace) -> predict next checkpoint size, (8) CLI: create, list, restore, prune, estimate. rsync --link-dest is the key: it creates a full directory tree appearance but only stores changed files, making incremental snapshots nearly free for small changes.
+    _Files: ~/zion/projects/agent-orchestration/checkpoint.py_
+  - [ ] Can create a checkpoint of a workspace directory
+    _Validation: python3 checkpoint.py create --workspace ./workspaces/issue-42_
+  - [ ] Checkpoints are incremental (only store changes since last checkpoint)
+    _Validation: create two checkpoints, verify second is smaller than first_
+  _~150 LOC_
+- [ ] **Checkpoint-aware executor** -- Integrate checkpoints into the DAG executor pipeline
+  - [ ] `p73.d2.t1` Integrate checkpoints into executor.py (depends: p73.d1.t1)
+    > Modify executor.py: (1) add checkpoint section to pipeline YAML config: enabled (bool), interval (every_step|every_N_steps|every_M_minutes), max_checkpoints (default 5), on_failure (restore_and_retry|fail), (2) between pipeline steps, call checkpoint.create() if enabled, (3) on step failure: if on_failure=restore_and_retry, restore from last checkpoint, adjust pipeline state to retry the failed step, log the recovery, (4) track checkpoint usage in execution log (phase 8): checkpoint_created, checkpoint_restored events, (5) add --no-checkpoint flag to disable (default: checkpointing off for backward compatibility), (6) checkpoint_restore_count metric for the metrics pipeline (phase 72). This makes long-running pipelines (10+ steps) resilient to mid-task crashes.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Executor creates checkpoints between pipeline steps
+    _Validation: run pipeline with checkpointing enabled, verify checkpoints created_
+  - [ ] On step failure, executor can restore from last checkpoint and retry
+    _Validation: kill agent mid-pipeline, verify restore and retry_
+  _~100 LOC_
+- [ ] **Checkpoint-aware workspace lifecycle** -- Integrate checkpoints with workspace creation and archival
+  - [ ] `p73.d3.t1` Integrate checkpoints into workspace_manager.py (depends: p73.d1.t1)
+    > Modify workspace_manager.py: (1) on workspace creation, create checkpoints/ subdirectory, (2) on workspace archival (phase 11), preserve last N checkpoints alongside the archived workspace (compressed), (3) on workspace cleanup, delete checkpoints too, (4) add checkpoint info to workspace metadata: last_checkpoint_id, checkpoint_count, total_checkpoint_size, (5) add checkpoint section to status.sh workspace view showing checkpoint count and total size. Checkpoints should be stored outside the workspace directory (in ~/.orchestrator/checkpoints/) so they survive workspace archival.
+    _Files: ~/zion/projects/agent-orchestration/workspace_manager.py_
+  - [ ] Workspaces are created with checkpoint directory structure
+    _Validation: create workspace, verify checkpoint dir exists_
+  - [ ] Archived workspaces retain their last checkpoint for forensic analysis
+    _Validation: archive workspace, verify checkpoint preserved_
+  _~60 LOC_
+- [ ] **Checkpoint management CLI and cleanup cron** -- CLI for managing checkpoints and automated cleanup of stale checkpoints
+  - [ ] `p73.d4.t1` Add checkpoint management and cleanup (depends: p73.d2.t1)
+    > Extend checkpoint.py: (1) inspect(workspace, step_id) -> show detailed checkpoint metadata: files changed, disk usage, agent context at checkpoint time, (2) diff(workspace, step_id_1, step_id_2) -> show what changed between two checkpoints, (3) cleanup cron: weekly job that prunes checkpoints older than 7 days, keeps last 3 per workspace, removes orphaned checkpoints (workspace deleted but checkpoints remain), (4) disk usage report: total checkpoint storage, per-workspace breakdown, (5) add checkpoint management section to status.sh. Create a cron job (or add to phase 66 maintenance automation) that runs checkpoint cleanup weekly.
+    _Files: ~/zion/projects/agent-orchestration/checkpoint.py, ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Can list, inspect, and manually restore checkpoints from CLI
+    _Validation: python3 checkpoint.py list, inspect, restore_
+  - [ ] Stale checkpoints are automatically cleaned up
+    _Validation: create old checkpoints, run cleanup, verify removed_
+  _~80 LOC_
+
+### Technical Notes
+
+rsync --link-dest is the ideal mechanism for incremental checkpoints: it creates a full directory tree where unchanged files are hardlinks to the previous snapshot. This means: (1) incremental snapshots use almost no extra disk for small changes, (2) each checkpoint is a fully usable directory (no reconstruction needed), (3) cleanup is simple (rm -rf the checkpoint dir; hardlinked files are preserved by other checkpoints). The trade-off: hardlinks don't work across filesystems, so checkpoints must be on the same filesystem as the workspace. For large workspaces (>1GB), consider tar-based incremental snapshots as an alternative.
+
+### Risks
+
+- Checkpoints consume disk space — need aggressive pruning for large workspaces
+- rsync --link-dest may be slow on very large directories — consider tracking changed files via inotify instead
+- Restoring a checkpoint while another process is writing to the workspace could corrupt state — use file locking
+- Checkpoint metadata may include sensitive agent context — consider redaction
+- Incremental restore may not perfectly reproduce state (file permissions, symlinks) — test edge cases
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -3809,6 +4058,14 @@ The research emphasizes that the Dark Factory experiment achieved quality throug
 - Pre-PR verification gate (phase 67) could block legitimate PRs if checks too strict
 - Agent identity (phase 68) profiling could create unfair task distribution over time
 - Integration tests (phase 69) mock-based approach may miss real-world GitHub API quirks
+- Backpressure (phase 70) could cause work starvation if rate limits are sustained for long periods
+- Circuit breaker (phase 70) recovery timeout misconfiguration could leave APIs permanently blocked
+- Config validation (phase 71) schemas may not cover all config edge cases as the system evolves
+- Config migration (phase 71) bugs could corrupt production configs -- always backup before migrating
+- Metrics pipeline (phase 72) high-cardinality labels could explode Prometheus storage costs
+- Metrics HTTP server (phase 72) exposes internal orchestrator state -- require auth for non-localhost access
+- Workspace checkpoints (phase 73) could consume significant disk space on large workspaces
+- Checkpoint restore (phase 73) during active writes could corrupt workspace state -- file locking is critical
 
 ## Conventions
 
