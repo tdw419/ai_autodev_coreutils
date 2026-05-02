@@ -1,0 +1,113 @@
+# Context Window Budget Configuration
+# Manages how prompt components are prioritized and budgeted for AI nodes.
+#
+# The goal: keep agents in the "smart zone" (30-60% of context window)
+# to maximize reasoning quality and avoid Ralph Wiggum decay.
+#
+# Based on the research: "AI models exhibit reasoning quality decay
+# after reaching 30-60% of their context window."
+
+# Model configuration
+model:
+  # Default model for token estimation
+  default: claude-sonnet-4
+
+  # Context window sizes per model (input tokens)
+  windows:
+    claude-sonnet-4: 200000
+    claude-opus-4: 200000
+    claude-3.5-sonnet: 200000
+    gpt-4o: 128000
+    gpt-4-turbo: 128000
+    gpt-4: 8192
+    default: 200000
+
+# Budget settings
+budget:
+  # What fraction of the context window to use for input
+  # (leave the rest for the model's response)
+  input_ratio: 0.80
+
+  # Smart zone: optimal reasoning at this fraction of the input budget
+  smart_zone_min: 0.30
+  smart_zone_max: 0.60
+
+  # Warn if truncating more than this fraction of the budget
+  truncation_warning_threshold: 0.30
+
+# Prompt component priorities (1 = highest, never truncate; 5 = lowest, truncate first)
+component_priorities:
+  # These are the standard prompt components, ordered by priority
+  task_description:     # The issue/task being worked on
+    priority: 1
+    required: true
+  role_prompt:          # The agent's role definition and instructions
+    priority: 1
+    required: true
+  implementation_plan:  # The plan from the planning phase
+    priority: 2
+    required: false
+  previous_context:     # Previous node outputs in the pipeline
+    priority: 2
+    required: false
+  error_trace:          # Debug trace from a previous failure
+    priority: 2
+    required: false
+  code_guidelines:      # AI_GUIDE.md or similar
+    priority: 3
+    required: false
+  file_contents:        # Relevant source file contents
+    priority: 3
+    required: false
+  test_output:          # Previous test run output
+    priority: 3
+    required: false
+  diff_context:         # Git diff from previous changes
+    priority: 4
+    required: false
+  knowledge_base:       # Cross-session knowledge (from phase 47)
+    priority: 4
+    required: false
+  execution_history:    # Full execution log from previous runs
+    priority: 5
+    required: false
+
+# Per-role budget overrides
+# Some roles need more or less context than others
+role_overrides:
+  coordinator:
+    budget_multiplier: 0.8   # Coordinators need less context, more structure
+    extra_components: [task_description, role_prompt]
+  implementer:
+    budget_multiplier: 1.0   # Full budget for implementation
+    extra_components: [task_description, implementation_plan, code_guidelines, file_contents]
+  tester:
+    budget_multiplier: 0.9   # Testers need code + test output
+    extra_components: [task_description, test_output, code_guidelines]
+  reviewer:
+    budget_multiplier: 1.2   # Reviewers need full diff context
+    extra_components: [task_description, diff_context, code_guidelines, file_contents]
+
+# Per-pipeline budget overrides
+pipeline_overrides:
+  standard-dev-pipeline:
+    budget_multiplier: 1.0
+  team-pipeline:
+    budget_multiplier: 1.0
+  review-pipeline:
+    budget_multiplier: 1.3   # Reviews need more context for diffs
+  debug-pipeline:
+    budget_multiplier: 0.9   # Debug pipeline includes trace context
+  gc-pipeline:
+    budget_multiplier: 0.8   # GC is lightweight, less context needed
+
+# Token estimation settings
+estimation:
+  # Chars per token ratios by content type
+  # Higher = fewer tokens per character
+  ratios:
+    code: 0.35
+    prose: 0.25
+    markdown: 0.30
+    json: 0.33
+    default: 0.28

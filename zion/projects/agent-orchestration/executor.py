@@ -36,6 +36,13 @@ try:
 except ImportError:
     _HAS_TRACE_FORMATTER = False
 
+# Context budget integration (phase-20: Smart Zone)
+try:
+    from context_budget import ContextBudgetManager, PromptComponent, detect_content_type
+    _HAS_CONTEXT_BUDGET = True
+except ImportError:
+    _HAS_CONTEXT_BUDGET = False
+
 
 @dataclass
 class NodeResult:
@@ -85,6 +92,8 @@ class DAGExecutor:
         workdir: str | Path | None = None,
         context: dict[str, str] | None = None,
         dry_run: bool = False,
+        budget_tokens: int | None = None,
+        model: str = "claude-sonnet-4",
     ):
         self.pipeline = pipeline
         self.workdir = Path(workdir) if workdir else Path.cwd()
@@ -93,6 +102,15 @@ class DAGExecutor:
         self.results: list[NodeResult] = []
         self.node_outputs: dict[str, str] = {}  # Store outputs for context chaining
         self.stop_on_failure = True
+
+        # Context budget (phase-20: Smart Zone)
+        self.budget_tokens = budget_tokens
+        self.model = model
+        self._budget_mgr = None
+        if _HAS_CONTEXT_BUDGET:
+            self._budget_mgr = ContextBudgetManager(
+                budget_tokens=budget_tokens, model=model
+            )
 
     def _render_template(self, text: str) -> str:
         """Replace {{key}} placeholders with context values and node outputs."""
@@ -208,6 +226,9 @@ class DAGExecutor:
 
         Automatically injects failure context from previous nodes so the
         agent can self-debug (phase-18: Agent Self-Debugging).
+
+        Uses context budgeting (phase-20: Smart Zone) to keep prompts in
+        the optimal reasoning range.
         """
         start = time.time()
         prompt = self._render_template(node.prompt)
@@ -220,14 +241,68 @@ class DAGExecutor:
                     f"### {prev_result.node_id} output:\n{prev_result.output[:1000]}"
                 )
 
-        full_prompt = prompt
-        if context_parts:
-            full_prompt = "\n\n## Previous Step Outputs\n\n".join(context_parts) + "\n\n" + prompt
-
         # Inject failure context if any previous nodes failed
         failure_ctx = self._build_failure_context(exclude_node_id=node.id)
-        if failure_ctx:
-            full_prompt = failure_ctx + "\n\n" + full_prompt
+
+        # Apply context budgeting if available (phase-20: Smart Zone)
+        budget_info = None
+        if self._budget_mgr and _HAS_CONTEXT_BUDGET:
+            components = []
+
+            # Build prompt component list with priorities
+            # Priority 1: task prompt (never truncate)
+            components.append(PromptComponent(
+                name="task_prompt",
+                content=prompt,
+                priority=1,
+                required=True,
+                content_type=detect_content_type(prompt),
+            ))
+
+            # Priority 2: failure context (important for self-debugging)
+            if failure_ctx:
+                components.append(PromptComponent(
+                    name="failure_context",
+                    content=failure_ctx,
+                    priority=2,
+                    content_type="prose",
+                ))
+
+            # Priority 3: previous step outputs (lower priority)
+            if context_parts:
+                combined_context = "\n\n## Previous Step Outputs\n\n".join(context_parts)
+                components.append(PromptComponent(
+                    name="previous_outputs",
+                    content=combined_context,
+                    priority=3,
+                    content_type="markdown",
+                ))
+
+            budget_result = self._budget_mgr.fit_to_budget(components)
+            budget_info = budget_result.to_dict()
+
+            # Warn if significant truncation occurred
+            for warning in budget_result.warnings:
+                print(f"  [BUDGET] {warning}", file=sys.stderr)
+
+            # Reconstruct the full prompt from budgeted components
+            parts = []
+            for comp in budget_result.components:
+                if comp.name == "task_prompt":
+                    parts.append(comp.content)
+                elif comp.name == "failure_context":
+                    parts.insert(0, comp.content)
+                elif comp.name == "previous_outputs":
+                    parts.insert(0, comp.content)
+
+            full_prompt = "\n\n".join(parts)
+        else:
+            # Fallback: no budgeting, just concatenate
+            full_prompt = prompt
+            if context_parts:
+                full_prompt = "\n\n## Previous Step Outputs\n\n".join(context_parts) + "\n\n" + prompt
+            if failure_ctx:
+                full_prompt = failure_ctx + "\n\n" + full_prompt
 
         duration = time.time() - start
 
@@ -241,13 +316,22 @@ class DAGExecutor:
             delegate_params["role"] = node.role
 
         self.node_outputs[node.id] = f"[AI node '{node.id}' - delegate_task needed]"
-        return NodeResult(
+        result = NodeResult(
             node_id=node.id,
             node_type=node.type.value,
             status="completed",
             output=json.dumps(delegate_params, indent=2),
             duration_seconds=round(duration, 2),
         )
+
+        # Attach budget info to the result for observability
+        if budget_info:
+            result.output = json.dumps({
+                **delegate_params,
+                "_budget": budget_info,
+            }, indent=2)
+
+        return result
 
     def _execute_loop(self, node: Node) -> NodeResult:
         """Execute a Loop node by iterating over its children."""
@@ -532,6 +616,8 @@ def main():
     parser.add_argument("--context", "-c", default=None, help="Context JSON (key=value pairs or @file)")
     parser.add_argument("--dry-run", "-n", action="store_true", help="Show execution plan without running")
     parser.add_argument("--continue-on-error", action="store_true", help="Continue pipeline on node failure")
+    parser.add_argument("--budget", "-b", type=int, default=None, help="Token budget for AI node prompts (default: model-dependent)")
+    parser.add_argument("--model", "-m", default="claude-sonnet-4", help="Model name for context window size (default: claude-sonnet-4)")
 
     args = parser.parse_args()
 
@@ -562,6 +648,8 @@ def main():
         workdir=args.workdir,
         context=context,
         dry_run=args.dry_run,
+        budget_tokens=args.budget,
+        model=args.model,
     )
     executor.stop_on_failure = not args.continue_on_error
 
