@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 17/73 phases complete, 0 in progress
+**Progress:** 17/80 phases complete, 0 in progress
 
-**Deliverables:** 67/291 complete
+**Deliverables:** 67/319 complete
 
-**Tasks:** 74/291 complete
+**Tasks:** 74/319 complete
 
 ## Scope Summary
 
@@ -85,6 +85,13 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-71 Orchestrator Configuration Validation and Drift Detection | PLANNED | 0/4 | 460 | 12 |
 | phase-72 Structured Metrics and External Telemetry Pipeline | PLANNED | 0/4 | 500 | 10 |
 | phase-73 Agent Workspace Checkpoint and Incremental Restore | PLANNED | 0/4 | 390 | 8 |
+| phase-74 Agent Trust Scoring and Gradual Autonomy Escalation | PLANNED | 0/4 | 470 | 10 |
+| phase-75 Deterministic Test Generation from Structural Invariants | PLANNED | 0/4 | 460 | 8 |
+| phase-76 Agent Output Deduplication and Work Conflict Prevention | PLANNED | 0/4 | 470 | 10 |
+| phase-77 Pipeline Template Library and Marketplace | PLANNED | 0/4 | 550 | 8 |
+| phase-78 Orchestrator Interactive Debug Console | PLANNED | 0/4 | 510 | 8 |
+| phase-79 Inner Harness Backend Abstraction SDK | PLANNED | 0/4 | 540 | 10 |
+| phase-80 Agent-Legible Error Messages and Self-Healing Hints | PLANNED | 0/4 | 530 | 10 |
 
 ## Dependencies
 
@@ -342,6 +349,39 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-25 | phase-73 | soft | State recovery from phase 25 complements workspace-level checkpointing |
 | phase-65 | phase-73 | soft | Stop hooks from phase 65 trigger checkpoints before agent loop termination |
 | phase-8 | phase-73 | soft | Execution logs from phase 8 record checkpoint events |
+| phase-8 | phase-74 | soft | Trust scores are computed from execution history logs created by phase 8 |
+| phase-15 | phase-74 | soft | Safety approval gates from phase 15 are enhanced with trust-level-based policies |
+| phase-9 | phase-74 | soft | Review sensor rejection rates from phase 9 feed into trust score computation |
+| phase-17 | phase-74 | soft | Invariant violation rates from phase 17 feed into trust score computation |
+| phase-35 | phase-74 | soft | Dark factory mode from phase 35 is the target state that trust escalation enables safely |
+| phase-32 | phase-74 | soft | Cost efficiency data from phase 32 feeds into trust score computation |
+| phase-17 | phase-75 | soft | Test generator reads invariant rules defined by the structural invariants engine from phase 17 |
+| phase-7 | phase-75 | soft | Generated tests extend the test suite from phase 7 with architecture-level assertions |
+| phase-22 | phase-75 | soft | Config hot-reload from phase 22 triggers test regeneration when invariants change |
+| phase-66 | phase-75 | soft | Maintenance automation from phase 66 can run test regeneration as part of periodic upkeep |
+| phase-4 | phase-76 | soft | Deduplication gate modifies the orchestrator poll-spawn loop from phase 4 |
+| phase-21 | phase-76 | soft | Merge queue from phase 21 handles post-completion conflicts; dedup prevents pre-completion duplicates |
+| phase-30 | phase-76 | soft | Inter-agent communication from phase 30 provides the notification channel for dedup warnings |
+| phase-41 | phase-76 | soft | Priority queue from phase 41 deprioritizes duplicate work |
+| phase-5 | phase-77 | soft | Templates are pipeline YAMLs that must follow the DAG schema from phase 5 |
+| phase-24 | phase-77 | soft | Project onboarding from phase 24 uses templates to bootstrap new projects |
+| phase-45 | phase-77 | soft | WORKFLOW.md engine from phase 45 complements templates as a workflow specification layer |
+| phase-57 | phase-77 | soft | Skill registry from phase 57 provides reusable components that templates can reference |
+| phase-8 | phase-78 | soft | Debug console reads execution history from phase 8 |
+| phase-14 | phase-78 | soft | Health monitor data from phase 14 feeds the console's health display |
+| phase-18 | phase-78 | soft | Trace formatter from phase 18 provides formatted traces for the show/trace commands |
+| phase-74 | phase-78 | soft | Trust scores from phase 74 are displayed and manipulable in the console |
+| phase-11 | phase-78 | soft | Workspace state from phase 11 is the primary data source for worker inspection |
+| phase-4 | phase-79 | soft | Inner harness modifies the spawner from phase 4 to be backend-agnostic |
+| phase-6 | phase-79 | soft | Role profiles from phase 6 may specify preferred backends per role |
+| phase-14 | phase-79 | soft | Health monitor from phase 14 tracks backend health status |
+| phase-40 | phase-79 | soft | Multi-model routing from phase 40 complements inner harness at the LLM API level |
+| phase-25 | phase-79 | soft | State recovery from phase 25 benefits from knowing which backend was used for each task |
+| phase-5 | phase-80 | soft | Error transformation integrates into the DAG executor loop from phase 5 |
+| phase-18 | phase-80 | soft | Trace formatter from phase 18 benefits from transformed error messages |
+| phase-19 | phase-80 | soft | Self-improvement from phase 19 can analyze hint effectiveness to improve the hint database |
+| phase-33 | phase-80 | soft | Application legibility from phase 33 defines the standards that error transformation implements |
+| phase-65 | phase-80 | soft | Stop hooks from phase 65 can use transformed errors to decide whether to continue or escalate |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -3992,6 +4032,389 @@ rsync --link-dest is the ideal mechanism for incremental checkpoints: it creates
 - Restoring a checkpoint while another process is writing to the workspace could corrupt state — use file locking
 - Checkpoint metadata may include sensitive agent context — consider redaction
 - Incremental restore may not perfectly reproduce state (file permissions, symlinks) — test edge cases
+
+## [ ] phase-74: Agent Trust Scoring and Gradual Autonomy Escalation (PLANNED)
+
+**Goal:** Implement a dynamic trust scoring system where agents earn progressively more autonomy based on their track record, implementing the research's approval_policy spectrum (untrusted -> on-failure -> never) as a continuous escalation
+
+The Symphony research specifies three approval policies: "untrusted" (human approval for every action), "on-failure" (human approval only when deterministic checks fail), and "never" (full autonomy, dark factory mode). Phase 15 implements static approval gates but does not implement the dynamic transition between these levels. The Harness Engineering research describes building "the harness" as the competitive advantage, and a key part of that harness is knowing when to trust agents and when to intervene. This phase creates: (1) a trust score module that tracks per-agent and per-role success rates (pass rate on first attempt, review rejection rate, invariant violation rate, cost efficiency), (2) an escalation engine that automatically promotes agents from untrusted to on-failure to never based on configurable thresholds (e.g., "10 consecutive successful tasks with zero invariant violations = promote to on-failure"), (3) a demotion engine that downgrades agents after failures (e.g., "3 consecutive rejected PRs = demote to untrusted"), (4) per-task-type trust profiles (an agent may be trusted for bug fixes but not for database migrations), (5) trust score visibility in the dashboard (phase 27) and health scorecard (phase 44), and (6) manual override capability for humans to force-escalate or force-demote. This directly enables a safer path to dark factory mode (phase 35) by proving agent reliability before granting full autonomy.
+
+### Deliverables
+
+- [ ] **Trust score computation module** -- Calculate and persist trust scores for agents based on execution history
+  - [ ] `p74.d1.t1` Create trust_score.py module
+    > Create trust_score.py: (1) TrustScore dataclass: agent_id, role, task_type, success_rate (rolling window of last N tasks), rejection_rate, invariant_violation_rate, cost_efficiency (tokens_per_success), trust_level (untrusted|on_failure|never), consecutive_successes, consecutive_failures, last_updated, (2) compute(agent_id, role, task_type) -> read execution logs (phase 8), calculate rolling metrics over configurable window (default: last 50 tasks), (3) update(agent_id, role, task_type, result) -> incrementally update scores after each pipeline run (no full recompute), (4) persist to ~/.orchestrator/trust/{agent_id}_{role}_{task_type}.json, (5) CLI: compute, list, reset, export. Trust score formula: base_score = (success_rate * 0.4) + (1 - rejection_rate) * 0.3 + (1 - invariant_violation_rate) * 0.2 + cost_efficiency * 0.1. Trust level thresholds: untrusted < 0.6, on_failure >= 0.6, never >= 0.85.
+    _Files: ~/zion/projects/agent-orchestration/trust_score.py_
+  - [ ] Trust score is computed from execution history (success rate, rejection rate, invariant violations)
+    _Validation: python3 trust_score.py compute --agent claude-3-opus --role implementer_
+  - [ ] Scores are persisted and updated incrementally after each pipeline run
+    _Validation: run two pipelines, verify score changes_
+  _~140 LOC_
+- [ ] **Trust escalation and demotion engine** -- Automatically promote or demote agent autonomy levels based on trust scores
+  - [ ] `p74.d2.t1` Create trust_escalation.py module (depends: p74.d1.t1)
+    > Create trust_escalation.py: (1) EscalationConfig: promotion_thresholds (default: 10 consecutive successes for on_failure, 25 for never), demotion_thresholds (default: 3 consecutive failures for demote by one level), per_task_type_overrides (e.g., database tasks require higher threshold), cooldown_period (no re-promotion within 24h of demotion), (2) check_eligibility(agent_id, role, task_type) -> check if agent should be promoted or demoted, (3) escalate(agent_id, role, task_type, new_level) -> update trust level, log event, notify via execution history (phase 8), (4) integrate with safety.py (phase 15): approval_policy reads from trust level instead of static config, (5) manual_override(agent_id, role, task_type, forced_level, reason) -> human can force escalation or demotion with audit trail, (6) escalation history: ~/.orchestrator/trust/escalations.jsonl. Config stored in orchestrator.yaml under trust_escalation section.
+    _Files: ~/zion/projects/agent-orchestration/trust_escalation.py_
+  - [ ] Agent is automatically promoted after meeting thresholds
+    _Validation: simulate 10 consecutive successes, verify promotion_
+  - [ ] Agent is automatically demoted after failures
+    _Validation: simulate 3 consecutive rejections, verify demotion_
+  - [ ] Escalation events are logged to execution history
+    _Validation: check execution logs for escalation events_
+  _~130 LOC_
+- [ ] **Trust-aware orchestrator integration** -- Wire trust scores into the orchestrator loop, safety gates, and status dashboard
+  - [ ] `p74.d3.t1` Integrate trust scores into orchestrator.py and safety.py (depends: p74.d2.t1)
+    > Modify orchestrator.py: (1) before spawning a worker, check trust_score.get_trust_level(agent_id, role, task_type), (2) pass trust_level to safety.py as the effective approval_policy, (3) log trust_level_used in execution history. Modify safety.py: (1) add trust_level parameter to check_safety(), overrides static approval_policy, (2) add trust_level to safety decision log. Modify status.sh: (1) add trust score section showing per-agent trust levels and recent trend (improving/declining/stable), (2) highlight agents near promotion/demotion thresholds. Add trust metrics to health scorecard (phase 44): average trust level, agents at each level, escalation rate.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/safety.py, ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Orchestrator reads trust level when assigning tasks
+    _Validation: check orchestrator.py uses trust_score for approval policy_
+  - [ ] Status dashboard shows trust scores and levels
+    _Validation: run status.sh, verify trust information displayed_
+  _~100 LOC_
+- [ ] **Trust scoring tests** -- Test trust computation, escalation logic, and orchestrator integration
+  - [ ] `p74.d4.t1` Create test_trust_score.py (depends: p74.d3.t1)
+    > Create test_trust_score.py: (1) test compute with empty history (should return untrusted), (2) test compute with all successes (should return never at threshold), (3) test incremental update correctness, (4) test escalation promotion at exact threshold, (5) test demotion after consecutive failures, (6) test cooldown period prevents immediate re-promotion, (7) test manual override, (8) test per-task-type different thresholds, (9) test integration with safety.py (trust_level overrides static policy). Use tmp_path for trust score storage.
+    _Files: ~/zion/projects/agent-orchestration/test_trust_score.py_
+  - [ ] Unit tests cover trust score computation with various execution histories
+    _Validation: python3 -m pytest test_trust_score.py -v_
+  - [ ] Tests verify promotion and demotion thresholds work correctly
+    _Validation: python3 -m pytest test_trust_score.py -v -k escalation_
+  _~100 LOC_
+
+### Technical Notes
+
+Trust scoring is the bridge between phase 15 (static safety gates) and phase 35 (dark factory mode). Without trust scoring, dark factory mode is a binary switch -- either you trust the agent or you don't. With trust scoring, it becomes a gradual, measurable progression. The key design decision: trust is per-(agent, role, task_type) tuple, not per-agent alone. An agent trusted for simple bug fixes should not automatically be trusted for database migrations. Trust scores should be recalculated after each pipeline run (incremental update, not batch recompute). Consider trust score decay: old successes should count less than recent ones (exponential decay on the rolling window).
+
+### Risks
+
+- Trust scoring could create unfair bias against agents that tackle harder tasks -- normalize by task difficulty
+- Automatic promotion could grant too much autonomy too fast -- use conservative default thresholds
+- {'Trust score gaming': 'agents could optimize for trust score rather than quality -- measure quality independently'}
+- Cooldown period too short could cause thrashing between levels -- default to 24h minimum
+- Manual override abuse could undermine trust system -- log all overrides with justification
+
+## [ ] phase-75: Deterministic Test Generation from Structural Invariants (PLANNED)
+
+**Goal:** Automatically generate test cases from structural invariant rules, ensuring that architectural constraints are continuously verified by the test suite
+
+Phase 17 implements structural invariants (layer ordering, import restrictions, naming conventions) that check architecture at pipeline-gate time. However, these checks only run when the pipeline executes -- they are not part of the project's persistent test suite. The Harness Engineering research emphasizes that structural constraints should be "enforced mechanically through structural tests and custom linters, which were themselves often generated by agents." This phase creates: (1) a test generator that reads invariant rules from invariants.yaml and produces pytest test files that assert those invariants as unit tests, (2) generated tests that can be committed to the project repo and run in CI alongside hand-written tests, (3) automatic regeneration when invariants change (integrated with config hot-reload from phase 22), (4) test templates for common invariant patterns (layer ordering, forbidden imports, naming conventions, file structure), (5) a CLI to generate, update, and manage generated tests. This bridges the gap between "check at pipeline time" and "continuously enforced in CI" -- generated tests ensure invariants are always verified, even when code is changed outside the orchestrator pipeline.
+
+### Deliverables
+
+- [ ] **Invariant-to-test generator** -- Generate pytest test files from structural invariant rules
+  - [ ] `p75.d1.t1` Create test_generator.py module
+    > Create test_generator.py: (1) load invariants from invariants.yaml (phase 17 format: rules with name, severity, pattern, description), (2) for each rule, generate a pytest test function: a) layer_ordering rules -> test that no file in layer X imports from layer Y (walk import tree), b) forbidden_imports rules -> test that no file imports from forbidden modules, c) naming_convention rules -> test that filenames/function names match regex, d) file_structure rules -> test that expected directories/files exist, e) dependency_direction rules -> test that import graph has no cycles or forbidden edges, (3) generated tests use AST parsing (ast module) for import analysis, (4) each test file has header comment "AUTO-GENERATED from invariants.yaml -- do not edit manually", (5) CLI: generate, regenerate (update existing), list (show what would be generated without writing), (6) template system: Jinja2-style templates for each invariant type in templates/ directory.
+    _Files: ~/zion/projects/agent-orchestration/test_generator.py_
+  - [ ] Can generate test files from invariants.yaml
+    _Validation: python3 test_generator.py generate --invariants invariants.yaml --output tests/generated/_
+  - [ ] Generated tests are valid pytest files that run and pass on compliant code
+    _Validation: python3 -m pytest tests/generated/ -v_
+  _~180 LOC_
+- [ ] **Generated test integration with CI** -- Ensure generated tests integrate smoothly with existing test suites and CI pipelines
+  - [ ] `p75.d2.t1` Add CI integration and conftest support to test generator (depends: p75.d1.t1)
+    > Extend test_generator.py: (1) generate conftest.py with shared fixtures (project_root fixture, source_dirs fixture from invariants.yaml config), (2) add --project-root flag to resolve paths relative to project root, (3) add --conftest-only flag to generate/update just the conftest, (4) generated tests mark themselves with pytest.mark.invariant_generated for easy filtering, (5) add test that verifies generated tests are up-to-date (compare generated output to committed files), useful as a CI gate, (6) support for project-specific test templates: if project has templates/invariants/ directory, use those instead of defaults.
+    _Files: ~/zion/projects/agent-orchestration/test_generator.py_
+  - [ ] Generated tests coexist with hand-written tests without conflicts
+    _Validation: run full test suite with generated tests included_
+  - [ ] conftest.py fixtures are shared between generated and hand-written tests
+    _Validation: verify generated tests can use project fixtures_
+  _~100 LOC_
+- [ ] **Auto-regeneration on invariant changes** -- Automatically regenerate tests when invariant rules change
+  - [ ] `p75.d3.t1` Add watch mode and CI gate for test regeneration (depends: p75.d2.t1)
+    > Extend test_generator.py: (1) add --watch flag that uses inotify/watchdog to regenerate tests when invariants.yaml changes (integrates with phase 22 hot-reload), (2) add verify subcommand that checks if generated tests match current invariants (exit code 1 if stale), (3) add to phase 7 test suite: a test that runs "test_generator.py verify" to catch stale generated tests in CI, (4) add regeneration step to phase 66 maintenance automation: when invariants change in a maintenance run, regenerate tests and commit. This ensures generated tests never go stale.
+    _Files: ~/zion/projects/agent-orchestration/test_generator.py_
+  - [ ] Tests are regenerated when invariants.yaml is modified
+    _Validation: modify invariants.yaml, verify tests updated_
+  - [ ] Regeneration preserves hand-written test modifications in conftest.py
+    _Validation: modify conftest.py, regenerate tests, verify conftest preserved_
+  _~80 LOC_
+- [ ] **Test generation validation tests** -- Test the test generator itself
+  - [ ] `p75.d4.t1` Create test_test_generator.py (depends: p75.d3.t1)
+    > Create test_test_generator.py: (1) test layer ordering test generation: create mock project with layer violation, verify generated test catches it, (2) test forbidden imports test generation, (3) test naming convention test generation, (4) test file structure test generation, (5) test regeneration preserves conftest, (6) test verify subcommand detects stale tests, (7) test CLI flags (--output, --project-root, --conftest-only). Use tmp_path for all generated test output.
+    _Files: ~/zion/projects/agent-orchestration/test_test_generator.py_
+  - [ ] Generator tests cover all invariant types
+    _Validation: python3 -m pytest test_test_generator.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+The key insight from the research: "structural tests and custom linters, which were themselves often generated by agents." This phase automates that generation. Generated tests should be committed to the repo (not generated at test time) so they run in CI even when the orchestrator is not involved. The generator is idempotent: running it twice with the same invariants produces the same output. AST-based import analysis is more reliable than regex-based approaches but slower -- cache import trees for performance. Consider generating tests for each invariant as a separate file for easy granular updates.
+
+### Risks
+
+- Generated tests may be slow if they walk the entire import tree -- need caching and incremental analysis
+- Generated tests may produce false positives on complex project structures -- support suppression comments
+- Auto-regeneration could create noisy commits if invariants change frequently -- batch regeneration with maintenance runs
+- Template system adds complexity -- start with hardcoded generators for common patterns, add templates later
+
+## [ ] phase-76: Agent Output Deduplication and Work Conflict Prevention (PLANNED)
+
+**Goal:** Detect and prevent duplicate or overlapping work when multiple agents operate on the same codebase, ensuring efficient resource usage and avoiding merge conflicts
+
+The Gas Town research describes 20-30 Claude Code instances working concurrently on the same codebase, coordinated by the Refinery role managing merge queues. Phase 21 (merge queue) handles post-completion conflict resolution, and phase 30 (inter-agent communication) handles pre-completion coordination, but neither detects duplicate work before it starts. When multiple agents pick up similar issues (e.g., "fix null pointer in auth module" and "handle missing user in auth flow"), they may produce overlapping changes that waste tokens and create merge conflicts. This phase creates: (1) a work similarity analyzer that computes semantic similarity between issue descriptions and planned approaches, (2) a conflict predictor that identifies likely file-level overlaps before work begins, (3) a deduplication gate that blocks new work if highly similar work is already in progress, (4) work grouping that merges related issues into a single work unit, and (5) integration with the priority queue (phase 41) to deprioritize duplicate work. The research's Beads system tracks every "molecule of work" in a dependency graph -- this phase brings that concept to the issue-to-agent assignment layer.
+
+### Deliverables
+
+- [ ] **Work similarity analyzer** -- Compute semantic similarity between issues to detect duplicate or overlapping work
+  - [ ] `p76.d1.t1` Create work_dedup.py module
+    > Create work_dedup.py: (1) similarity(issue_a, issue_b) -> float 0-1 score using: a) title token overlap (Jaccard similarity on significant words, ignoring stop words), b) body keyword overlap, c) label overlap bonus, d) file path prediction overlap (extract mentioned files from issue body), (2) predict_files(issue) -> list of file paths likely touched by the issue (from mentions in body, labels, prior similar issues), (3) file_overlap(issue_a, issue_b) -> float 0-1 score based on predicted file overlap, (4) conflict_risk(issue_a, issue_b) -> combined score: 0.5 * similarity + 0.5 * file_overlap, (5) find_duplicates(issue, active_issues) -> list of (issue, score) pairs above threshold, sorted by score, (6) persist similarity cache to ~/.orchestrator/dedup/cache.json (avoid recomputing), (7) CLI: similarity, predict-files, find-duplicates, check (check single issue against all active work). No LLM calls needed -- purely lexical/structural similarity.
+    _Files: ~/zion/projects/agent-orchestration/work_dedup.py_
+  - [ ] Can compute similarity score between two issue descriptions
+    _Validation: python3 work_dedup.py similarity --issue-a 42 --issue-b 43_
+  - [ ] Issues with >80% similarity are flagged as potential duplicates
+    _Validation: create two similar issues, verify flag_
+  _~150 LOC_
+- [ ] **Deduplication gate in orchestrator** -- Block or defer work assignment when duplicate or conflicting work is detected
+  - [ ] `p76.d2.t1` Integrate deduplication into orchestrator.py (depends: p76.d1.t1)
+    > Modify orchestrator.py: (1) after polling issues but before spawning workers, run work_dedup.find_duplicates() for each new issue against all currently in-progress issues, (2) if conflict_risk > 0.8 (configurable), skip the issue and add comment "Deferred: similar work in progress on issue #N", (3) if conflict_risk > 0.5 but < 0.8, assign but with warning flag (lower priority, safety.py extra scrutiny), (4) log dedup decisions to execution history: dedup_checked, dedup_blocked, dedup_warned events, (5) add dedup config section to orchestrator.yaml: enabled (bool), similarity_threshold (default 0.8), warn_threshold (default 0.5), check_file_overlap (bool), auto_comment (bool), (6) add dedup section to status.sh showing blocked/warned issues.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator checks for duplicates before assigning work
+    _Validation: submit two similar issues, verify second is deferred_
+  - [ ] Duplicate detection results are logged
+    _Validation: check execution logs for dedup events_
+  _~100 LOC_
+- [ ] **Work grouping for related issues** -- Group related issues into unified work units to prevent fragment-related changes across multiple agents
+  - [ ] `p76.d3.t1` Add work grouping to work_dedup.py (depends: p76.d2.t1)
+    > Extend work_dedup.py: (1) cluster(issues) -> list of issue groups using similarity-based clustering (simple greedy: start with highest-similarity pair, add issues that are similar to any group member above threshold), (2) group_metadata(group) -> combined description, file predictions, priority (highest in group), (3) CLI: group --issues (comma-separated), group --all-active, (4) integrate with orchestrator.py: when multiple issues form a group, assign the group as a single work unit to one agent with a combined prompt, (5) after completion, close all issues in the group with references to the single PR. This prevents the common pattern where 3 agents each fix 1/3 of a bug, creating 3 PRs that conflict with each other.
+    _Files: ~/zion/projects/agent-orchestration/work_dedup.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Can group related issues into a single work unit
+    _Validation: python3 work_dedup.py group --issues 42,43,44_
+  - [ ] Grouped issues are assigned to a single agent
+    _Validation: submit grouped issues, verify single assignment_
+  _~120 LOC_
+- [ ] **Deduplication tests** -- Test similarity computation, dedup gate, and work grouping
+  - [ ] `p76.d4.t1` Create test_work_dedup.py (depends: p76.d3.t1)
+    > Create test_work_dedup.py: (1) test similarity with identical titles (score ~1.0), (2) test similarity with completely unrelated issues (score ~0), (3) test similarity with same-area but different bugs (score 0.3-0.7), (4) test file prediction from issue body mentions, (5) test conflict risk combines similarity and file overlap, (6) test find_duplicates returns sorted results, (7) test dedup gate blocks high-similarity issues, (8) test dedup gate warns medium-similarity issues, (9) test work grouping clusters related issues, (10) test cache persistence and invalidation.
+    _Files: ~/zion/projects/agent-orchestration/test_work_dedup.py_
+  - [ ] Tests verify similarity scoring with known-similar and known-different issues
+    _Validation: python3 -m pytest test_work_dedup.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+Lexical similarity (token overlap, Jaccard) is intentionally chosen over LLM-based semantic similarity to avoid token costs on every issue assignment. The dedup check should be fast (<100ms per issue pair) since it runs on every polling cycle. File prediction from issue body is a heuristic: extract paths mentioned in backticks, after "in file", "in module", etc. For higher accuracy, could optionally use embeddings (phase 38 cross-project knowledge) but that adds latency. Start with lexical, add optional embedding upgrade later.
+
+### Risks
+
+- Lexical similarity may produce false positives (different bugs in same module flagged as duplicates)
+- Over-aggressive dedup could block legitimate parallel work on the same module
+- Work grouping may produce combined prompts too large for context window -- respect context budget (phase 20)
+- Greedy clustering may not find optimal groupings -- acceptable trade-off for speed
+
+## [ ] phase-77: Pipeline Template Library and Marketplace (PLANNED)
+
+**Goal:** Create a library of reusable pipeline templates for common software engineering tasks, enabling rapid orchestration setup for new projects and consistent workflow patterns across repos
+
+The Symphony research describes WORKFLOW.md as a shareable policy file that defines how agents should approach tasks. Phase 45 implements a WORKFLOW.md engine and phase 5 implements the DAG executor, but no phase provides a library of ready-to-use pipeline templates. Currently, every new project must define its pipelines from scratch. The Harness Engineering research notes that "the team focused on building the harness" -- reusable pipeline templates are the harness building blocks. This phase creates: (1) a template library with 8-10 common pipeline patterns (bug fix, feature implementation, refactoring, test writing, documentation, dependency update, security audit, performance optimization), (2) each template as a versioned YAML file with configurable parameters, (3) a template CLI for listing, instantiating, and customizing templates, (4) template validation that ensures templates follow DAG best practices (phase 5), (5) integration with project onboarding (phase 24) to auto-select appropriate templates, and (6) a simple "marketplace" format where templates can be shared between projects via git repos or directories.
+
+### Deliverables
+
+- [ ] **Pipeline template library** -- Create reusable pipeline YAML templates for common software engineering tasks
+  - [ ] `p77.d1.t1` Create template_lib.py and template library
+    > Create templates/ directory with pipeline YAML templates. Create template_lib.py: (1) Template dataclass: name, description, version, tags, parameters (with defaults and descriptions), pipeline_yaml (with {{parameter}} placeholders), (2) list_templates() -> available templates with metadata, (3) instantiate(template_name, params) -> rendered pipeline YAML with parameters filled in, (4) validate(template_name) -> check template follows DAG schema (phase 5) and best practices (no AI-only pipelines, at least one test step), (5) templates: a) bug-fix: analyze(bash: git log) -> plan(AI) -> implement(AI) -> test(bash) -> review(AI) -> PR(bash), b) feature: plan(AI) -> implement(AI) -> test(bash) -> lint(bash) -> review(AI) -> PR(bash), c) refactor: analyze(AI) -> plan(AI) -> implement(AI) -> test(bash) -> invariant-check(bash) -> review(AI) -> PR(bash), d) test-writing: analyze(AI: find untested code) -> generate-tests(AI) -> run-tests(bash) -> fix(bash: loop until green) -> commit(bash), e) docs: analyze(AI) -> generate(AI) -> validate-links(bash) -> commit(bash), f) dep-update: update(bash: dependabot/pip) -> test(bash) -> fix(bash: loop) -> PR(bash), g) security-audit: scan(bash: bandit/safety) -> analyze(AI) -> fix(AI) -> test(bash) -> PR(bash), h) perf-optimize: profile(bash) -> analyze(AI) -> implement(AI) -> benchmark(bash) -> PR(bash). Each template has configurable parameters (e.g., test_command, lint_command, max_loop_iterations).
+    _Files: ~/zion/projects/agent-orchestration/template_lib.py, ~/zion/projects/agent-orchestration/templates/_
+  - [ ] At least 8 templates cover common task types
+    _Validation: python3 template_lib.py list_
+  - [ ] Each template is a valid pipeline YAML that the executor can run
+    _Validation: instantiate template, run through executor_
+  _~250 LOC_
+- [ ] **Template CLI and project integration** -- CLI for managing templates and integrating with project onboarding
+  - [ ] `p77.d2.t1` Add template CLI and onboarding integration (depends: p77.d1.t1)
+    > Extend template_lib.py: (1) CLI: list, show (display template details + YAML), instantiate (render template with params, write to file), install (copy to project pipelines/ directory), (2) auto-select(task_type) -> recommend template based on issue labels/title analysis, (3) template customization: --param flag for each template parameter, --edit flag to open rendered YAML in $EDITOR before saving, (4) integrate with phase 24 onboarding: add template selection step to bootstrap script, install recommended templates to new project, (5) template versioning: each template has a version, support --version flag, warn if project has older version.
+    _Files: ~/zion/projects/agent-orchestration/template_lib.py_
+  - [ ] Can instantiate a template with custom parameters
+    _Validation: python3 template_lib.py instantiate bug-fix --test-command "pytest" --repo ./my-project_
+  - [ ] Onboarding bootstrap (phase 24) can auto-select templates
+    _Validation: run onboarding, verify templates selected_
+  _~120 LOC_
+- [ ] **Template marketplace format and sharing** -- Enable template sharing between projects via git repos or directory-based collections
+  - [ ] `p77.d3.t1` Add template source management (depends: p77.d2.t1)
+    > Extend template_lib.py: (1) TemplateSource dataclass: name, type (local|git), path, enabled, last_updated, (2) add_source(name, path) -> register a template directory or git repo, (3) list_sources() -> registered sources with template counts, (4) update_sources() -> git pull for git sources, (5) template resolution: search built-in templates first, then sources in priority order, (6) config in orchestrator.yaml: template_sources section, (7) export template: package a project's custom pipeline as a shareable template with parameters extracted. This enables the "skill marketplace" concept from the research -- teams share pipeline patterns across projects.
+    _Files: ~/zion/projects/agent-orchestration/template_lib.py_
+  - [ ] Can add external template sources (git repos, directories)
+    _Validation: python3 template_lib.py source add --path ./shared-templates_
+  - [ ] Templates from external sources appear in list and can be instantiated
+    _Validation: list shows external templates, instantiate works_
+  _~100 LOC_
+- [ ] **Template library tests** -- Test template library, instantiation, and source management
+  - [ ] `p77.d4.t1` Create test_template_lib.py (depends: p77.d3.t1)
+    > Create test_template_lib.py: (1) test list_templates returns expected templates, (2) test instantiate fills in parameters correctly, (3) test instantiate with missing required parameter raises error, (4) test validate catches invalid templates, (5) test auto-select recommends correct template for task types, (6) test add_source and list_sources, (7) test template resolution order (built-in before sources), (8) test export extracts parameters from existing pipeline YAML.
+    _Files: ~/zion/projects/agent-orchestration/test_template_lib.py_
+  - [ ] Tests verify all templates are valid pipeline YAMLs
+    _Validation: python3 -m pytest test_template_lib.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Templates are the "cookie cutters" of the orchestrator. The key design decision: templates use Mustache-style {{parameter}} placeholders, not Jinja2, to keep the dependency footprint small and avoid code execution in templates. Template parameters have types (string, int, bool, choice) and defaults. The template library should be versioned alongside the orchestrator -- breaking changes to the DAG schema (phase 5) should trigger template updates. Consider contributing templates back to the Hermes ecosystem as a shared resource.
+
+### Risks
+
+- Templates may become stale as the DAG schema evolves -- need version compatibility checks
+- Too many templates could be overwhelming -- keep the library focused on the 8 most common patterns
+- Template parameters may not cover all project variations -- support custom YAML overlay on top of templates
+- Git-based template sources add a network dependency -- cache locally and support offline operation
+
+## [ ] phase-78: Orchestrator Interactive Debug Console (PLANNED)
+
+**Goal:** Provide an interactive REPL for inspecting and manipulating orchestrator state in real-time, enabling rapid debugging of orchestration issues without restarting the system
+
+Phase 18 provides trace formatting tools and phase 8 provides execution logs, but debugging live orchestrator issues (stuck workers, stale locks, incorrect scheduling decisions) requires reading log files and running CLI commands manually. The Symphony research describes a "live observability dashboard" via Phoenix, and the Gas Town research describes the Witness role as an "observation and logging agent." This phase creates a Python REPL (using cmd or readline) that provides: (1) real-time inspection of orchestrator state (active workers, queue, trust scores, health status), (2) interactive commands to manipulate state (cancel worker, retry issue, force-promote trust level, clear queue), (3) query capabilities (search execution history, filter by status/time, drill into specific pipeline runs), (4) live mode that auto-refreshes state display, (5) connection to the health monitor (phase 14) for real-time alerts, and (6) a scriptable mode for cron/debug automation. This is the operator's console -- the equivalent of kubectl for the orchestrator.
+
+### Deliverables
+
+- [ ] **Debug console REPL** -- Interactive command-line interface for orchestrator inspection and manipulation
+  - [ ] `p78.d1.t1` Create debug_console.py REPL
+    > Create debug_console.py using cmd.Cmd: (1) state inspection commands: a) workers -> list active workers with issue, role, start time, trust level, b) queue -> list pending issues with priority and dedup status, c) health -> show health monitor status (phase 14), d) trust -> show trust scores for all agents, e) config -> show current orchestrator config, (2) manipulation commands: a) cancel <worker_id> -> kill a stuck worker, b) retry <issue_number> -> re-queue a failed issue, c) promote <agent> <role> -> force trust escalation, d) demote <agent> <role> -> force trust demotion, e) clear-queue -> remove all pending issues, (3) query commands: a) history [--agent X] [--status Y] [--since Z] -> search execution logs, b) show <run_id> -> detailed view of a pipeline run, c) trace <run_id> -> formatted trace from phase 18, d) diff <run_id_1> <run_id_2> -> compare two runs, (4) meta commands: a) live -> auto-refresh mode (refresh every 2s), b) export -> write state snapshot to JSON, c) help -> contextual help, d) quit. All commands read from the same state files the orchestrator uses (workspaces/, ~/.orchestrator/).
+    _Files: ~/zion/projects/agent-orchestration/debug_console.py_
+  - [ ] Can start the debug console and see orchestrator state
+    _Validation: python3 debug_console.py_
+  - [ ] Core commands work: workers, queue, history, cancel, retry
+    _Validation: test each command in REPL_
+  _~250 LOC_
+- [ ] **Scriptable debug mode** -- Enable running debug console commands non-interactively for automation and cron jobs
+  - [ ] `p78.d2.t1` Add scriptable mode to debug_console.py (depends: p78.d1.t1)
+    > Extend debug_console.py: (1) --command flag: run a single command and print output, exit, (2) --script flag: read commands from a file, execute sequentially, (3) --json flag: output all results as JSON (machine-readable), (4) --quiet flag: suppress banners and prompts, (5) exit codes: 0 on success, 1 on command error, 2 on no results, (6) pipe support: when stdin is not a TTY, read commands from stdin (one per line), (7) use in cron: "python3 debug_console.py --json --command workers | jq .active_count" to get worker count for alerting.
+    _Files: ~/zion/projects/agent-orchestration/debug_console.py_
+  - [ ] Can run single commands non-interactively
+    _Validation: python3 debug_console.py --command "workers"_
+  - [ ] Can pipe commands from a file
+    _Validation: echo -e "workers\nqueue\nquit" | python3 debug_console.py_
+  _~80 LOC_
+- [ ] **Live mode and alerting integration** -- Auto-refreshing display and integration with health monitor alerts
+  - [ ] `p78.d3.t1` Add live mode and health integration (depends: p78.d2.t1)
+    > Extend debug_console.py: (1) live command: enter auto-refresh mode, clear screen and redraw state every N seconds (configurable, default 2), show: active workers, queue depth, health status, recent alerts, (2) health monitor integration: subscribe to health monitor alerts (phase 14) via file watcher on alert log, display alerts in console with color coding (red=critical, yellow=warning, green=ok), (3) watch command: watch a specific issue or worker, auto-refresh showing only that item, (4) bell/alert on critical events (configurable), (5) SIGINT (Ctrl+C) exits live mode cleanly. Live mode uses curses or simple ANSI escape sequences for terminal display.
+    _Files: ~/zion/projects/agent-orchestration/debug_console.py_
+  - [ ] Live mode refreshes state every 2 seconds
+    _Validation: start live mode, verify updates_
+  - [ ] Health alerts appear in the console in real-time
+    _Validation: trigger health alert, verify display_
+  _~100 LOC_
+- [ ] **Debug console tests** -- Test REPL commands, scriptable mode, and live mode
+  - [ ] `p78.d4.t1` Create test_debug_console.py (depends: p78.d3.t1)
+    > Create test_debug_console.py: (1) test scriptable mode: --command produces expected output, (2) test --json flag produces valid JSON, (3) test --script flag reads and executes commands from file, (4) test pipe mode (stdin not TTY), (5) test workers command with mock workspace state, (6) test history command with mock execution logs, (7) test cancel and retry commands modify state correctly, (8) test invalid commands produce helpful error messages, (9) test --quiet suppresses banners. Use subprocess to run console in scriptable mode for integration tests.
+    _Files: ~/zion/projects/agent-orchestration/test_debug_console.py_
+  - [ ] Tests verify all commands produce expected output
+    _Validation: python3 -m pytest test_debug_console.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The debug console is the "kubectl" of the orchestrator -- it should feel like a proper ops tool, not a toy REPL. Use cmd.Cmd for the REPL framework (standard library, no dependencies). Scriptable mode makes it useful in cron jobs and shell scripts. The --json flag enables integration with monitoring tools (phase 72) and alerting systems. Live mode should be optional -- most debugging is done via single commands. Consider adding tab-completion for commands and issue numbers.
+
+### Risks
+
+- Manipulation commands (cancel, retry, promote) could cause production issues -- add confirmation prompts
+- Live mode could consume significant terminal resources on large orchestrator deployments
+- Scriptable mode could be a security risk if exposed to untrusted input -- validate all inputs
+- Console state may be stale if orchestrator is running on a different machine -- consider remote mode via SSH
+
+## [ ] phase-79: Inner Harness Backend Abstraction SDK (PLANNED)
+
+**Goal:** Abstract the interface between the Hermes orchestrator and underlying coding agents (Claude Code, Codex CLI, Cursor), enabling seamless backend switching and multi-vendor agent execution
+
+The research describes three layers of agent architecture: Inner Harness (execution, tool calls, reasoning), Outer Harness (governance, policy, sensors), and Orchestrator (coordination). Phase 40 covers multi-model backend routing for LLM API calls, but no phase abstracts the inner harness -- the boundary between the Hermes orchestrator and the actual coding agent that executes tasks. Currently, the spawner (phase 4) hardcodes delegate_task with acp_command=claude. The research notes the inner harness is "increasingly commoditized as providers converge on similar execution primitives," implying easy backend switching should be possible. This phase creates: (1) an InnerHarness abstract interface defining the contract between orchestrator and coding agent, (2) concrete implementations for Claude Code (via delegate_task), Codex CLI (via subprocess), and a generic shell agent, (3) a backend registry that maps task types to optimal backends, (4) backend health checking and automatic failover, (5) per-backend configuration (max turns, approval policy, tool sets, context window size), and (6) a backend benchmarking framework to compare performance across backends for the same task.
+
+### Deliverables
+
+- [ ] **Inner harness abstract interface** -- Define the contract between orchestrator and coding agent backends
+  - [ ] `p79.d1.t1` Create inner_harness.py with abstract interface and implementations
+    > Create inner_harness.py: (1) InnerHarness ABC with methods: a) execute(prompt, workspace, tools, config) -> ExecutionResult (output, exit_code, duration, tokens_used), b) cancel(execution_id) -> bool, c) status(execution_id) -> ExecutionStatus (running, completed, failed, cancelled), d) get_output(execution_id) -> str, e) is_available() -> bool (health check), f) capabilities() -> BackendCapabilities (max_context, supports_tools, supports_approval, supports_background), (2) ClaudeBackend: wraps delegate_task via subprocess, implements all interface methods, (3) ShellBackend: wraps direct shell command execution (for simple bash-only tasks), (4) BackendConfig dataclass: name, max_turns, approval_policy, timeout, retry_count, tool_whitelist, environment_vars, (5) BackendRegistry: register(name, backend_class), get(name) -> backend, list() -> available backends, get_default(task_type) -> best backend for task type. Store backend configs in ~/.orchestrator/backends/ directory.
+    _Files: ~/zion/projects/agent-orchestration/inner_harness.py_
+  - [ ] Abstract interface defines: execute, cancel, status, get_output methods
+    _Validation: read inner_harness.py, verify interface_
+  - [ ] At least 2 concrete implementations (Claude Code, shell)
+    _Validation: python3 -c "from inner_harness import ClaudeBackend, ShellBackend"_
+  _~200 LOC_
+- [ ] **Backend-aware spawner integration** -- Modify the spawner to use the inner harness abstraction instead of hardcoded delegate_task
+  - [ ] `p79.d2.t1` Integrate inner harness into spawner.py (depends: p79.d1.t1)
+    > Modify spawner.py: (1) replace hardcoded delegate_task call with inner_harness.BackendRegistry.get_default(), (2) backend selection logic: a) check issue labels for backend preference (e.g., backend:claude, backend:codex, backend:shell), b) check role config for preferred backend, c) fall back to default backend from orchestrator.yaml, (3) pass backend-specific config from BackendConfig to the backend, (4) log backend selection in execution history (phase 8): which backend was used and why, (5) add backend section to status.sh showing available backends and their health status. The spawner becomes backend-agnostic -- it prepares the workspace and prompt, then delegates execution to whatever backend the registry provides.
+    _Files: ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Spawner uses backend registry to select execution backend
+    _Validation: check spawner.py imports and uses inner_harness_
+  - [ ] Backend can be specified per-issue via label or config
+    _Validation: assign issue with backend:codex label, verify Codex backend used_
+  _~120 LOC_
+- [ ] **Backend health checking and failover** -- Monitor backend health and automatically switch to fallback on failure
+  - [ ] `p79.d3.t1` Add health checking and failover to inner_harness.py (depends: p79.d2.t1)
+    > Extend inner_harness.py: (1) BackendHealth dataclass: backend_name, is_healthy, last_check, consecutive_failures, error_message, (2) health_check(backend) -> BackendHealth: run a simple test prompt, check response time and validity, (3) health_checker cron: periodic health checks (every 5 min), persist results to ~/.orchestrator/backends/health.json, (4) failover logic: if primary backend fails, try fallback backends in priority order, (5) circuit breaker: if a backend fails 3 consecutive times, disable it for 10 minutes (configurable), (6) integrate with health monitor (phase 14): backend health as a monitored metric, (7) backend recovery: re-enable disabled backends after cooldown period, (8) log failover events to execution history.
+    _Files: ~/zion/projects/agent-orchestration/inner_harness.py_
+  - [ ] Unhealthy backends are detected and flagged
+    _Validation: mark backend as unhealthy, verify detection_
+  - [ ] Failed executions automatically retry on fallback backend
+    _Validation: simulate backend failure, verify failover_
+  _~120 LOC_
+- [ ] **Inner harness tests** -- Test backend abstraction, spawner integration, and failover
+  - [ ] `p79.d4.t1` Create test_inner_harness.py (depends: p79.d3.t1)
+    > Create test_inner_harness.py: (1) test ClaudeBackend executes via subprocess (mocked), (2) test ShellBackend executes shell commands, (3) test BackendRegistry register/get/list, (4) test backend selection logic (labels, role config, default), (5) test health_check with healthy and unhealthy backends, (6) test failover: primary fails, fallback succeeds, (7) test circuit breaker: 3 failures -> disabled, cooldown -> re-enabled, (8) test BackendConfig serialization/deserialization. Use mock subprocess for backend execution tests.
+    _Files: ~/zion/projects/agent-orchestration/test_inner_harness.py_
+  - [ ] Tests verify backend interface contract
+    _Validation: python3 -m pytest test_inner_harness.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+The inner harness abstraction is the most architecturally significant of the new phases. It decouples the orchestrator from any specific coding agent, enabling: (1) easy addition of new backends (Cursor, Windsurf, Aider, etc.), (2) backend-specific optimization (Codex for large codebases, Claude for complex reasoning, shell for simple tasks), (3) A/B testing across backends (phase 29), (4) graceful degradation when a backend is down. The key design decision: the interface should be synchronous (execute blocks until done) matching the current delegate_task model, not async. Background execution is handled at the orchestrator level, not the backend level.
+
+### Risks
+
+- Backend abstraction may leak implementation details -- keep the interface minimal
+- Different backends have very different capabilities -- BackendCapabilities must accurately reflect limits
+- Failover may produce different results (Codex vs Claude approach the same task differently) -- log which backend produced which result for provenance (phase 52)
+- Backend health checks consume tokens/resources -- use minimal test prompts and cache results
+
+## [ ] phase-80: Agent-Legible Error Messages and Self-Healing Hints (PLANNED)
+
+**Goal:** Transform error messages, test failures, and diagnostic output into agent-optimized formats that enable agents to self-diagnose and self-correct without human intervention
+
+The Harness Engineering research emphasizes "Application Legibility" -- making software "directly understandable and verifiable by the agent." Phase 33 focuses on architecture-level legibility analysis, but no phase addresses the most immediate legibility problem: error messages. When an agent runs tests and gets a failure, the raw pytest output is designed for humans, not agents. Stack traces are verbose, error messages assume human context, and fix suggestions (if any) are aimed at developers. This phase creates: (1) an error message transformer that converts raw test failures, lint errors, and runtime exceptions into agent-optimized summaries, (2) a self-healing hint generator that analyzes failures and suggests specific fixes, (3) integration with the executor (phase 5) to automatically transform error output before feeding it back to AI nodes, (4) a failure taxonomy that categorizes errors by type (import error, type error, assertion failure, timeout, etc.) for pattern analysis, and (5) a feedback loop where agents that successfully self-heal contribute to the hint database. The research states the harness should "encode the specific quality gates" of the organization -- legible error messages are the most basic quality gate, ensuring agents can understand and fix their own mistakes.
+
+### Deliverables
+
+- [ ] **Error message transformer** -- Convert raw error output into agent-optimized summaries
+  - [ ] `p80.d1.t1` Create error_transformer.py module
+    > Create error_transformer.py: (1) transform(raw_output, tool_type) -> AgentError dataclass: error_type (enum: test_failure, lint_error, runtime_error, type_error, import_error, timeout, permission_error, unknown), file_path, line_number, function_name, error_message (concise), raw_message (full), context_snippet (5 lines around error), suggested_fix (if determinable), severity (error/warning/info), (2) pytest transformer: parse FAILED lines, extract test name, assertion message, file/line from traceback (skip internal frames), (3) lint transformer: parse flake8/ruff/pylint output, extract rule code, file/line, message, (4) runtime transformer: parse Python Traceback, extract exception type, message, file/line from last non-internal frame, (5) context extraction: read source file, extract lines around error location, strip comments and blank lines, (6) output format: structured JSON or concise text (configurable), (7) CLI: transform --type pytest --input output.txt, transform --stdin (pipe support).
+    _Files: ~/zion/projects/agent-orchestration/error_transformer.py_
+  - [ ] Transforms pytest failure output into concise agent-readable summary
+    _Validation: pipe pytest failure through transformer, verify output_
+  - [ ] Extracts key information: error type, file, line, message, relevant context
+    _Validation: verify all key fields present in transformed output_
+  _~180 LOC_
+- [ ] **Self-healing hint generator** -- Analyze transformed errors and generate actionable fix suggestions
+  - [ ] `p80.d2.t1` Create hint_generator.py module (depends: p80.d1.t1)
+    > Create hint_generator.py: (1) Hint dataclass: error_type, hint_text, confidence (0-1), fix_command (if applicable), related_files (list), (2) rule-based hints for common patterns: a) ImportError -> check if module needs pip install, check for typos in import, check if file exists, b) TypeError -> check function signature vs call arguments, c) AssertionError -> extract expected vs actual values, d) SyntaxError -> show exact line and character, e) TimeoutError -> suggest increasing timeout or breaking into smaller steps, f) FileNotFoundError -> check path, suggest creating file, (3) hint database: ~/.orchestrator/hints/ directory with YAML files per error type, editable by humans, (4) learning mode: when an agent successfully fixes an error, log the (error, fix) pair to ~/.orchestrator/hints/learned.yamll, (5) CLI: hint --error-type ImportError --message "No module named X", hint --learned (show learned hints), hint --stats (show hint effectiveness). No LLM calls -- all hints are rule-based or from the database.
+    _Files: ~/zion/projects/agent-orchestration/hint_generator.py_
+  - [ ] Generates fix hints for common error types
+    _Validation: pipe ImportError through generator, verify suggestion_
+  - [ ] Hints are specific enough for an agent to act on
+    _Validation: verify hint includes file path and suggested change_
+  _~150 LOC_
+- [ ] **Executor integration with error transformation** -- Wire error transformation and hint generation into the DAG executor loop
+  - [ ] `p80.d3.t1` Integrate error transformation into executor.py (depends: p80.d2.t1)
+    > Modify executor.py: (1) after any bash node fails, run error_transformer.transform() on the output, (2) append hint_generator.generate() result to the transformed error, (3) when a loop node retries, include the transformed error + hint in the next iteration context (instead of raw output), (4) log transformed errors to execution history (phase 8): original_error, transformed_error, hint_generated, hint_applied, (5) add error_transformation config section to pipeline YAML: enabled (bool), include_hints (bool), max_hint_length (default 500 chars), (6) metrics: error_transform_count, hint_generation_count, hint_effectiveness (did the agent fix it after the hint). This makes the executor's error handling "agent-legible" -- agents get concise, actionable error summaries instead of verbose stack traces.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Executor automatically transforms error output before retry
+    _Validation: run pipeline that fails, verify transformed error in logs_
+  - [ ] AI nodes receive transformed errors with hints in their retry context
+    _Validation: check AI node prompt includes transformed error and hint_
+  _~100 LOC_
+- [ ] **Error transformation tests** -- Test error transformation, hint generation, and executor integration
+  - [ ] `p80.d4.t1` Create test_error_transformer.py (depends: p80.d3.t1)
+    > Create test_error_transformer.py: (1) test pytest transformer with assertion failure, (2) test pytest transformer with collection error, (3) test lint transformer with flake8 output, (4) test runtime transformer with Traceback, (5) test context extraction from source file, (6) test hint generation for ImportError, (7) test hint generation for TypeError, (8) test hint generation for TimeoutError, (9) test learning mode: log learned hint, retrieve it later, (10) test CLI: transform --stdin, hint --error-type. Use fixtures with sample error outputs.
+    _Files: ~/zion/projects/agent-orchestration/test_error_transformer.py_
+  - [ ] Tests cover all error types (pytest, lint, runtime)
+    _Validation: python3 -m pytest test_error_transformer.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+Error transformation is the lowest-cost, highest-impact improvement for agent effectiveness. Raw pytest output can be 100+ lines for a single failure; the transformed version should be under 20 lines. The key insight from the research: "making the software directly understandable and verifiable by the agent." Error messages are the primary communication channel between the deterministic harness (tests, linters) and the probabilistic agent (LLM). Making this channel efficient directly improves agent success rates. Rule-based hints are preferred over LLM-generated hints to avoid token costs on every failure. The learning mode captures successful fixes over time, building a project-specific hint database that improves with use.
+
+### Risks
+
+- Error transformation may lose important information from raw output -- always include raw_message in AgentError
+- Hint suggestions may be wrong -- include confidence score and always show raw error alongside hint
+- Context extraction from source files adds I/O overhead -- cache file reads within a pipeline run
+- Learned hints from self-healing may encode bad fixes -- require human review before promoting to shared hint database
 
 ## Global Risks
 
