@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 from datetime import datetime
@@ -41,6 +42,7 @@ STATE_READY = "ready"
 STATE_NEEDS_REBASE = "needs-rebase"
 STATE_MERGED = "merged"
 STATE_FAILED = "failed"
+STATE_NEEDS_MANUAL = "needs-manual-intervention"
 
 
 def _ensure_queue_file():
@@ -209,6 +211,7 @@ def status() -> dict:
     queued = [e for e in active if e.get("state") == STATE_QUEUED]
     ready = [e for e in active if e.get("state") == STATE_READY]
     needs_rebase = [e for e in active if e.get("state") == STATE_NEEDS_REBASE]
+    needs_manual = [e for e in entries if e.get("state") == STATE_NEEDS_MANUAL]
     merged = [e for e in entries if e.get("state") == STATE_MERGED]
     failed = [e for e in entries if e.get("state") == STATE_FAILED]
 
@@ -218,6 +221,7 @@ def status() -> dict:
         "queued": len(queued),
         "ready": len(ready),
         "needs_rebase": len(needs_rebase),
+        "needs_manual": len(needs_manual),
         "merged": len(merged),
         "failed": len(failed),
         "next_pr": ready[0]["pr"] if ready else (queued[0]["pr"] if queued else None),
@@ -275,6 +279,191 @@ def remove(pr: int) -> bool:
     return False
 
 
+def _run_git(args: list[str], cwd: Optional[str] = None, timeout: int = 60) -> dict:
+    """Run a git command and return result dict."""
+    import subprocess
+    cmd = ["git"] + args
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd,
+        )
+        return {
+            "exit_code": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+        }
+    except subprocess.TimeoutExpired:
+        return {"exit_code": -1, "stdout": "", "stderr": "timeout"}
+    except FileNotFoundError:
+        return {"exit_code": -1, "stdout": "", "stderr": "git not found"}
+
+
+def rebase(pr: int, base: str = "main", test_after: bool = False,
+           test_cmd: str = "") -> dict:
+    """
+    Attempt to rebase a PR's branch onto the latest base.
+
+    Args:
+        pr: PR number in the queue
+        base: Base branch to rebase onto (default: main)
+        test_after: If True, run test_cmd after successful rebase
+        test_cmd: Shell command to run for post-rebase verification
+
+    Returns:
+        Dict with rebase result: success, rebased, conflicts, output, etc.
+    """
+    entries = _read_queue()
+    entry = None
+    for e in entries:
+        if e.get("pr") == pr and e.get("state") in (STATE_QUEUED, STATE_NEEDS_REBASE):
+            entry = e
+            break
+
+    if not entry:
+        return {"success": False, "error": f"PR #{pr} not found or not in rebaseable state"}
+
+    branch = entry["branch"]
+    now = time.time()
+    now_iso = datetime.utcnow().isoformat() + "Z"
+
+    # Step 1: Fetch latest base
+    fetch_result = _run_git(["fetch", "origin", base])
+    if fetch_result["exit_code"] != 0:
+        # Fetch might fail if no remote; try local
+        pass
+
+    # Step 2: Checkout the branch
+    checkout = _run_git(["checkout", branch])
+    if checkout["exit_code"] != 0:
+        entry["state"] = STATE_NEEDS_MANUAL
+        entry["rebase_error"] = f"Cannot checkout branch: {checkout['stderr']}"
+        entry["updated_at"] = now
+        entry["updated_at_iso"] = now_iso
+        _write_queue(entries)
+        return {"success": False, "error": f"Cannot checkout {branch}", "entry": entry}
+
+    # Step 3: Attempt rebase
+    rebase_result = _run_git(["rebase", base], timeout=120)
+    entry["merge_attempts"] = entry.get("merge_attempts", 0) + 1
+    entry["last_rebase_at"] = now_iso
+
+    if rebase_result["exit_code"] != 0:
+        # Rebase failed -- abort the rebase to leave repo clean
+        _run_git(["rebase", "--abort"])
+        entry["state"] = STATE_NEEDS_MANUAL
+        entry["rebase_error"] = rebase_result["stderr"][:500]
+        entry["updated_at"] = now
+        entry["updated_at_iso"] = now_iso
+        _write_queue(entries)
+        return {
+            "success": False,
+            "rebased": False,
+            "conflicts": True,
+            "error": rebase_result["stderr"][:500],
+            "entry": entry,
+        }
+
+    # Step 4: Rebase succeeded -- optionally run tests
+    if test_after and test_cmd:
+        test_result = subprocess.run(
+            test_cmd, shell=True, capture_output=True, text=True, timeout=300,
+        )
+        if test_result.returncode != 0:
+            # Tests failed -- revert the rebase
+            _run_git(["rebase", "--abort"]) if "rebase" in _run_git(["status"])["stdout"] else None
+            entry["state"] = STATE_NEEDS_MANUAL
+            entry["rebase_error"] = f"Tests failed after rebase: {test_result.stderr[:300]}"
+            entry["updated_at"] = now
+            entry["updated_at_iso"] = now_iso
+            _write_queue(entries)
+            return {
+                "success": False,
+                "rebased": True,
+                "tests_passed": False,
+                "error": f"Post-rebase tests failed: {test_result.stderr[:300]}",
+                "entry": entry,
+            }
+
+    # Step 5: Rebase (and tests) succeeded -- re-check conflicts
+    try:
+        sys.path.insert(0, str(PROJECT_DIR))
+        from conflict_detector import check_conflicts
+        report = check_conflicts(branch, base)
+        new_conflict_count = len(report.get("conflict_files", []))
+        new_has_conflicts = report.get("has_conflicts", False)
+    except Exception:
+        new_conflict_count = 0
+        new_has_conflicts = False
+
+    entry["conflict_count"] = new_conflict_count
+    entry["conflict_files"] = report.get("conflict_files", []) if not new_has_conflicts else []
+    entry["state"] = STATE_QUEUED if not new_has_conflicts else STATE_NEEDS_REBASE
+    entry["updated_at"] = now
+    entry["updated_at_iso"] = now_iso
+    entry["last_check_at"] = now_iso
+    _write_queue(entries)
+
+    return {
+        "success": True,
+        "rebased": True,
+        "tests_passed": not test_after or test_cmd == "",
+        "new_conflict_count": new_conflict_count,
+        "new_state": entry["state"],
+        "entry": entry,
+    }
+
+
+def rebase_all(base: str = "main", test_after: bool = False,
+               test_cmd: str = "") -> list[dict]:
+    """
+    Attempt to rebase all PRs in needs-rebase state.
+
+    Returns list of rebase results.
+    """
+    entries = _read_queue()
+    needs_rebase = [e for e in entries if e.get("state") == STATE_NEEDS_REBASE]
+    results = []
+    for e in needs_rebase:
+        result = rebase(e["pr"], base, test_after, test_cmd)
+        results.append(result)
+    return results
+
+
+def auto_rebase_cycle(base: str = "main", max_attempts: int = 3,
+                      test_after: bool = False, test_cmd: str = "") -> dict:
+    """
+    Run a full rebase cycle: attempt to rebase all needs-rebase PRs,
+    re-sort the queue, and return summary.
+
+    This is designed to be called periodically by the orchestrator.
+    """
+    results = rebase_all(base, test_after, test_cmd)
+    entries = _read_queue()
+    entries = _sort_queue(entries)
+    _write_queue(entries)
+
+    succeeded = sum(1 for r in results if r.get("success"))
+    failed = sum(1 for r in results if not r.get("success"))
+    still_needs_rebase = sum(
+        1 for e in entries if e.get("state") == STATE_NEEDS_REBASE
+        and e.get("merge_attempts", 0) < max_attempts
+    )
+    needs_manual = sum(
+        1 for e in entries if e.get("state") == STATE_NEEDS_MANUAL
+        or (e.get("state") == STATE_NEEDS_REBASE
+            and e.get("merge_attempts", 0) >= max_attempts)
+    )
+
+    return {
+        "total_attempted": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+        "still_needs_rebase": still_needs_rebase,
+        "needs_manual_intervention": needs_manual,
+        "queue_reordered": True,
+    }
+
+
 def _print_entry(entry: dict, index: int = -1):
     """Print a queue entry in human-readable format."""
     prefix = f"  [{index}]" if index >= 0 else "  "
@@ -284,6 +473,7 @@ def _print_entry(entry: dict, index: int = -1):
         STATE_NEEDS_REBASE: "⚠️",
         STATE_MERGED: "✔️",
         STATE_FAILED: "❌",
+        STATE_NEEDS_MANUAL: "🔴",
     }.get(entry.get("state", ""), "?")
 
     print(f"{prefix} {state_icon} PR #{entry['pr']} ({entry.get('branch', '?')}) "
@@ -330,6 +520,27 @@ def main():
     p_rm = sub.add_parser("remove", help="Remove PR from queue")
     p_rm.add_argument("--pr", type=int, required=True)
 
+    # rebase
+    p_rb = sub.add_parser("rebase", help="Attempt to rebase a PR onto latest base")
+    p_rb.add_argument("--pr", type=int, required=True)
+    p_rb.add_argument("--base", type=str, default="main")
+    p_rb.add_argument("--test-after", action="store_true", help="Run tests after rebase")
+    p_rb.add_argument("--test-cmd", type=str, default="", help="Test command to run")
+
+    # rebase-all
+    p_rba = sub.add_parser("rebase-all", help="Rebase all needs-rebase PRs")
+    p_rba.add_argument("--base", type=str, default="main")
+    p_rba.add_argument("--test-after", action="store_true")
+    p_rba.add_argument("--test-cmd", type=str, default="")
+    p_rba.add_argument("--max-attempts", type=int, default=3)
+
+    # auto-rebase-cycle
+    p_arc = sub.add_parser("auto-rebase-cycle", help="Full rebase cycle with summary")
+    p_arc.add_argument("--base", type=str, default="main")
+    p_arc.add_argument("--test-after", action="store_true")
+    p_arc.add_argument("--test-cmd", type=str, default="")
+    p_arc.add_argument("--max-attempts", type=int, default=3)
+
     args = parser.parse_args()
 
     if args.command == "enqueue":
@@ -355,6 +566,7 @@ def main():
         s = status()
         print(f"Merge Queue Status:")
         print(f"  Active: {s['active']} (queued: {s['queued']}, ready: {s['ready']}, needs-rebase: {s['needs_rebase']})")
+        print(f"  Needs manual: {s['needs_manual']}")
         print(f"  Archived: {s['merged']} merged, {s['failed']} failed")
         print(f"  Next PR: {s['next_pr']}")
         if s.get("entries"):
@@ -390,6 +602,33 @@ def main():
             print(f"PR #{args.pr} removed from queue.")
         else:
             print(f"PR #{args.pr} not found in queue.")
+
+    elif args.command == "rebase":
+        result = rebase(args.pr, args.base, args.test_after, args.test_cmd)
+        if result.get("success"):
+            print(f"PR #{args.pr} rebased successfully -> {result.get('new_state', '?')}")
+            print(f"  New conflict count: {result.get('new_conflict_count', 0)}")
+        else:
+            print(f"PR #{args.pr} rebase failed: {result.get('error', 'unknown')[:200]}")
+            print(f"  State: {result.get('entry', {}).get('state', '?')}")
+
+    elif args.command == "rebase-all":
+        results = rebase_all(args.base, args.test_after, args.test_cmd)
+        for r in results:
+            pr = r.get("entry", {}).get("pr", "?")
+            if r.get("success"):
+                print(f"PR #{pr}: rebased -> {r.get('new_state', '?')}")
+            else:
+                print(f"PR #{pr}: FAILED - {r.get('error', 'unknown')[:100]}")
+
+    elif args.command == "auto-rebase-cycle":
+        summary = auto_rebase_cycle(args.base, args.max_attempts, args.test_after, args.test_cmd)
+        print(f"Auto-rebase cycle complete:")
+        print(f"  Attempted: {summary['total_attempted']}")
+        print(f"  Succeeded: {summary['succeeded']}")
+        print(f"  Failed: {summary['failed']}")
+        print(f"  Still needs rebase: {summary['still_needs_rebase']}")
+        print(f"  Needs manual intervention: {summary['needs_manual_intervention']}")
 
     else:
         parser.print_help()

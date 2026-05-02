@@ -44,6 +44,44 @@ from execution_log import log_loop_iteration
 from cost_tracker import check_budget, record_usage, estimate_pipeline_cost
 
 
+def _get_merge_queue_status() -> dict:
+    """Get merge queue status, returns empty dict if merge_queue unavailable."""
+    try:
+        from merge_queue import status as mq_status
+        return mq_status()
+    except Exception:
+        return {}
+
+
+def _check_workspace_in_merge_queue(workspace_id: str) -> bool:
+    """Check if a workspace has a PR pending in the merge queue."""
+    try:
+        from merge_queue import _read_queue
+        entries = _read_queue()
+        return any(
+            e.get("workspace") == workspace_id
+            and e.get("state") in ("queued", "ready", "needs-rebase")
+            for e in entries
+        )
+    except Exception:
+        return False
+
+
+def _get_conflicting_workspaces() -> set[str]:
+    """Get set of workspace IDs that have conflicts in the merge queue."""
+    try:
+        from merge_queue import _read_queue
+        entries = _read_queue()
+        return {
+            e["workspace"]
+            for e in entries
+            if e.get("workspace") and e.get("conflict_count", 0) > 0
+            and e.get("state") in ("queued", "ready", "needs-rebase")
+        }
+    except Exception:
+        return set()
+
+
 # Default per-repo config keys
 REPO_DEFAULTS = {
     "labels": ["agent-ready"],
@@ -212,6 +250,7 @@ def run_loop(config: dict, dry_run: bool = False, filter_repo: str | None = None
         "total_active_workers": total_active,
         "global_max_concurrent": global_max,
         "global_available_slots": global_available,
+        "merge_queue": _get_merge_queue_status(),
         "repos": {},
     }
 
@@ -280,6 +319,17 @@ def run_loop(config: dict, dry_run: bool = False, filter_repo: str | None = None
         # Filter out issues already being worked on
         active_issue_nums = {w["issue_number"] for w in get_active_workers(repo_name)}
         new_issues = [i for i in unique_issues if i["number"] not in active_issue_nums]
+
+        # Filter out issues whose workspaces have pending PRs in merge queue
+        conflicting_ws = _get_conflicting_workspaces()
+        mq_filtered = []
+        for issue in new_issues:
+            ws_id = str(issue["number"])
+            if ws_id in conflicting_ws:
+                print(f"  Skipping {repo_url} #{issue['number']}: workspace has conflicting merge queue entry", file=sys.stderr)
+                continue
+            mq_filtered.append(issue)
+        new_issues = mq_filtered
 
         if not new_issues:
             repo_summary["skipped"] = "all_in_progress"
@@ -368,6 +418,15 @@ def show_status():
     print(f"{'Active Workers':<20} {len(all_workers)}")
     print(f"{'Completed':<20} {len(completed)}")
     print(f"{'Failed':<20} {len(failed)}")
+
+    # Merge queue status
+    mq_status = _get_merge_queue_status()
+    if mq_status:
+        print(f"{'Merge Queue':<20} {mq_status.get('active', 0)} active, {mq_status.get('ready', 0)} ready")
+        if mq_status.get("needs_manual", 0):
+            print(f"{'  Needs Manual':<20} {mq_status['needs_manual']}")
+        if mq_status.get("next_pr"):
+            print(f"{'  Next PR':<20} #{mq_status['next_pr']}")
     print()
 
     if all_workers:
