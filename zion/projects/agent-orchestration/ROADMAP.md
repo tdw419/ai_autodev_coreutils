@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 20/102 phases complete, 0 in progress
+**Progress:** 21/102 phases complete, 0 in progress
 
-**Deliverables:** 80/407 complete
+**Deliverables:** 83/407 complete
 
-**Tasks:** 80/407 complete
+**Tasks:** 83/407 complete
 
 ## Scope Summary
 
@@ -32,7 +32,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-18 Agent Self-Debugging and Trace Tools | COMPLETE | 4/4 | 320 | 5 |
 | phase-19 Continuous Self-Improvement Loop | COMPLETE | 4/4 | 380 | 5 |
 | phase-20 Context Window Optimization (Smart Zone) | COMPLETE | 4/4 | 300 | 5 |
-| phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | PLANNED | 1/4 | 410 | 10 |
+| phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | COMPLETE | 4/4 | 410 | 10 |
 | phase-22 Config Hot-Reload and Live Tuning | PLANNED | 0/4 | 270 | 5 |
 | phase-23 End-to-End Integration and Real-World Validation | PLANNED | 0/4 | 550 | 15 |
 | phase-24 Project Onboarding Bootstrap | PLANNED | 0/4 | 400 | 10 |
@@ -1483,7 +1483,7 @@ Token estimation can use a simple heuristic (chars / 3.5) to avoid external depe
 - Over-aggressive truncation could remove critical context that the agent needs
 - Budget tuning requires experimentation with real workloads
 
-## [ ] phase-21: Merge Queue and Conflict Prevention (Refinery Pattern) (PLANNED)
+## [x] phase-21: Merge Queue and Conflict Prevention (Refinery Pattern) (COMPLETE)
 
 **Goal:** Implement Gas Town''s Refinery pattern to manage concurrent agent PRs and prevent merge conflicts
 
@@ -1500,29 +1500,29 @@ Gas Town's Refinery role "manages merge queues to prevent collisions" -- when mu
   - [x] Reports conflict probability and affected files
     _Validation: check output includes file list and confidence score_
   _~120 LOC_
-- [ ] **Merge queue manager** -- Ordered queue that sequences PR merges to minimize conflicts
-  - [ ] `p21.d2.t1` Create merge_queue.py module (depends: p21.d1.t1)
+- [x] **Merge queue manager** -- Ordered queue that sequences PR merges to minimize conflicts
+  - [x] `p21.d2.t1` Create merge_queue.py module (depends: p21.d1.t1)
     > Python module implementing a priority merge queue: (1) PRs are added to a JSON-backed queue file (~/.orchestrator/merge-queue.jsonl), (2) queue is ordered by: no-conflict PRs first, then by fewest conflicts, then by oldest, (3) supports enqueue, dequeue, reorder, and status commands, (4) before merging, runs conflict_detector to verify merge is still safe, (5) if new conflict detected, moves PR to "needs-rebase" state. CLI: python3 merge_queue.py enqueue --pr 42, dequeue, status, reorder.
     _Files: ~/zion/projects/agent-orchestration/merge_queue.py_
-  - [ ] Can enqueue multiple PRs and determine safe merge order
+  - [x] Can enqueue multiple PRs and determine safe merge order
     _Validation: enqueue 3 PRs with overlapping files, verify order minimizes conflicts_
-  - [ ] Queue state persists across orchestrator restarts
+  - [x] Queue state persists across orchestrator restarts
     _Validation: check queue file exists and is valid after restart_
   _~150 LOC_
-- [ ] **Auto-rebase on conflict** -- Automatically rebase workspace branches when main branch has advanced
-  - [ ] `p21.d3.t1` Add auto-rebase to merge_queue.py (depends: p21.d2.t1)
+- [x] **Auto-rebase on conflict** -- Automatically rebase workspace branches when main branch has advanced
+  - [x] `p21.d3.t1` Add auto-rebase to merge_queue.py (depends: p21.d2.t1)
     > Add rebase function to merge_queue.py: (1) when a PR is next in queue but has conflicts, attempt git rebase main, (2) if rebase succeeds, re-run tests (configurable), (3) if tests pass, mark as ready to merge, (4) if rebase fails, mark as "needs-manual-intervention" and post a comment on the PR explaining the conflict. Support --auto-rebase flag and --test-after-rebase flag.
     _Files: ~/zion/projects/agent-orchestration/merge_queue.py_
-  - [ ] Can rebase a workspace branch onto latest main
+  - [x] Can rebase a workspace branch onto latest main
     _Validation: create diverged branch, run rebase, verify clean merge_
-  - [ ] Rebase failure triggers workspace notification
+  - [x] Rebase failure triggers workspace notification
     _Validation: simulate unresolvable conflict, check notification_
   _~80 LOC_
-- [ ] **Merge coordination in orchestrator loop** -- Integrate merge queue into the orchestrator main loop
-  - [ ] `p21.d4.t1` Add merge queue check to orchestrator.py (depends: p21.d2.t1, p4.d3.t1)
+- [x] **Merge coordination in orchestrator loop** -- Integrate merge queue into the orchestrator main loop
+  - [x] `p21.d4.t1` Add merge queue check to orchestrator.py (depends: p21.d2.t1, p4.d3.t1)
     > Modify orchestrator.py run_loop() to: (1) before spawning new workers, check if any workspaces have pending PRs in the merge queue, (2) skip spawning workers for issues that would conflict with pending merges, (3) after successful pipeline completion, auto-enqueue the PR in the merge queue, (4) report merge queue status in the loop summary. This ensures the orchestrator is conflict-aware when scheduling work.
     _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] Orchestrator checks merge queue before spawning new workers
+  - [x] Orchestrator checks merge queue before spawning new workers
     _Validation: run orchestrator with pending queue, verify new workers wait_
   _~60 LOC_
 

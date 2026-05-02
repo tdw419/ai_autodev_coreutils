@@ -2094,7 +2094,7 @@ phases:
   test_target: 5
 - id: 'phase-21'
   title: Merge Queue and Conflict Prevention (Refinery Pattern)
-  status: planned
+  status: complete
   goal: Implement Gas Town''s Refinery pattern to manage concurrent agent PRs and prevent merge conflicts
   description: 'Gas Town''s Refinery role "manages merge queues to prevent collisions" -- when multiple agents work on the same codebase simultaneously, their PRs can conflict. The current orchestrator
     can spawn multiple workers but has no merge coordination. This phase adds a merge queue system that: (1) sequences PR merges to avoid conflicts, (2) detects potential conflicts before agents start work,
@@ -2125,18 +2125,18 @@ phases:
     - '~/zion/projects/agent-orchestration/conflict_detector.py'
   - name: Merge queue manager
     description: Ordered queue that sequences PR merges to minimize conflicts
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Can enqueue multiple PRs and determine safe merge order
       validation: 'enqueue 3 PRs with overlapping files, verify order minimizes conflicts'
-      met: false
+      met: true
     - description: Queue state persists across orchestrator restarts
       validation: check queue file exists and is valid after restart
-      met: false
+      met: true
     tasks:
     - id: p21.d2.t1
       title: Create merge_queue.py module
-      status: planned
+      status: done
       description: 'Python module implementing a priority merge queue: (1) PRs are added to a JSON-backed queue file (~/.orchestrator/merge-queue.jsonl), (2) queue is ordered by: no-conflict PRs first,
         then by fewest conflicts, then by oldest, (3) supports enqueue, dequeue, reorder, and status commands, (4) before merging, runs conflict_detector to verify merge is still safe, (5) if new conflict
         detected, moves PR to "needs-rebase" state. CLI: python3 merge_queue.py enqueue --pr 42, dequeue, status, reorder.'
@@ -2149,18 +2149,18 @@ phases:
     - '~/zion/projects/agent-orchestration/merge_queue.py'
   - name: 'Auto-rebase on conflict'
     description: Automatically rebase workspace branches when main branch has advanced
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Can rebase a workspace branch onto latest main
       validation: 'create diverged branch, run rebase, verify clean merge'
-      met: false
+      met: true
     - description: Rebase failure triggers workspace notification
       validation: 'simulate unresolvable conflict, check notification'
-      met: false
+      met: true
     tasks:
     - id: p21.d3.t1
       title: 'Add auto-rebase to merge_queue.py'
-      status: planned
+      status: done
       description: 'Add rebase function to merge_queue.py: (1) when a PR is next in queue but has conflicts, attempt git rebase main, (2) if rebase succeeds, re-run tests (configurable), (3) if tests pass,
         mark as ready to merge, (4) if rebase fails, mark as "needs-manual-intervention" and post a comment on the PR explaining the conflict. Support --auto-rebase flag and --test-after-rebase flag.'
       dependencies:
@@ -2172,15 +2172,15 @@ phases:
     - '~/zion/projects/agent-orchestration/merge_queue.py'
   - name: Merge coordination in orchestrator loop
     description: Integrate merge queue into the orchestrator main loop
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Orchestrator checks merge queue before spawning new workers
       validation: 'run orchestrator with pending queue, verify new workers wait'
-      met: false
+      met: true
     tasks:
     - id: p21.d4.t1
       title: Add merge queue check to orchestrator.py
-      status: planned
+      status: done
       description: 'Modify orchestrator.py run_loop() to: (1) before spawning new workers, check if any workspaces have pending PRs in the merge queue, (2) skip spawning workers for issues that would conflict
         with pending merges, (3) after successful pipeline completion, auto-enqueue the PR in the merge queue, (4) report merge queue status in the loop summary. This ensures the orchestrator is conflict-aware
         when scheduling work.'
