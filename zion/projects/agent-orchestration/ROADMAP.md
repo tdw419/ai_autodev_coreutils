@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 16/47 phases complete, 0 in progress
+**Progress:** 16/51 phases complete, 0 in progress
 
-**Deliverables:** 65/187 complete
+**Deliverables:** 65/203 complete
 
-**Tasks:** 74/187 complete
+**Tasks:** 74/203 complete
 
 ## Scope Summary
 
@@ -59,6 +59,10 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-45 Symphony Spec Compliance and WORKFLOW.md Engine | PLANNED | 0/4 | 340 | 8 |
 | phase-46 Golden Principles Registry and Evolution | PLANNED | 0/4 | 410 | 10 |
 | phase-47 Cattle vs Pets Worker Model (Session Identity and Disposability) | PLANNED | 0/4 | 430 | 10 |
+| phase-48 Cost Optimization and Intelligent Model Routing | PLANNED | 0/4 | 400 | 10 |
+| phase-49 Human Feedback Capture and Agent Behavior Tuning | PLANNED | 0/4 | 410 | 8 |
+| phase-50 Orchestrator Chaos Engineering and Fault Injection Testing | PLANNED | 0/4 | 460 | 20 |
+| phase-51 Orchestrator Federation and Cross-Instance Coordination | PLANNED | 0/4 | 420 | 12 |
 
 ## Dependencies
 
@@ -197,6 +201,21 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-11 | phase-47 | soft | Session disposal integrates with workspace lifecycle from phase 11 |
 | phase-20 | phase-47 | soft | Knowledge injection must respect context budget limits from phase 20 |
 | phase-38 | phase-47 | soft | Cross-project knowledge transfer from phase 38 benefits from the knowledge store |
+| phase-32 | phase-48 | soft | Cost optimization builds on the cost tracking data from phase 32 |
+| phase-20 | phase-48 | soft | Context budget data from phase 20 feeds into cost optimization analysis |
+| phase-40 | phase-48 | soft | Multi-model backend from phase 40 can execute model tier recommendations |
+| phase-13 | phase-49 | soft | Feedback capture reads PRs created by the PR automation from phase 13 |
+| phase-15 | phase-49 | soft | Approval policies from phase 15 may need adjustment based on feedback patterns |
+| phase-44 | phase-49 | soft | Health scorecard from phase 44 should include rejection rate as a quality signal |
+| phase-46 | phase-49 | soft | Human feedback can inform principle evolution from phase 46 |
+| phase-14 | phase-50 | soft | Health monitoring from phase 14 provides the baseline that chaos testing verifies |
+| phase-25 | phase-50 | soft | Resilience from phase 25 should be validated by chaos testing |
+| phase-7 | phase-50 | soft | Chaos tests extend the test suite from phase 7 with fault injection scenarios |
+| phase-35 | phase-50 | hard | Dark factory mode from phase 35 requires passing chaos tests as a prerequisite |
+| phase-4 | phase-51 | soft | Federation extends the base orchestrator loop from phase 4 with cross-instance coordination |
+| phase-16 | phase-51 | soft | Multi-repo orchestration from phase 16 is a prerequisite for effective federation |
+| phase-30 | phase-51 | soft | Inter-agent communication from phase 30 provides the notification patterns that federation extends |
+| phase-41 | phase-51 | soft | Priority queuing from phase 41 should work across federated instances |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -2531,6 +2550,202 @@ The "cattle vs pets" metaphor is the core architectural insight. Workers (cattle
 - Knowledge base could grow large -- need retention policies and pruning
 - Injecting past knowledge into prompts adds context tokens -- must respect budget limits
 - Knowledge relevance scoring may be inaccurate for novel tasks -- don't let stale knowledge mislead
+
+## [ ] phase-48: Cost Optimization and Intelligent Model Routing (PLANNED)
+
+**Goal:** Analyze token spending patterns and automatically suggest or apply cost optimizations across the orchestrator
+
+Phase 32 tracks costs but does not optimize them. The research describes the OpenAI team spending $2-3K/day with 1B+ output tokens, treating code as disposable. At this scale, cost optimization becomes a first-class concern. This phase goes beyond tracking to actively identifying wasteful patterns: retries that consume more tokens than the original attempt, AI nodes using expensive models for trivial tasks, loop nodes hitting max iterations on unsolvable problems, and context budgets that are too large for simple issues. The optimizer suggests cheaper model alternatives, flags wasteful pipelines, and can auto-apply cost-saving parameter changes. This is the "attention is scarce" principle from Harness Engineering applied to token economics.
+
+### Deliverables
+
+- [ ] **Cost pattern analyzer** -- Module that identifies wasteful token spending patterns from execution history
+  - [ ] `p48.d1.t1` Create cost_optimizer.py analyzer module (depends: p32.d1.t1)
+    > Python module that: (1) reads execution logs and cost_tracker data, (2) computes per-pipeline, per-role, per-node-type average costs, (3) identifies waste patterns: retry cost exceeding original cost (loop amplification), AI nodes using expensive models for tasks that completed in <3 turns, context budgets >50% unused (over-budgeted), (4) estimates savings if cheaper models were used for specific node types, (5) outputs structured report with: current spend, waste percentage, top savings opportunities ranked by impact. Support --period flag and --threshold to filter small savings.
+    _Files: ~/zion/projects/agent-orchestration/cost_optimizer.py_
+  - [ ] Can identify top 5 most expensive pipeline patterns (by average token cost per run)
+    _Validation: python3 cost_optimizer.py --analyze --last 50_
+  - [ ] Detects specific waste patterns: excessive retries, oversized context, wrong model tier
+    _Validation: run analysis on synthetic history with known waste patterns_
+- [ ] **Model tier recommendation engine** -- Suggest cheaper model alternatives for specific task types based on historical success rates
+  - [ ] `p48.d2.t1` Add model tier recommendations to cost_optimizer.py (depends: p48.d1.t1)
+    > Add --recommend-models mode: (1) group AI node executions by task type (based on node name, role, pipeline context), (2) for each task type, compute success rate per model used, (3) if a cheaper model has >=95% success rate for a task type, recommend downgrading, (4) if an expensive model is needed (success rate <80% on cheaper models), flag as "requires premium model", (5) output a model routing table: task_type -> recommended_model -> confidence -> estimated_savings. Store recommendations in ~/.orchestrator/model-routing.yaml for use by phase 40 (multi-model backend).
+    _Files: ~/zion/projects/agent-orchestration/cost_optimizer.py_
+  - [ ] Can recommend model tier per node type based on historical success/failure data
+    _Validation: python3 cost_optimizer.py --recommend-models_
+  - [ ] Recommendations include confidence scores based on historical data volume
+    _Validation: check output includes confidence and sample size_
+- [ ] **Cost-aware pipeline parameters** -- Auto-adjust pipeline parameters (loop max, context budget, retry count) to minimize cost while maintaining success rate
+  - [ ] `p48.d3.t1` Add cost-aware parameter tuning to cost_optimizer.py (depends: p48.d1.t1, p20.d1.t1)
+    > Add --tune-params mode: (1) analyze loop nodes: if most loops succeed in 1-2 iterations, recommend reducing max_iterations (saves retry cost), (2) analyze context budgets: if most AI nodes use <40% of budget, recommend reducing budget (saves input tokens), (3) analyze retry patterns: if retry success rate is <30%, recommend reducing retry count (saves wasted tokens), (4) output parameter recommendations with estimated savings and success rate impact. Support --apply flag to write changes to pipeline YAML files. Keep a tuning log with before/after comparisons.
+    _Files: ~/zion/projects/agent-orchestration/cost_optimizer.py_
+  - [ ] Can suggest parameter adjustments that reduce cost without significantly impacting success rate
+    _Validation: python3 cost_optimizer.py --tune-params_
+- [ ] **Cost optimization cron integration** -- Weekly cron that runs cost analysis and reports savings opportunities
+  - [ ] `p48.d4.t1` Create cost optimization cron job (depends: p48.d1.t1)
+    > Create a weekly Hermes cron that runs cost_optimizer.py --analyze --period week --recommend-models --tune-params and outputs a structured report. The report includes: total spend for the period, top waste patterns, model tier recommendations, parameter tuning suggestions, and estimated total savings if all recommendations are applied. Store reports in ~/.orchestrator/reports/cost/ for historical comparison. Optionally create GitHub Issues for high-impact savings opportunities (>$50/week estimated).
+  - [ ] Cron job runs weekly and outputs a cost optimization report
+    _Validation: cronjob list_
+
+### Technical Notes
+
+Cost optimization is the financial sustainability layer. The research shows that at scale ($2-3K/day), even 10% savings matter. The key insight: most waste comes from retries on unsolvable problems and over-provisioned context budgets, not from the base model cost. Recommendations should always include confidence intervals and sample sizes -- small datasets produce unreliable recommendations.
+
+### Risks
+
+- Aggressive cost optimization could reduce quality -- always measure success rate impact
+- Model tier recommendations require sufficient historical data (50+ runs per task type)
+- Parameter tuning could make some edge cases worse while improving the average case
+
+## [ ] phase-49: Human Feedback Capture and Agent Behavior Tuning (PLANNED)
+
+**Goal:** Capture human review decisions from PRs and issues, analyze patterns, and feed them back to improve agent behavior
+
+The research describes humans moving "up-stack" from writing code to "designing invariants," "tuning scaffolds," and defining "taste." But there is no mechanism for capturing the human's review decisions and using them to improve agent behavior. When a human rejects a PR, leaves an inline comment, or reopens a closed issue, that feedback is currently lost. This phase creates a feedback loop: (1) capture human review actions (approve, reject, comment) on agent-generated PRs, (2) analyze feedback patterns to identify recurring rejection reasons, (3) feed patterns back into the orchestrator as new rules, prompts, or safety policies, (4) track improvement over time as rejection rate decreases. This is the "outer harness guide" concept made adaptive -- instead of static AI_GUIDE.md rules, the system learns from human corrections.
+
+### Deliverables
+
+- [ ] **Feedback capture module** -- Module that reads GitHub review comments and PR actions on agent-generated PRs and structures them as feedback signals
+  - [ ] `p49.d1.t1` Create feedback_capture.py module (depends: p13.d1.t1)
+    > Python module that: (1) reads PR review comments via gh CLI (gh pr view --comments, gh api repos/{owner}/{repo}/pulls/{number}/comments), (2) filters for PRs labeled "auto-generated" or created by the orchestrator, (3) categorizes each comment: approval ("looks good", "lgtm"), rejection ("this approach is wrong", "please revert"), suggestion ("use X instead of Y", "consider Z"), question ("why did you..."), (4) extracts the file and line each comment refers to, (5) stores feedback in ~/.orchestrator/feedback/{repo}/YYYY-MM-DD.jsonl with: pr_number, issue_number, comment_text, category, file, line, reviewer. Support --sync flag to fetch recent feedback from GitHub.
+    _Files: ~/zion/projects/agent-orchestration/feedback_capture.py_
+  - [ ] Can read PR review comments and categorize them (approval, rejection, suggestion, question)
+    _Validation: python3 feedback_capture.py --pr 42_
+  - [ ] Captures the relationship between feedback and the specific code changes that triggered it
+    _Validation: check output links comments to files and lines_
+- [ ] **Feedback pattern analyzer** -- Analyze accumulated human feedback to identify recurring rejection reasons and behavior patterns
+  - [ ] `p49.d2.t1` Add feedback pattern analysis to feedback_capture.py (depends: p49.d1.t1)
+    > Add --analyze mode: (1) read all feedback entries, (2) group by rejection category, (3) identify recurring patterns: same file/line getting rejected repeatedly, same role producing the same type of rejection, same pipeline step consistently triggering corrections, (4) compute rejection rate over time (improving or worsening), (5) output structured report: rejection_categories (sorted by frequency), recurring_issues (specific patterns that appear in >20% of rejections), improvement_suggestions (auto-generated rules or prompt additions that would prevent the rejections), trend (rejection rate trajectory). Store analysis results for trend tracking.
+    _Files: ~/zion/projects/agent-orchestration/feedback_capture.py_
+  - [ ] Can identify top rejection categories across all agent-generated PRs
+    _Validation: python3 feedback_capture.py --analyze --last 30_
+  - [ ] Maps rejection patterns to specific orchestrator components (role, pipeline, node type)
+    _Validation: check output includes component attribution_
+- [ ] **Adaptive prompt tuning from feedback** -- Automatically generate prompt additions and rule suggestions from human feedback patterns
+  - [ ] `p49.d3.t1` Add adaptive prompt tuning to feedback_capture.py (depends: p49.d2.t1)
+    > Add --suggest-rules mode: (1) take the top rejection patterns from analysis, (2) for each pattern, generate a specific rule or prompt addition that would prevent it, (3) categorize suggestions: ai_guide_rules (additions to AI_GUIDE.md), role_prompt_additions (additions to role system prompts), pipeline_gate_checks (new bash nodes for pipelines), safety_policy_updates (new approval rules), (4) output suggestions as YAML with: pattern, frequency, suggested_rule, target (which component to modify), confidence, (5) support --apply to write suggestions to the appropriate config files (with backup). Support --dry-run to preview. The key: feedback becomes fuel for orchestrator improvement.
+    _Files: ~/zion/projects/agent-orchestration/feedback_capture.py_
+  - [ ] Can generate suggested AI_GUIDE.md additions based on recurring rejection patterns
+    _Validation: python3 feedback_capture.py --suggest-rules_
+  - [ ] Suggestions are specific and actionable (not generic advice)
+    _Validation: review generated suggestions for specificity_
+- [ ] **Feedback-driven improvement dashboard** -- Track human feedback metrics and improvement trends in the status dashboard
+  - [ ] `p49.d4.t1` Add feedback metrics to status.sh (depends: p49.d2.t1)
+    > Add a "Human Feedback" section to status.sh: overall rejection rate (last 30 days), rejection rate trend (improving/stable/worsening), top 3 rejection categories, number of auto-generated suggestions pending review. Call feedback_capture.py to get the data. Color code: green for improving trends, yellow for stable, red for worsening. Include a count of feedback-driven rules that have been applied.
+    _Files: ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] status.sh shows rejection rate trend and top feedback categories
+    _Validation: run status.sh, check for feedback section_
+
+### Technical Notes
+
+The feedback loop is the bridge between "human defines taste" and "agents learn taste." Key design decisions: (1) only capture feedback on agent-generated PRs to avoid noise, (2) categorize feedback using simple keyword matching first, upgrade to LLM classification if needed, (3) never auto-apply suggestions without human review -- the system suggests, the human decides. The improvement cycle: human rejects PR -> system captures feedback -> pattern identified -> rule suggested -> human approves rule -> agent behavior improves -> fewer rejections.
+
+### Risks
+
+- Feedback categorization may be inaccurate -- need human validation of categories
+- Small sample sizes (few agent PRs) make pattern analysis unreliable
+- Auto-generated suggestions could conflict with existing rules -- need deduplication
+- Reviewer comments may be subjective or wrong -- the system should not blindly follow all feedback
+
+## [ ] phase-50: Orchestrator Chaos Engineering and Fault Injection Testing (PLANNED)
+
+**Goal:** Test the orchestrator''s resilience under failure conditions by injecting faults and verifying recovery behavior
+
+The research emphasizes the Elixir/BEAM runtime's fault tolerance: hot code reloading, supervisor trees, and "let it crash" philosophy. The Hermes orchestrator has been built with various failure handling mechanisms (health checks, auto-recovery, workspace archival, approval timeouts) but none of these have been tested under actual failure conditions. This phase creates a chaos engineering toolkit that deliberately injects faults (worker crash, API timeout, disk full, network failure, config corruption) and verifies that the orchestrator recovers gracefully. This is the "Dark Factory" reliability prerequisite: before running fully autonomous, verify the system handles failures without human intervention. Modeled on chaos engineering practices (Netflix Chaos Monkey, Gremlin) but adapted for agent orchestration.
+
+### Deliverables
+
+- [ ] **Fault injection framework** -- Python module that can inject various fault types into orchestrator components during testing
+  - [ ] `p50.d1.t1` Create chaos.py fault injection module
+    > Python module that: (1) defines fault types: worker_crash (kill delegate_task process), api_timeout (delay gh CLI responses), disk_full (fill workspace to limit), config_corrupt (inject invalid YAML into config files), network_failure (block GitHub API endpoints), process_kill (kill orchestrator mid-loop), (2) each fault has: inject() and restore() methods, severity level, and expected recovery behavior, (3) support --inject FAULT --target TARGET and --restore for manual use, (4) provide a Python API for programmatic use in tests: with chaos.inject("api_timeout"): ... , (5) log all fault injections and recovery attempts. Include a --safe-mode flag that only injects faults in test workspaces.
+    _Files: ~/zion/projects/agent-orchestration/chaos.py_
+  - [ ] Can inject at least 5 fault types: worker crash, API timeout, disk full, config corruption, process kill
+    _Validation: python3 chaos.py --inject worker_crash --target test_workspace_
+  - [ ] Faults can be injected programmatically (for test integration) and via CLI (for manual testing)
+    _Validation: run injection from CLI and from test code_
+- [ ] **Recovery verification tests** -- Test suite that injects faults and verifies the orchestrator recovers correctly
+  - [ ] `p50.d2.t1` Create test_chaos.py with fault injection tests (depends: p50.d1.t1)
+    > Create pytest test suite: (1) test_worker_crash_recovery: inject worker crash, verify orchestrator marks workspace as failed and does not spawn replacement without human approval, (2) test_api_timeout_recovery: inject API timeout, verify poller retries and eventually skips the repo, (3) test_disk_full_recovery: fill workspace, verify workspace_manager detects and archives, (4) test_config_corrupt_recovery: corrupt YAML, verify config validation catches it and falls back to defaults, (5) test_process_kill_recovery: kill orchestrator, verify it resumes cleanly on restart (state recovery), (6) test_concurrent_faults: inject multiple faults simultaneously, verify no cascading failures. Use tmp_path fixtures for isolation.
+    _Files: ~/zion/projects/agent-orchestration/test_chaos.py_
+  - [ ] Test suite covers all major fault types with pass/fail recovery verification
+    _Validation: python3 -m pytest test_chaos.py -v_
+  - [ ] Each test verifies specific recovery behavior (not just "no crash")
+    _Validation: read test assertions_
+- [ ] **Resilience scoring** -- Score the orchestrator''s resilience based on chaos test results and track improvements over time
+  - [ ] `p50.d3.t1` Add resilience scoring to chaos.py (depends: p50.d2.t1)
+    > Add --score mode: (1) run all chaos tests, (2) compute per-fault-type recovery rate, (3) compute overall resilience score as weighted average (critical faults weighted higher), (4) compare against previous scores to show trend, (5) output as table: fault_type | injected | recovered | score | trend. Store scores in ~/.orchestrator/chaos/history.jsonl. Add resilience score to the health scorecard (phase 44). Target: resilience score >=80 before enabling dark factory mode (phase 35).
+    _Files: ~/zion/projects/agent-orchestration/chaos.py_
+  - [ ] Can compute a resilience score (0-100) based on chaos test pass rates
+    _Validation: python3 chaos.py --score_
+- [ ] **Chaos testing cron job** -- Scheduled job that runs chaos tests periodically and reports resilience status
+  - [ ] `p50.d4.t1` Create chaos testing cron job (depends: p50.d3.t1)
+    > Create a weekly Hermes cron that runs chaos.py --score in a test environment. The cron: (1) runs all chaos tests, (2) computes resilience score, (3) if score drops below 80%, create a GitHub Issue warning about resilience regression, (4) store results for trend tracking, (5) output a summary: overall score, per-fault-type scores, regressions detected, recommended actions. Keep the test environment isolated from production workspaces.
+  - [ ] Cron job runs chaos tests weekly and reports resilience score
+    _Validation: cronjob list_
+
+### Technical Notes
+
+Chaos engineering for orchestrators is different from traditional chaos engineering. The "system under test" is the orchestration logic (poll, spawn, recover), not the application code. Faults should target the orchestration layer: gh CLI failures, delegate_task crashes, filesystem issues. The key insight: an orchestrator that cannot handle its own failures will cascade those failures to all workers. Resilience score is the gate for dark factory mode.
+
+### Risks
+
+- Fault injection could leak into production if safe-mode is disabled -- always use test workspaces
+- Some faults (network failure) are hard to inject realistically in a test environment
+- Resilience scoring may not capture all failure modes -- supplement with manual testing
+- Chaos tests may be flaky if they depend on timing -- use deterministic fault injection where possible
+
+## [ ] phase-51: Orchestrator Federation and Cross-Instance Coordination (PLANNED)
+
+**Goal:** Enable multiple Hermes orchestrator instances to coordinate work across repos, teams, or cloud regions
+
+The research describes Gas Town managing 20-30 Claude Code instances simultaneously. Phase 30 covers inter-agent communication within a single orchestrator, but does not address the scenario where multiple Hermes orchestrator instances need to coordinate: one per organization, one per cloud region, or one per team. Without federation, multiple orchestrators could create conflicting PRs, duplicate work on the same issues, or waste resources on tasks already handled by another instance. This phase adds a federation layer: (1) a distributed lock service for issue assignment (preventing two orchestrators from working on the same issue), (2) a shared work status protocol for cross-instance visibility, (3) work stealing for load balancing between instances, and (4) a federation status view that shows all instances and their current workload. This is the "Kubernetes for Agents" pattern from Gas Town applied at the orchestrator level rather than the agent level.
+
+### Deliverables
+
+- [ ] **Distributed lock service** -- File-based or API-based distributed locking for issue assignment across orchestrator instances
+  - [ ] `p51.d1.t1` Create federation_lock.py module
+    > Python module implementing distributed locking: (1) uses GitHub issue labels as the lock mechanism (add "orch-working-{instance_id}" label to claim an issue, check for existing labels before claiming), (2) supports optional file-based locking for non-GitHub coordination (lock files in a shared filesystem or S3), (3) lock TTL with automatic expiry (default 4 hours), (4) lock acquisition returns: acquired (bool), lock_holder (instance_id if locked by another), lock_expiry (when current lock expires), (5) heartbeat to extend lock TTL while work is in progress, (6) CLI: python3 federation_lock.py acquire --issue 42 --instance my-instance, release, status. The GitHub-label approach requires no external infrastructure.
+    _Files: ~/zion/projects/agent-orchestration/federation_lock.py_
+  - [ ] Two orchestrator instances competing for the same issue results in only one acquiring the lock
+    _Validation: run two instances simultaneously, verify single assignment_
+  - [ ] Lock acquisition and release is atomic and handles stale locks (timeout-based expiry)
+    _Validation: simulate stale lock, verify cleanup_
+- [ ] **Federation status protocol** -- Shared status protocol that allows orchestrator instances to see each other''s workload
+  - [ ] `p51.d2.t1` Create federation_status.py module (depends: p51.d1.t1)
+    > Python module for cross-instance status sharing: (1) each instance writes its status to a shared location (GitHub repo issue/label, shared JSON file, or simple HTTP endpoint), (2) status includes: instance_id, active_issues, capacity_remaining, health_score, last_heartbeat, repos_monitored, (3) query_all() returns status of all known instances, (4) query_capacity(repo) returns total capacity across all instances monitoring a repo, (5) detect_stale() identifies instances that have not heartbeated recently (possible crash), (6) CLI: python3 federation_status.py publish, query, detect-stale. Default shared location: a designated GitHub issue with structured comments, or a JSON file in a shared filesystem.
+    _Files: ~/zion/projects/agent-orchestration/federation_status.py_
+  - [ ] Each orchestrator instance publishes its status (active issues, capacity, health) to a shared location
+    _Validation: run two instances, check shared status_
+  - [ ] Instances can query other instances'' status to avoid duplicate work
+    _Validation: instance A checks instance B''s workload before claiming an issue_
+- [ ] **Work stealing for load balancing** -- Enable under-loaded orchestrator instances to pick up work from over-loaded instances
+  - [ ] `p51.d3.t1` Add work stealing to federation_status.py (depends: p51.d2.t1)
+    > Add --steal-work mode: (1) query all instances for capacity, (2) if this instance has capacity >50% and another instance is at >80% capacity, (3) offer to take queued (not active) issues from the overloaded instance, (4) transfer is coordinated via the lock service: release lock on source instance, acquire on destination, (5) respect priority queue: only steal low-priority work, (6) log all transfers. Also add --rebalance mode for one-time manual rebalancing. Work stealing enables horizontal scaling: add more orchestrator instances and they automatically distribute load.
+    _Files: ~/zion/projects/agent-orchestration/federation_status.py_
+  - [ ] An idle instance can detect an overloaded instance and offer to take work
+    _Validation: simulate load imbalance, verify work redistribution_
+  - [ ] Work stealing respects priority and does not preempt in-progress work
+    _Validation: check that active issues are not stolen_
+- [ ] **Federation integration with orchestrator** -- Integrate federation locks and status into the orchestrator main loop
+  - [ ] `p51.d4.t1` Integrate federation into orchestrator.py (depends: p51.d1.t1, p51.d2.t1, p4.d3.t1)
+    > Modify orchestrator.py: (1) add federation section to orchestrator.yaml: enabled (bool), instance_id (string), shared_backend (github_labels|file|http), heartbeat_interval, lock_ttl, (2) in run_loop(): before spawning, acquire federation lock on the issue (skip if lock held by another instance), (3) after each loop iteration, publish instance status via federation_status.py, (4) on startup, register instance; on shutdown, deregister, (5) add --no-federation flag to disable for single-instance mode (default behavior unchanged), (6) add federation section to status.sh showing all instances and their workloads.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/orchestrator.yaml, ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Orchestrator acquires federation lock before spawning workers and publishes status after each loop
+    _Validation: run orchestrator with federation enabled, check lock labels and status_
+  - [ ] Federation can be enabled/disabled via config without code changes
+    _Validation: set federation.enabled: false, verify orchestrator runs without federation_
+
+### Technical Notes
+
+Federation is the scaling architecture. The GitHub-label-based locking approach is deliberately simple: no etcd, no Redis, no external dependencies. Labels on GitHub Issues serve as a natural distributed lock visible to all instances. The trade-off: label-based locking has higher latency (API calls) but zero infrastructure cost. For high-performance federation, the file-based or HTTP backend can be swapped in. Federation should be opt-in: single-instance mode (the default) should not be affected.
+
+### Risks
+
+- Distributed locking adds latency to every issue assignment
+- Stale locks could prevent work from being picked up -- TTL expiry handles this but adds delay
+- Federation status could become a bottleneck if too many instances publish frequently
+- Work stealing could cause thrashing if instances constantly redistribute work
+- No consensus protocol -- federation is eventually consistent, not strongly consistent
 
 ## Global Risks
 
