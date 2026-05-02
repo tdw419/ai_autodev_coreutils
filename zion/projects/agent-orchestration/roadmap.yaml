@@ -2302,18 +2302,18 @@ phases:
   deliverables:
   - name: Conflict detector
     description: Python module that predicts merge conflicts between workspace branches and the main branch
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Module can check if workspace changes would conflict with main branch
       validation: create conflicting changes, run detector
-      met: false
+      met: true
     - description: Reports conflict probability and affected files
       validation: check output includes file list and confidence score
-      met: false
+      met: true
     tasks:
     - id: p21.d1.t1
       title: Create conflict_detector.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) runs git diff on workspace branch vs main, (2) for each changed file, checks if
         main branch has concurrent changes (git log --oneline main..HEAD), (3) uses git merge-tree --write-tree to dry-run
         merge and detect conflicts, (4) outputs conflict report as JSON with: workspace, branch, conflict_files, conflict_type
@@ -12417,6 +12417,760 @@ phases:
   - Task similarity is approximate (keyword-based) -- could miss semantic similarity, acceptable for v1
   scope_lines_total: 560
   test_target: 10
+- id: phase-91
+  title: Orchestrator Web Dashboard
+  status: planned
+  goal: Build a real-time web UI for monitoring the orchestrator factory, replacing terminal-only visibility with team-wide
+    observability
+  description: 'The research describes Symphony''s "minimal Phoenix stack for a live observability dashboard" and Gas Town''s
+    "pull-based execution model" where status is surfaced in real-time. Phase 27 provides a terminal dashboard (status.sh)
+    and phase 72 exposes metrics via Prometheus/StatsD, but no phase provides a visual web interface. Non-technical stakeholders,
+    team leads, and operators who prefer GUIs over CLIs need browser-based access to: active workers and their pipeline progress,
+    queue depth and scheduling status, real-time cost and quality charts, PR velocity trends, and alert/incident history. This
+    phase creates a lightweight Flask/FastAPI web app that consumes execution history (phase 8), health monitor data (phase 14),
+    and metrics (phase 72) to render a live dashboard with WebSocket updates.'
+  deliverables:
+  - name: Web dashboard server
+    description: FastAPI server serving the dashboard HTML and providing REST/WebSocket endpoints for live data
+    status: planned
+    acceptance_criteria:
+    - description: Server starts and serves dashboard at localhost:8080
+      validation: curl localhost:8080 returns HTML
+      met: false
+    - description: WebSocket endpoint pushes live updates when workers start/stop/complete
+      validation: connect to WS, trigger worker event, verify update received
+      met: false
+    tasks:
+    - id: p91.d1.t1
+      title: Create dashboard server (dashboard_server.py)
+      status: planned
+      description: 'FastAPI server with: (1) GET / - serves index.html dashboard, (2) GET /api/workers - returns active workers
+        from workspace_manager state, (3) GET /api/queue - returns pending issues from poller, (4) GET /api/metrics - returns
+        recent execution stats from execution_log, (5) GET /api/history - paginated execution history with filters (date range,
+        status, role), (6) WS /ws/live - WebSocket that pushes events: worker_started, worker_completed, worker_failed, pipeline_progress.
+        Server reads from orchestrator state files (no direct DB). CORS enabled for local development.'
+      files:
+      - ~/zion/projects/agent-orchestration/dashboard_server.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dashboard_server.py
+  - name: Dashboard frontend
+    description: Single-page HTML/CSS/JS dashboard showing real-time orchestrator state
+    status: planned
+    acceptance_criteria:
+    - description: Dashboard shows active workers, queue depth, and recent completions
+      validation: open in browser, verify sections render
+      met: false
+    - description: Dashboard auto-refreshes via WebSocket without page reload
+      validation: trigger event, verify UI updates live
+      met: false
+    tasks:
+    - id: p91.d2.t1
+      title: Create dashboard HTML/JS (dashboard/index.html)
+      status: planned
+      description: 'Single-file HTML dashboard (inline CSS/JS for simplicity) with: (1) Header: orchestrator status (running/paused),
+        active worker count, queue depth, (2) Workers panel: table of active workers (issue#, role, pipeline stage, elapsed time,
+        progress bar), (3) Queue panel: list of pending issues (issue#, title, assigned role, priority), (4) History panel: recent
+        completions (last 20) with status, duration, review score, (5) Metrics panel: sparkline charts for PR velocity (from phase
+        59), cost trend (from phase 32), quality score trend (from phase 44), (6) WebSocket connection with reconnect logic, (7)
+        Dark/light mode toggle, responsive layout. No external dependencies -- vanilla JS with fetch API and WebSocket.'
+      dependencies:
+      - p91.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dashboard/index.html
+    scope_lines: 250
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dashboard/index.html
+  - name: Dashboard authentication
+    description: Basic auth and read-only mode for non-admin users
+    status: planned
+    acceptance_criteria:
+    - description: Dashboard requires authentication for non-localhost access
+      validation: access from remote IP, verify auth prompt
+      met: false
+    - description: Read-only mode hides sensitive config and prevents actions
+      validation: login as viewer, verify no write endpoints accessible
+      met: false
+    tasks:
+    - id: p91.d3.t1
+      title: Add auth middleware to dashboard server
+      status: planned
+      description: 'Add to dashboard_server.py: (1) API key auth: generate API key on first start, store in ~/.orchestrator/dashboard_api_key,
+        require via X-API-Key header or ?key= query param, (2) localhost bypass: requests from 127.0.0.1 skip auth, (3) read-only
+        role: config file ~/.orchestrator/dashboard_readonly_keys for view-only access (hides config endpoints, prevents POST/DELETE),
+        (4) session cookies for browser: set cookie after first auth, auto-renew. CLI: python3 dashboard_server.py --port 8080
+        --auth-required. Environment variable DASHBOARD_API_KEY for containerized deployment.'
+      dependencies:
+      - p91.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/dashboard_server.py
+    scope_lines: 80
+    scope_files:
+    - ~/zion/projects/agent-orchestration/dashboard_server.py
+  - name: Dashboard tests
+    description: Test server endpoints, WebSocket updates, and auth
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover all REST endpoints and WebSocket event delivery
+      validation: python3 -m pytest test_dashboard.py -v
+      met: false
+    tasks:
+    - id: p91.d4.t1
+      title: Create test_dashboard.py
+      status: planned
+      description: 'Create test_dashboard.py using FastAPI TestClient: (1) test GET / returns HTML, (2) test GET /api/workers
+        returns worker list (mock workspace state), (3) test GET /api/queue returns pending issues (mock poller), (4) test GET
+        /api/history with pagination, (5) test WebSocket /ws/live pushes events on worker state change, (6) test auth: no key
+        from remote returns 401, valid key returns 200, localhost bypasses auth, (7) test read-only role cannot access config endpoints,
+        (8) test API key rotation.'
+      dependencies:
+      - p91.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_dashboard.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_dashboard.py
+  dependencies:
+  - source: phase-8
+    target: phase-91
+    type: soft
+    reason: Dashboard reads execution history from phase 8 for the history panel and metrics
+  - source: phase-14
+    target: phase-91
+    type: soft
+    reason: Health monitor data from phase 14 feeds the workers panel and system status
+  - source: phase-27
+    target: phase-91
+    type: soft
+    reason: Web dashboard extends the terminal dashboard from phase 27 with richer visualization
+  - source: phase-72
+    target: phase-91
+    type: soft
+    reason: Metrics pipeline from phase 72 provides the data for charts and KPIs
+  technical_notes: 'Keep the frontend simple -- single HTML file with inline CSS/JS. No React/Vue build step. The research mentions
+    Phoenix for the Symphony reference implementation, but a lightweight Python server with vanilla JS is more appropriate for
+    the Hermes ecosystem. Consider adding the dashboard as a cron-triggered background process (start on demand, not always running)
+    to avoid resource overhead when not in use.'
+  risks:
+  - Dashboard could expose sensitive orchestrator state -- auth is critical for non-localhost access
+  - WebSocket connections could accumulate on long-running servers -- implement heartbeat and cleanup
+  - Dashboard server adds a runtime dependency on FastAPI/uvicorn -- keep it optional
+  scope_lines_total: 600
+  test_target: 10
+- id: phase-92
+  title: Agent Simulation and Dry-Run Testing
+  status: planned
+  goal: Enable safe testing of pipeline configurations, orchestrator changes, and agent strategies using mock agent execution
+    instead of real API calls
+  description: 'The research describes the Dark Factory model where "the team analyzed the environment to identify missing capabilities"
+    when agents failed. But testing the orchestrator itself currently requires real agent execution (phase 69 integration tests use
+    actual delegate_task). This is expensive, slow, and non-deterministic. No phase provides a simulation mode where the orchestrator
+    runs end-to-end with mock agents that return configurable responses. This is critical for: (1) testing new pipeline YAML templates
+    safely, (2) validating orchestrator configuration changes before deployment, (3) reproducing and debugging orchestrator bugs
+    deterministically, (4) what-if analysis for scheduling and priority decisions, (5) CI testing of the orchestrator itself without
+    consuming API tokens. This phase creates a mock agent backend and dry-run orchestrator mode that exercises the full stack with
+    deterministic, configurable responses.'
+  deliverables:
+  - name: Mock agent backend
+    description: Configurable mock agent that returns predefined responses instead of calling real LLM APIs
+    status: planned
+    acceptance_criteria:
+    - description: Mock agent can be configured to return success, failure, or specific text responses
+      validation: configure mock to return "done", run pipeline, verify completion
+      met: false
+    - description: Mock agent simulates realistic timing (configurable delay per turn)
+      validation: set delay to 2s, verify pipeline takes expected time
+      met: false
+    tasks:
+    - id: p92.d1.t1
+      title: Create mock_agent.py module
+      status: planned
+      description: 'Python module implementing a mock agent backend: (1) MockAgent class with configurable behavior: response_text
+        (what the agent "says"), should_succeed (pass/fail), delay_seconds (simulate processing time), fail_after_n_turns (simulate
+        multi-turn failure), response_file (load responses from JSON for complex scenarios), (2) Response modes: "always_succeed",
+        "always_fail", "fail_then_succeed" (fails first N turns, succeeds after), "random" (configurable success rate), "scripted"
+        (sequence of responses from file), (3) Turn tracking: records all prompts received, all responses given, total turns used,
+        total tokens simulated, (4) Integration: implements the same interface as the real agent backend so executor.py can swap
+        between real and mock without code changes. CLI: python3 mock_agent.py --mode fail_then_succeed --fail-count 2 --delay
+        1.0.'
+      files:
+      - ~/zion/projects/agent-orchestration/mock_agent.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/mock_agent.py
+  - name: Dry-run orchestrator mode
+    description: Orchestrator flag that runs the full poll-spawn-execute cycle with mock agents
+    status: planned
+    acceptance_criteria:
+    - description: Orchestrator --dry-run flag runs without consuming any API tokens
+      validation: run dry-run, verify 0 token consumption
+      met: false
+    - description: Dry-run produces a detailed execution trace showing what would happen
+      validation: run dry-run, check trace output for pipeline steps
+      met: false
+    tasks:
+    - id: p92.d2.t1
+      title: Add dry-run mode to orchestrator
+      status: planned
+      description: 'Modify orchestrator.py and executor.py: (1) --dry-run flag: when set, executor uses MockAgent instead of real
+        delegate_task, (2) mock_config parameter: YAML file specifying mock behavior per role (e.g., implementer: {mode: fail_then_succeed,
+        fail_count: 1}, reviewer: {mode: always_succeed}), (3) execution trace: dry-run produces a detailed JSON trace showing: each
+        pipeline node executed, input prompt, mock response, duration, tokens simulated, pipeline result, (4) --replay flag: re-run
+        a past execution (from execution_log) with mock agents to reproduce and debug issues, (5) --what-if flag: given a set of
+        pending issues, simulate scheduling decisions (which issues would be picked, which roles assigned, estimated completion time).'
+      dependencies:
+      - p92.d1.t1
+      - p4.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/orchestrator.py
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/orchestrator.py
+    - ~/zion/projects/agent-orchestration/executor.py
+  - name: Pipeline YAML validation and preview
+    description: Validate pipeline YAMLs without executing them and preview the execution plan
+    status: planned
+    acceptance_criteria:
+    - description: Can validate a pipeline YAML and report errors (cycles, missing deps, invalid nodes)
+      validation: feed invalid YAML, verify error reported
+      met: false
+    - description: Can preview the execution order and estimated token cost
+      validation: run preview on standard-pipeline.yaml, verify output
+      met: false
+    tasks:
+    - id: p92.d3.t1
+      title: Create pipeline_validator.py with dry-run preview
+      status: planned
+      description: 'Python module: (1) validate(pipeline_yaml): check schema validity (valid node types, valid edges, no cycles,
+        all referenced nodes exist), return list of warnings/errors, (2) preview(pipeline_yaml, issue_context): simulate execution
+        order using topological sort, estimate tokens per AI node (based on prompt template length + estimated response), estimate
+        total pipeline cost, show execution plan as ASCII flowchart, (3) diff(pipeline_old, pipeline_new): compare two pipeline
+        versions and highlight structural changes (added/removed nodes, changed dependencies), (4) CLI: python3 pipeline_validator.py
+        validate pipelines/standard-pipeline.yaml, python3 pipeline_validator.py preview pipelines/standard-pipeline.yaml --issue
+        "Fix auth bug".'
+      dependencies:
+      - p92.d1.t1
+      - p5.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/pipeline_validator.py
+    scope_lines: 130
+    scope_files:
+    - ~/zion/projects/agent-orchestration/pipeline_validator.py
+  - name: Simulation framework tests
+    description: Test mock agent, dry-run mode, and pipeline validation
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover all mock agent modes and dry-run execution paths
+      validation: python3 -m pytest test_simulation.py -v
+      met: false
+    tasks:
+    - id: p92.d4.t1
+      title: Create test_simulation.py
+      status: planned
+      description: 'Create test_simulation.py: (1) test MockAgent modes (always_succeed, always_fail, fail_then_succeed, scripted),
+        (2) test dry-run orchestrator: run full pipeline with mocks, verify no real API calls, verify trace output, (3) test replay:
+        inject execution log entry, run replay, verify same behavior reproduced, (4) test pipeline validation: valid pipeline passes,
+        cyclic pipeline rejected, missing dep flagged, invalid node type caught, (5) test pipeline preview: verify execution order
+        and token estimate for standard pipeline, (6) test pipeline diff: modify pipeline, verify diff shows changes, (7) test
+        what-if scheduling: given mock issues, verify correct prioritization and role assignment.'
+      dependencies:
+      - p92.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_simulation.py
+    scope_lines: 130
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_simulation.py
+  dependencies:
+  - source: phase-4
+    target: phase-92
+    type: soft
+    reason: Dry-run mode wraps the orchestrator loop from phase 4 with mock execution
+  - source: phase-5
+    target: phase-92
+    type: soft
+    reason: Pipeline validation and preview extend the DAG executor from phase 5
+  - source: phase-69
+    target: phase-92
+    type: soft
+    reason: Simulation tests complement integration tests from phase 69 with deterministic, zero-cost alternatives
+  technical_notes: 'The mock agent is the key insight: by implementing the same interface as the real agent backend, the entire
+    orchestrator stack can be tested without consuming API tokens. This is the "test doubles" pattern applied to agent orchestration.
+    The scripted response mode (loading responses from JSON) is particularly powerful for regression testing -- you can capture
+    a real agent''s responses, save them, and replay them to test orchestrator behavior changes.'
+  risks:
+  - Mock agent behavior may not match real agent behavior -- keep mocks simple and focus on testing orchestrator logic, not agent quality
+  - Dry-run traces could be large for complex pipelines -- implement truncation and summarization
+  - Pipeline preview token estimates are approximate -- clearly label as estimates
+  scope_lines_total: 530
+  test_target: 10
+- id: phase-93
+  title: Agent Long-Term Memory and Semantic Retrieval
+  status: planned
+  goal: Build a vector-store-based memory system that enables agents to search and retrieve relevant past solutions, patterns,
+    and domain knowledge using semantic similarity
+  description: 'The research emphasizes that in the Dark Factory, "code is treated as a disposable artifact" and the harness
+    is what persists. Phase 47 implements knowledge extraction but uses file-based storage with keyword search. The research''s
+    vision of "Agent-Legible Software" implies agents should learn from their own history -- when facing a similar task, they should
+    automatically retrieve how they solved it before. Phase 82 adds context seeding but relies on exact keyword matching. No phase
+    provides semantic retrieval: finding past solutions that are conceptually similar even when they use different terminology. This
+    phase creates a lightweight vector store (using numpy/faiss, no heavy dependencies like Pinecone) that: (1) automatically extracts
+    knowledge from successful task completions, (2) embeds knowledge chunks using sentence-transformers, (3) enables semantic search
+    for context injection, (4) provides memory decay to keep the store relevant, (5) integrates with the context seeding system
+    (phase 82) for automatic injection.'
+  deliverables:
+  - name: Vector store and embedding module
+    description: Lightweight vector store with sentence-transformer embeddings for semantic search
+    status: planned
+    acceptance_criteria:
+    - description: Can embed text and store/retrieve vectors with semantic similarity
+      validation: embed "fix auth bug" and "authentication error", verify high similarity
+      met: false
+    - description: Vector store persists to disk and survives restarts
+      validation: store vectors, restart, verify retrieval works
+      met: false
+    tasks:
+    - id: p93.d1.t1
+      title: Create memory_store.py module
+      status: planned
+      description: 'Python module: (1) MemoryStore class using numpy for vector operations and pickle/json for persistence, (2)
+        embed(text): use sentence-transformers (all-MiniLM-L6-v2, 80MB, runs locally) to generate 384-dim embeddings, cache embeddings
+        to avoid recomputation, (3) store(entry): accept {id, text, metadata, tags, timestamp}, embed text, append to vector index,
+        (4) search(query, top_k=5, filters=None): embed query, compute cosine similarity against all stored vectors, return top_k
+        entries with similarity scores, optional metadata/tag filters, (5) delete(id): remove entry from store, (6) stats(): return
+        count, size_on_disk, last_updated, (7) compact(): remove entries older than retention_period or with similarity below threshold
+        (memory decay). Storage: ~/.orchestrator/memory/vectors.npy + metadata.jsonl. CLI: python3 memory_store.py search "how
+        to fix authentication" --top 5.'
+      files:
+      - ~/zion/projects/agent-orchestration/memory_store.py
+    scope_lines: 200
+    scope_files:
+    - ~/zion/projects/agent-orchestration/memory_store.py
+  - name: Automatic knowledge extraction and indexing
+    description: Automatically extract knowledge from completed tasks and index it in the vector store
+    status: planned
+    acceptance_criteria:
+    - description: After a task completes, its solution is automatically indexed
+      validation: complete a task, search for it, verify found
+      met: false
+    - description: Knowledge chunks are properly segmented (not too large, not too small)
+      validation: check chunk sizes in store, verify 100-500 token range
+      met: false
+    tasks:
+    - id: p93.d2.t1
+      title: Create knowledge_indexer.py module
+      status: planned
+      description: 'Python module: (1) extract_from_task(execution_record): given an execution log entry (from phase 8), extract
+        knowledge chunks: task_description (the issue), solution_summary (what was done), code_changes (diff summary), lessons_learned
+        (from review feedback or self-improvement analysis), (2) chunk_text(text, max_tokens=300, overlap=50): split long texts into
+        overlapping chunks for better retrieval, (3) auto_index(store, since_hours=24): scan execution log for recently completed
+        tasks, extract and index their knowledge, (4) tag_inference(text): automatically tag knowledge entries based on content
+        (e.g., "authentication", "database", "testing", "refactoring") using keyword matching, (5) dedup(store): detect and merge
+        near-duplicate entries (similarity > 0.95). CLI: python3 knowledge_indexer.py index --since 24h, python3 knowledge_indexer.py
+        stats.'
+      dependencies:
+      - p93.d1.t1
+      - p8.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/knowledge_indexer.py
+    scope_lines: 160
+    scope_files:
+    - ~/zion/projects/agent-orchestration/knowledge_indexer.py
+  - name: Semantic context injection
+    description: Integrate vector store search with the context seeding system for automatic knowledge injection
+    status: planned
+    acceptance_criteria:
+    - description: When an agent starts a new task, relevant past solutions are automatically injected
+      validation: start task similar to past task, verify relevant context appears in prompt
+      met: false
+    - description: Context injection respects the context budget from phase 20
+      validation: verify injected context fits within budget limits
+      met: false
+    tasks:
+    - id: p93.d3.t1
+      title: Integrate memory store with context seeding
+      status: planned
+      description: 'Modify the executor (or create a context_enricher.py module): (1) before starting an AI node, search memory store
+        with the task description as query, (2) filter results: only include entries with similarity > 0.6 and from the same project/repo,
+        (3) format_results(results, budget_tokens): format search results as context block, truncate to fit within context budget
+        from phase 20, prioritize by similarity score, (4) inject into prompt: add "## Relevant Past Solutions" section to AI node
+        prompt with top results, (5) feedback loop: after task completion, ask agent "was the injected context helpful?" (via structured
+        output), store feedback to improve future retrieval. CLI: python3 memory_store.py inject --task "Fix login redirect" --budget
+        500.'
+      dependencies:
+      - p93.d2.t1
+      - p20.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/context_enricher.py
+      - ~/zion/projects/agent-orchestration/executor.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/context_enricher.py
+      - ~/zion/projects/agent-orchestration/executor.py
+  - name: Memory system tests
+    description: Test vector store, indexing, and context injection
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover embedding, search, indexing, and context injection
+      validation: python3 -m pytest test_memory.py -v
+      met: false
+    tasks:
+    - id: p93.d4.t1
+      title: Create test_memory.py
+      status: planned
+      description: 'Create test_memory.py: (1) test MemoryStore CRUD (store, search, delete, stats), (2) test semantic search:
+        store entries about "authentication", "database", search for "login problem", verify auth entry ranks highest, (3) test
+        chunking: long text split into correct-sized chunks with overlap, (4) test knowledge extraction from mock execution records,
+        (5) test auto-indexing: inject mock completion, run auto_index, verify entry appears in store, (6) test context injection:
+        inject mock knowledge, run enricher, verify relevant context added to prompt within budget, (7) test dedup: store near-duplicates,
+        run dedup, verify merged, (8) test memory decay: store entry with old timestamp, run compact, verify removed, (9) test persistence:
+        store data, create new MemoryStore instance, verify data persists.'
+      dependencies:
+      - p93.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_memory.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_memory.py
+  dependencies:
+  - source: phase-8
+    target: phase-93
+    type: soft
+    reason: Knowledge extraction reads execution logs from phase 8
+  - source: phase-20
+    target: phase-93
+    type: soft
+    reason: Context injection must respect context budget limits from phase 20
+  - source: phase-47
+    target: phase-93
+    type: soft
+    reason: Long-term memory extends the knowledge extraction from phase 47 with semantic retrieval
+  - source: phase-82
+    target: phase-93
+    type: soft
+    reason: Semantic context injection extends the keyword-based seeding from phase 82
+  technical_notes: 'Use sentence-transformers (all-MiniLM-L6-v2) for embeddings -- it''s 80MB, runs locally on CPU, no API
+    calls needed. For the vector store, use numpy with brute-force cosine similarity -- at the scale of hundreds to low thousands
+    of entries, this is fast enough. If the store grows beyond 10K entries, consider upgrading to faiss-cpu for approximate nearest
+    neighbor search. The memory decay feature is important: without it, the store grows unbounded and retrieval quality degrades
+    as irrelevant old entries dilute search results. Default retention: 90 days, configurable per project.'
+  risks:
+  - sentence-transformers adds an 80MB dependency -- make it optional, fall back to keyword search if not installed
+  - Embedding quality depends on the model -- all-MiniLM-L6-v2 is good for general English but may miss domain-specific terminology
+  - Memory store could grow large -- implement size limits and automatic compaction
+  - Semantic search could retrieve irrelevant results that mislead agents -- require minimum similarity threshold (0.6) and show
+    confidence score
+  - Cross-project memory could leak proprietary patterns -- per-project isolation is essential
+  scope_lines_total: 630
+  test_target: 10
+- id: phase-94
+  title: Ensemble Multi-Agent Code Review
+  status: planned
+  goal: Implement multi-perspective code review where multiple specialized reviewers analyze the same changes and synthesize
+    their feedback, implementing the Gas Town concept of specialized agent roles applied to review
+  description: 'The research describes Gas Town''s specialized agent roles where "agents are assigned specialized roles that divide
+    the labor of software engineering." Phase 9 implements single-agent LLM-as-judge review and phase 6 defines role profiles, but
+    no phase applies the ensemble concept to code review: having multiple reviewers with different perspectives (security, performance,
+    architecture, style, testing) review the same code and synthesize their feedback into a unified report. Single-reviewer systems
+    have blind spots -- a security-focused reviewer catches SQL injection that a style-focused reviewer misses, and vice versa. The
+    research''s "inferential sensors" concept is strongest when multiple sensors provide complementary signals. This phase creates
+    an ensemble review system that: (1) runs multiple specialized reviewers in parallel on the same diff, (2) synthesizes feedback
+    with conflict resolution, (3) weights reviewer expertise by task relevance, (4) produces a unified review with categorized findings.'
+  deliverables:
+  - name: Multi-perspective review orchestrator
+    description: Run multiple specialized reviewers on the same code changes and collect their feedback
+    status: planned
+    acceptance_criteria:
+    - description: Can run 3+ reviewers in parallel on the same diff
+      validation: submit diff, verify 3+ review reports generated
+      met: false
+    - description: Each reviewer has a distinct perspective (security, performance, style, etc.)
+      validation: check review reports for perspective-specific findings
+      met: false
+    tasks:
+    - id: p94.d1.t1
+      title: Create ensemble_review.py module
+      status: planned
+      description: 'Python module: (1) ReviewPerspective class: name (e.g., "security", "performance", "architecture", "style",
+        "testing"), system_prompt (specialized instructions for this perspective), severity_weights (which severity levels this
+        perspective emphasizes), (2) built-in perspectives: security (focuses on input validation, auth, injection, secrets), performance
+        (focuses on algorithms, N+1 queries, memory), architecture (focuses on coupling, layering, patterns), style (focuses on
+        naming, readability, conventions), testing (focuses on coverage, edge cases, test quality), (3) EnsembleReviewer class: given
+        a diff and list of perspectives, run each reviewer via delegate_task in parallel, collect results, (4) result format: {perspective,
+        findings: [{severity, location, description, suggestion}], confidence, tokens_used}.'
+      files:
+      - ~/zion/projects/agent-orchestration/ensemble_review.py
+    scope_lines: 180
+    scope_files:
+    - ~/zion/projects/agent-orchestration/ensemble_review.py
+  - name: Feedback synthesis and conflict resolution
+    description: Merge multiple review reports into a unified report, resolving conflicts between reviewers
+    status: planned
+    acceptance_criteria:
+    - description: Can merge 3+ review reports into a single unified report
+      validation: merge reports, verify unified output
+      met: false
+    - description: Conflicting findings are flagged and resolved with reasoning
+      validation: create conflicting reviews, verify resolution in output
+      met: false
+    tasks:
+    - id: p94.d2.t1
+      title: Add synthesis engine to ensemble_review.py
+      status: planned
+      description: 'Add to ensemble_review.py: (1) synthesize(reviews): merge findings from all perspectives into unified report,
+        (2) dedup: merge findings that describe the same issue from different perspectives (e.g., "naming" from style and "readability"
+        from architecture), use location overlap as dedup signal, (3) conflict_detection: flag when reviewers disagree (e.g., performance
+        reviewer says "use caching" but architecture reviewer says "premature optimization"), (4) conflict_resolution: use severity
+        weights and perspective relevance to resolve conflicts, or flag for human review, (5) prioritization: rank all findings by
+        combined severity (product of severity and reviewer confidence), (6) output format: unified review with sections: Critical,
+        High, Medium, Low, each with location, description, suggestion, originating perspective, confidence. CLI: python3 ensemble_review.py
+        review --diff-file changes.patch --perspectives security,performance,architecture.'
+      dependencies:
+      - p94.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/ensemble_review.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/ensemble_review.py
+  - name: Adaptive reviewer selection
+    description: Automatically select the most relevant review perspectives based on the code changes
+    status: planned
+    acceptance_criteria:
+    - description: Security-sensitive changes (auth, crypto) automatically include security reviewer
+      validation: submit auth change, verify security reviewer included
+      met: false
+    - description: Performance-sensitive changes (algorithms, queries) automatically include performance reviewer
+      validation: submit algorithm change, verify performance reviewer included
+      met: false
+    tasks:
+    - id: p94.d3.t1
+      title: Add adaptive perspective selection
+      status: planned
+      description: 'Add to ensemble_review.py: (1) select_perspectives(diff, default_perspectives): analyze diff to determine which
+        perspectives are most relevant, (2) heuristics: if diff touches auth/crypto/session files -> add "security", if diff touches
+        SQL/query files -> add "performance", if diff touches test files -> add "testing", if diff is large (>200 lines) -> add "architecture",
+        always include "style" as baseline, (3) perspective_profiles: YAML file mapping file patterns and change characteristics to
+        recommended perspectives, (4) cost_aware: if budget is tight (from phase 32), reduce to top-2 most relevant perspectives
+        instead of all 5, (5) history_feedback: track which perspectives produce the most actionable findings per project type, weight
+        future selection accordingly.'
+      dependencies:
+      - p94.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/ensemble_review.py
+      - ~/zion/projects/agent-orchestration/ensemble_profiles.yaml
+    scope_lines: 100
+    scope_files:
+    - ~/zion/projects/agent-orchestration/ensemble_review.py
+      - ~/zion/projects/agent-orchestration/ensemble_profiles.yaml
+  - name: Ensemble review tests
+    description: Test multi-perspective review, synthesis, and adaptive selection
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover review execution, synthesis, conflict resolution, and selection
+      validation: python3 -m pytest test_ensemble_review.py -v
+      met: false
+    tasks:
+    - id: p94.d4.t1
+      title: Create test_ensemble_review.py
+      status: planned
+      description: 'Create test_ensemble_review.py: (1) test single-perspective review with mock agent responses, (2) test multi-perspective
+        review with 3 mock reviewers, verify all run, (3) test synthesis: 3 reviews with overlapping findings, verify dedup produces
+        unified list, (4) test conflict resolution: security says "reject" but style says "approve", verify conflict flagged, (5)
+        test prioritization: mix of critical/high/low findings, verify sorted correctly, (6) test adaptive selection: auth file change
+        includes security, SQL change includes performance, small change uses fewer reviewers, (7) test cost-aware reduction: tight
+        budget reduces to 2 reviewers, (8) test edge cases: empty diff, single-line change, massive diff.'
+      dependencies:
+      - p94.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_ensemble_review.py
+    scope_lines: 130
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_ensemble_review.py
+  dependencies:
+  - source: phase-6
+    target: phase-94
+    type: soft
+    reason: Role specialization from phase 6 provides the reviewer role profiles that ensemble review extends
+  - source: phase-9
+    target: phase-94
+    type: soft
+    reason: Ensemble review extends the single-agent LLM review sensor from phase 9 with multi-perspective analysis
+  - source: phase-32
+    target: phase-94
+    type: soft
+    reason: Cost-aware reviewer selection requires token budget data from phase 32
+  technical_notes: 'The ensemble approach is a key differentiator from single-reviewer systems. The research describes Gas Town''s
+    specialized roles as the "functional division of a traditional engineering organization but at the speed of silicon." Ensemble
+    review applies this same principle: instead of one reviewer trying to cover all concerns, multiple specialized reviewers each
+    focus on what they''re best at. The synthesis step is critical -- without it, developers would need to read 5 separate review
+    reports. The conflict resolution is the hardest part: when reviewers disagree, the system should surface the disagreement rather
+    than silently picking one side.'
+  risks:
+  - Ensemble review uses N times more tokens than single review -- cost-aware selection (phase 32) is essential
+  - Reviewer prompts could be biased toward finding problems -- include positive feedback too (what was done well)
+  - Synthesis quality depends on reviewer agreement -- high conflict rates may indicate poorly calibrated perspectives
+  - Adding more reviewers has diminishing returns -- 3-5 is the sweet spot, more adds cost without proportional value
+  scope_lines_total: 560
+  test_target: 10
+- id: phase-95
+  title: Orchestrator Auto-Remediation and Self-Healing
+  status: planned
+  goal: Enable the orchestrator to automatically detect, diagnose, and fix common failure modes without human intervention,
+    implementing the research's vision of a self-correcting system
+  description: 'The research describes the end-state as "self-correcting codebases" where "Garbage Collection Loops run weekly
+    as background tasks scanning for deviations from golden principles." Phase 25 covers orchestrator state recovery (checkpoint/restore)
+    and phase 18 covers debug tools, but no phase implements autonomous remediation: the orchestrator detecting that something is wrong
+    and fixing it without human intervention. Current failure handling is reactive (detect, alert, wait for human). This phase makes
+    it proactive (detect, diagnose, fix, verify). Specific auto-remediation scenarios: (1) stuck worker: agent hasn''t made progress
+    in N minutes, auto-kill and restart with debug context, (2) workspace corruption: git state is broken, auto-reset to last clean
+    checkpoint, (3) config drift: orchestrator.yaml changed unexpectedly, auto-rollback and alert, (4) dependency breakage: pip/npm
+    install fails, auto-retry with cache clear, (5) recurring failure: same issue type fails 3+ times, auto-escalate to human with
+    diagnosis. This phase turns the orchestrator from a passive executor into an active maintainer of its own health.'
+  deliverables:
+  - name: Failure detection and classification engine
+    description: Detect common orchestrator failure modes and classify them for automated remediation
+    status: planned
+    acceptance_criteria:
+    - description: Can detect stuck workers, workspace corruption, config drift, and dependency failures
+      validation: simulate each failure, verify detection
+      met: false
+    - description: Each failure type has a confidence score and remediation recommendation
+      validation: check detection output for classification details
+      met: false
+    tasks:
+    - id: p95.d1.t1
+      title: Create failure_detector.py module
+      status: planned
+      description: 'Python module: (1) FailureDetector class that periodically checks orchestrator health, (2) detect_stuck_workers():
+        check workspace modification times, execution log last activity, if no progress for >N minutes (configurable, default 15),
+        classify as STUCK, (3) detect_workspace_corruption(): run git status in workspace, if unresolvable merge conflicts or broken
+        HEAD, classify as CORRUPTED, (4) detect_config_drift(): compare current orchestrator.yaml against known-good hash from last
+    successful run, if changed, classify as DRIFTED, (5) detect_dependency_breakage(): check for common failure patterns in execution
+        log (pip install failures, npm errors, compilation failures), classify as DEP_BROKEN, (6) detect_recurring_failure(): count
+        failures per issue type in last 24h, if >3 for same type, classify as RECURRING, (7) output: {failure_type, confidence, affected_resources,
+        suggested_remediation, timestamp}. CLI: python3 failure_detector.py check --all.'
+      files:
+      - ~/zion/projects/agent-orchestration/failure_detector.py
+    scope_lines: 180
+    scope_files:
+    - ~/zion/projects/agent-orchestration/failure_detector.py
+  - name: Auto-remediation actions
+    description: Implement automated fix actions for each detected failure type
+    status: planned
+    acceptance_criteria:
+    - description: Stuck workers are automatically killed and restarted with debug context
+      validation: simulate stuck worker, verify auto-restart triggered
+      met: false
+    - description: Corrupted workspaces are automatically reset to last clean checkpoint
+      validation: corrupt workspace, verify auto-reset to checkpoint
+      met: false
+    tasks:
+    - id: p95.d2.t1
+      title: Create auto_remediator.py module
+      status: planned
+      description: 'Python module: (1) AutoRemediator class with per-failure-type remediation handlers, (2) remediate_stuck(worker_id):
+        kill stuck process, inject debug context (from phase 18 trace) into prompt, restart with extended timeout, log remediation
+        event, (3) remediate_corrupted(workspace_id): reset workspace to last clean checkpoint (from phase 73), if no checkpoint,
+        create fresh workspace and re-clone repo, log remediation, (4) remediate_drift(config_path): rollback orchestrator.yaml
+        to last-known-good version (backup in ~/.orchestrator/config_backups/), send alert via execution log, (5) remediate_dep_broken(workspace_id):
+        clear pip/npm cache, retry install, if still fails, try with --no-deps to identify the specific broken dependency, log findings,
+        (6) remediate_recurring(failure_pattern): after 3+ same-type failures, auto-create issue in GitHub with diagnosis (from failure
+        detector), tag as "orchestrator-escalation", stop retrying to avoid token waste, (7) safety: all remediations require
+        remediation_enabled=true in orchestrator.yaml, max_remediations_per_hour limit, human approval for DEP_BROKEN and RECURRING.'
+      dependencies:
+      - p95.d1.t1
+      files:
+      - ~/zion/projects/agent-orchestration/auto_remediator.py
+    scope_lines: 200
+    scope_files:
+    - ~/zion/projects/agent-orchestration/auto_remediator.py
+  - name: Remediation verification loop
+    description: After auto-remediation, verify the fix worked and escalate if it didn't
+    status: planned
+    acceptance_criteria:
+    - description: After remediation, the system verifies the worker is healthy again
+      validation: remediate stuck worker, verify health check passes
+      met: false
+    - description: Failed remediations are escalated with full diagnosis context
+      validation: break remediation, verify escalation issue created
+      met: false
+    tasks:
+    - id: p95.d3.t1
+      title: Add remediation verification to auto_remediator.py
+      status: planned
+      description: 'Add to auto_remediator.py: (1) verify_remediation(failure_type, remediation_result): after remediation, re-run
+        the relevant failure detector check, if still failing, classify as REMEDIATION_FAILED, (2) escalation: if remediation fails
+        or max_remediations_per_hour exceeded, create GitHub issue with: failure description, remediation attempted, verification result,
+        relevant logs (from phase 18), suggested human action, (3) remediation_history: track all remediations in ~/.orchestrator/remediation_history.jsonl
+        with: timestamp, failure_type, action_taken, verification_result, duration, (4) remediation_stats: weekly report of remediation
+        frequency, success rate, most common failure types -- feed into health scorecard (phase 44) and self-improvement (phase 19),
+        (5) rate limiting: max 5 remediations per hour, exponential backoff for same failure type (1min, 5min, 15min, 1h).'
+      dependencies:
+      - p95.d2.t1
+      files:
+      - ~/zion/projects/agent-orchestration/auto_remediator.py
+    scope_lines: 120
+    scope_files:
+    - ~/zion/projects/agent-orchestration/auto_remediator.py
+  - name: Auto-remediation tests
+    description: Test failure detection, remediation actions, and verification
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover all failure types, remediation actions, and verification logic
+      validation: python3 -m pytest test_auto_remediator.py -v
+      met: false
+    tasks:
+    - id: p95.d4.t1
+      title: Create test_auto_remediator.py
+      status: planned
+      description: 'Create test_auto_remediator.py: (1) test stuck worker detection (mock workspace with old modification time),
+        (2) test workspace corruption detection (mock broken git state), (3) test config drift detection (modify config, verify detected),
+        (4) test dependency breakage detection (mock pip failure in log), (5) test recurring failure detection (inject 3 same-type
+        failures, verify classified as recurring), (6) test stuck worker remediation (mock stuck worker, verify kill + restart with
+        debug context), (7) test workspace reset remediation (corrupt workspace, verify reset to checkpoint), (8) test remediation
+        verification (remediate, then verify, then verify escalation on failure), (9) test rate limiting (exceed limit, verify remediation
+        skipped), (10) test safety (remediation disabled, verify no action taken).'
+      dependencies:
+      - p95.d3.t1
+      files:
+      - ~/zion/projects/agent-orchestration/test_auto_remediator.py
+    scope_lines: 150
+    scope_files:
+    - ~/zion/projects/agent-orchestration/test_auto_remediator.py
+  dependencies:
+  - source: phase-11
+    target: phase-95
+    type: soft
+    reason: Workspace lifecycle from phase 11 provides the state tracking that auto-remediation monitors
+  - source: phase-14
+    target: phase-95
+    type: soft
+    reason: Health monitoring from phase 14 provides baseline health data that failure detection extends
+  - source: phase-18
+    target: phase-95
+    type: soft
+    reason: Trace tools from phase 18 provide debug context injected into remediation restart prompts
+  - source: phase-25
+    target: phase-95
+    type: soft
+    reason: State recovery from phase 25 provides checkpoint data for workspace reset remediation
+  - source: phase-73
+    target: phase-95
+    type: soft
+    reason: Workspace checkpoints from phase 73 are the restore points for corruption remediation
+  technical_notes: 'Auto-remediation is the highest-risk phase because it takes autonomous action. Every remediation must be: (1)
+    logged in the audit trail (phase 85), (2) rate-limited to prevent runaway fixes, (3) verified after execution, (4) escapable
+    via a global kill switch. Start with the safest remediations first (stuck worker restart, config rollback) and add riskier ones
+    (workspace reset, dependency repair) only after the verification loop is proven reliable. The research describes the self-correcting
+    codebase as the end-state -- this phase is a significant step toward that vision.'
+  risks:
+  - Auto-remediation could make things worse (kill the wrong worker, reset the wrong workspace) -- extensive testing required
+  - Remediation rate limits could prevent fixing legitimate issues during outage storms
+  - Workspace reset could lose uncommitted work -- always checkpoint before remediation
+  - Config rollback could undo intentional changes -- require config_drift_tolerance setting
+  - Remediation history could grow large -- implement retention and archival
+  scope_lines_total: 650
+  test_target: 10
 
 global_risks:
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -12432,6 +13186,19 @@ global_risks:
 - Documentation sync (phase 88) auto-fix could alter intended docs -- always require human review for prose changes
 - Release automation (phase 89) should gate major version bumps behind human approval to prevent premature breaking releases
 - Agent profiling (phase 90) recommendations are only as good as the execution history -- sparse data means low-confidence recommendations
+- Web dashboard (phase 91) could expose sensitive orchestrator state -- authentication is critical for non-localhost access
+- WebSocket connections (phase 91) could accumulate on long-running servers -- implement heartbeat and cleanup
+- Dashboard server (phase 91) adds FastAPI/uvicorn as a runtime dependency -- keep it optional
+- Mock agent (phase 92) behavior may not match real agent behavior -- focus on testing orchestrator logic, not agent quality
+- Dry-run traces (phase 92) could be large for complex pipelines -- implement truncation
+- sentence-transformers (phase 93) adds an 80MB dependency -- make it optional, fall back to keyword search
+- Vector store (phase 93) could grow large -- implement size limits and automatic compaction
+- Cross-project memory (phase 93) could leak proprietary patterns between repos -- per-project isolation is essential
+- Ensemble review (phase 94) uses N times more tokens than single review -- cost-aware selection is essential
+- Synthesis quality (phase 94) depends on reviewer agreement -- high conflict rates indicate poorly calibrated perspectives
+- Auto-remediation (phase 95) could make things worse (kill wrong worker, reset wrong workspace) -- extensive testing required
+- Remediation rate limits (phase 95) could prevent fixing legitimate issues during outage storms
+- Workspace reset (phase 95) could lose uncommitted work -- always checkpoint before remediation
 - Webhook server (phase 37) requires network exposure -- needs security review for production use
 - Cross-project knowledge (phase 38) could leak proprietary patterns between repos -- need per-repo knowledge isolation controls
 - Browser automation (phase 39) requires Chrome/Chromium -- adds a heavy runtime dependency and may not work in all CI environments
@@ -12516,8 +13283,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 90
-  estimated_weeks: 103-122
+  phases_total: 95
+  estimated_weeks: 108-127
   updated: '2026-05-02'
   phases_added:
   - 13
@@ -12598,6 +13365,11 @@ meta:
   - 88
   - 89
   - 90
+  - 91
+  - 92
+  - 93
+  - 94
+  - 95
   phases_added_from: >-
     Phase 59-64: Six new phases derived from gap analysis of the research document
     against the existing 58-phase roadmap. Phase 59 (PR Velocity Metrics) addresses
@@ -12720,4 +13492,23 @@ meta:
     environment" -- this phase profiles which prompts, roles, and strategies produce
     the best outcomes, creating a feedback loop that optimizes agent configuration
     over time based on actual performance data rather than intuition.
+    Phase 91-95: Five new phases derived from a seventh gap analysis pass focused on
+    operational visibility, safe testing infrastructure, agent intelligence, review
+    quality, and self-healing. Phase 91 (Orchestrator Web Dashboard) addresses the
+    research's "live observability dashboard" concept -- phase 27 provides a terminal
+    dashboard but the research describes a Phoenix-stack web UI for team-wide visibility.
+    Phase 92 (Agent Simulation and Dry-Run Testing) fills a critical safety gap: the
+    orchestrator has no way to test itself without consuming API tokens. Mock agent
+    backends enable zero-cost pipeline validation, configuration testing, and regression
+    reproduction. Phase 93 (Agent Long-Term Memory and Semantic Retrieval) upgrades
+    the file-based knowledge extraction from phase 47 to semantic vector search using
+    sentence-transformers, enabling agents to find conceptually similar past solutions
+    even when terminology differs. Phase 94 (Ensemble Multi-Agent Code Review) applies
+    Gas Town's specialized role concept to code review: instead of a single reviewer,
+    multiple specialized reviewers (security, performance, architecture, style, testing)
+    analyze the same diff in parallel and synthesize their feedback with conflict
+    resolution. Phase 95 (Orchestrator Auto-Remediation and Self-Healing) implements
+    the research's "self-correcting codebase" vision at the orchestrator level: detecting
+    stuck workers, corrupted workspaces, config drift, and recurring failures, then
+    automatically fixing them with verification and escalation.
 
