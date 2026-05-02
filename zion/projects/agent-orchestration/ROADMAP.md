@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 16/44 phases complete, 0 in progress
+**Progress:** 16/47 phases complete, 0 in progress
 
-**Deliverables:** 65/175 complete
+**Deliverables:** 65/187 complete
 
-**Tasks:** 64/175 complete
+**Tasks:** 64/187 complete
 
 ## Scope Summary
 
@@ -56,6 +56,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-42 External Application Observability Integration | PLANNED | 0/4 | 430 | 10 |
 | phase-43 Automated Refactoring Pipeline (Self-Healing Codebase) | PLANNED | 0/4 | 320 | 10 |
 | phase-44 System Health Scorecard and Effectiveness Trends | PLANNED | 0/4 | 410 | 8 |
+| phase-45 Symphony Spec Compliance and WORKFLOW.md Engine | PLANNED | 0/4 | 340 | 8 |
+| phase-46 Golden Principles Registry and Evolution | PLANNED | 0/4 | 410 | 10 |
+| phase-47 Cattle vs Pets Worker Model (Session Identity and Disposability) | PLANNED | 0/4 | 430 | 10 |
 
 ## Dependencies
 
@@ -182,6 +185,18 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-27 | phase-44 | soft | Dashboard from phase 27 provides real-time state that complements historical trends |
 | phase-32 | phase-44 | soft | Cost tracking from phase 32 provides the cost efficiency signal for the health score |
 | phase-35 | phase-44 | soft | Dark factory confidence scores from phase 35 are a key effectiveness signal |
+| phase-4 | phase-45 | soft | WORKFLOW.md integration modifies the spawner from phase 4 |
+| phase-36 | phase-45 | soft | Dynamic Policy Engine from phase 36 is the general case; WORKFLOW.md is the specific Symphony format |
+| phase-24 | phase-45 | soft | Project onboarding from phase 24 can generate WORKFLOW.md as part of bootstrap |
+| phase-10 | phase-46 | soft | GC scanning from phase 10 is extended to include principles compliance checks |
+| phase-17 | phase-46 | soft | Structural invariants from phase 17 provide the AST analysis that structural principle checks build on |
+| phase-19 | phase-46 | soft | Self-improvement from phase 19 tracks principle compliance trends |
+| phase-44 | phase-46 | soft | Health scorecard from phase 44 includes principles compliance as a quality signal |
+| phase-4 | phase-47 | soft | Worker identity modifies the spawner from phase 4 |
+| phase-8 | phase-47 | soft | Knowledge extraction reads from execution logs created by phase 8 |
+| phase-11 | phase-47 | soft | Session disposal integrates with workspace lifecycle from phase 11 |
+| phase-20 | phase-47 | soft | Knowledge injection must respect context budget limits from phase 20 |
+| phase-38 | phase-47 | soft | Cross-project knowledge transfer from phase 38 benefits from the knowledge store |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -2367,6 +2382,156 @@ The health scorecard is the "instrument panel" for the orchestrator. The key ins
 - Trend analysis on small datasets (first few weeks) will be noisy -- require minimum data before flagging
 - Weekly reports add noise if the system is stable -- include "no significant changes" summary
 
+## [ ] phase-45: Symphony Spec Compliance and WORKFLOW.md Engine (PLANNED)
+
+**Goal:** Align the Hermes orchestrator with the OpenAI Symphony SPEC.md format, implementing WORKFLOW.md as a per-project policy engine
+
+The research doc details Symphony's SPEC.md with specific config parameters (tracker.kind, polling.interval_ms, agent.max_turns, agent.max_concurrent, codex.approval_policy) and the WORKFLOW.md concept as a per-project policy engine that defines prompt templates and runtime settings. Phase 36 (Dynamic Policy Engine) covers general policy loading, but does not implement the specific WORKFLOW.md format or Symphony spec parameter alignment. This phase makes the orchestrator directly compatible with the Symphony specification format, enabling projects that define WORKFLOW.md files to be picked up automatically -- just like Symphony does. It also maps Symphony's config params to Hermes equivalents so teams migrating from Symphony to Hermes have a clear translation path.
+
+### Deliverables
+
+- [ ] **WORKFLOW.md parser and validator** -- Python module that reads WORKFLOW.md files and extracts pipeline templates, prompt settings, and runtime parameters in Symphony-spec format
+  - [ ] `p45.d1.t1` Create workflow_parser.py module
+    > Python module that: (1) reads WORKFLOW.md from a project root, (2) extracts structured sections: pipeline (node definitions, edges), prompts (per-role prompt templates), settings (max_turns, approval_policy, timeout), (3) validates against a JSON schema for WORKFLOW.md format, (4) converts Symphony-spec settings to Hermes orchestrator.yaml equivalents, (5) supports fallback: if WORKFLOW.md is missing, use default pipeline and AI_GUIDE.md. Output as a WorkflowConfig dataclass.
+    _Files: ~/zion/projects/agent-orchestration/workflow_parser.py_
+  - [ ] Module can parse a WORKFLOW.md file and extract pipeline, prompts, and settings
+    _Validation: python3 workflow_parser.py --file WORKFLOW.md_
+  - [ ] Validates WORKFLOW.md against a schema (required sections, valid parameter names)
+    _Validation: create invalid WORKFLOW.md, verify parser reports errors_
+  _~120 LOC_
+- [ ] **Symphony-to-Hermes config translator** -- Module that maps Symphony SPEC.md parameters to Hermes orchestrator.yaml equivalents
+  - [ ] `p45.d2.t1` Add Symphony config translation to workflow_parser.py
+    > Add --translate mode to workflow_parser.py: (1) read a Symphony-spec config YAML, (2) map each Symphony parameter to its Hermes equivalent (tracker.kind -> poller backend, polling.interval_ms -> orchestrator polling_interval, agent.max_turns -> role max_turns, agent.max_concurrent -> orchestrator max_concurrent, codex.approval_policy -> safety approval_mode), (3) output a valid orchestrator.yaml with comments showing the original Symphony parameter, (4) flag any Symphony features with no Hermes equivalent. Include a translation reference table in the output.
+    _Files: ~/zion/projects/agent-orchestration/workflow_parser.py_
+  - [ ] Can translate Symphony config (tracker.kind, polling.interval_ms, agent.max_turns, etc.) to Hermes config format
+    _Validation: python3 workflow_parser.py --translate --symphony-config symphony.yaml_
+  _~80 LOC_
+- [ ] **WORKFLOW.md integration with spawner** -- Auto-detect and use WORKFLOW.md when spawning workers for a project
+  - [ ] `p45.d3.t1` Integrate WORKFLOW.md detection into spawner.py
+    > Modify spawner.py to: (1) before spawning, check for WORKFLOW.md in the target repo root, (2) if found, parse it with workflow_parser.py, (3) use the WORKFLOW.md pipeline instead of the default pipeline from orchestrator.yaml, (4) apply WORKFLOW.md prompt templates per role, (5) apply WORKFLOW.md runtime settings (max_turns, timeout), (6) log which workflow file was used for each spawn. If WORKFLOW.md is missing, fall back to orchestrator.yaml defaults (existing behavior).
+    _Files: ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Spawner checks for WORKFLOW.md in the target repo and uses its pipeline/prompts if present
+    _Validation: create a test WORKFLOW.md, spawn worker, verify it uses the custom pipeline_
+  _~60 LOC_
+- [ ] **Example WORKFLOW.md template** -- Reference WORKFLOW.md template that projects can copy and customize
+  - [ ] `p45.d4.t1` Create WORKFLOW.md.template
+    > Create WORKFLOW.md.template with: (1) pipeline section (example DAG with all node types), (2) prompts section (per-role prompt templates with placeholders), (3) settings section (all configurable parameters with comments explaining each), (4) header comments explaining the format and how it maps to Symphony SPEC.md, (5) link to the workflow_parser.py --validate command for checking syntax. Include a minimal version (WORKFLOW.md.minimal) for simple projects.
+    _Files: ~/zion/projects/agent-orchestration/WORKFLOW.md.template, ~/zion/projects/agent-orchestration/WORKFLOW.md.minimal_
+  - [ ] Template WORKFLOW.md exists with documentation of all supported sections
+    _Validation: read template file, verify sections match parser schema_
+  _~80 LOC_
+
+### Technical Notes
+
+WORKFLOW.md is Symphony's key innovation for per-project policy. Making Hermes compatible with this format means projects can be shared between Symphony and Hermes orchestrators. The parser should be lenient: unknown sections are ignored, missing sections use defaults. The translation layer is important for teams migrating from Symphony to Hermes.
+
+### Risks
+
+- WORKFLOW.md format may evolve as Symphony matures -- parser needs version tolerance
+- Per-project WORKFLOW.md files could conflict with orchestrator.yaml global settings -- need clear precedence rules
+- Translation may lose information for Symphony features with no Hermes equivalent
+
+## [ ] phase-46: Golden Principles Registry and Evolution (PLANNED)
+
+**Goal:** Create a formal, evolving registry of "golden principles" and "taste invariants" that GC loops and agents measure against
+
+The research describes "Garbage Collection Loops" scanning for deviations from "golden principles" and the human role as defining "taste invariants" (security, performance, user experience). Phase 10 implements convention scanning against AI_GUIDE.md rules, but there is no formal concept of golden principles as a separate, evolving entity. Golden principles are higher-level than code conventions -- they represent architectural and qualitative goals that persist across refactors and evolve over time. This phase creates a principles.yaml registry where Jericho (or an LLM) defines these principles, the GC scanner measures codebases against them, and the self-improvement loop tracks principle compliance over time. This is the bridge between "human defines taste" and "agents implement taste" from the research.
+
+### Deliverables
+
+- [ ] **Principles registry schema and storage** -- YAML schema for defining golden principles with categories, severity, and evolution metadata
+  - [ ] `p46.d1.t1` Create principles.yaml schema and default registry
+    > Define principles.yaml schema with: (1) principles list, each with: id, name, category (security/performance/readability/architecture/testability), description, severity (critical/high/medium/low), check_type (structural/convention/semantic), created_at, created_by (human/agent), status (active/deprecated/superseded), superseded_by (if replaced), (2) global settings: scan_frequency, evolution_mode (manual/auto-suggest), compliance_threshold. Create a default principles.yaml with 10-15 common principles: "no circular dependencies", "all public APIs have type annotations", "test coverage above 80%", "no secrets in code", "functions under 50 lines", "no god classes", "error handling at boundaries", etc.
+    _Files: ~/zion/projects/agent-orchestration/principles.yaml_
+  - [ ] principles.yaml schema supports categories (security, performance, readability, architecture), severity levels, and deprecation metadata
+    _Validation: read schema, verify structure_
+  _~100 LOC_
+- [ ] **Principles compliance checker** -- Module that measures a codebase against the principles registry and produces a compliance score
+  - [ ] `p46.d2.t1` Create principles_checker.py module
+    > Python module that: (1) loads principles.yaml, (2) for each active principle, runs the appropriate check: structural (AST analysis, import graph, line counting) or semantic (LLM assessment via delegate_task for qualitative principles like "good error messages"), (3) outputs a compliance report with per-principle score (0-100), overall score (weighted average), and violations list, (4) supports --format json|markdown|terminal, (5) supports --baseline to store current scores and --diff to compare against baseline. Structural checks use existing tools from invariant_checker.py and gc_scanner.py. Semantic checks use a focused LLM prompt per principle.
+    _Files: ~/zion/projects/agent-orchestration/principles_checker.py_
+  - [ ] Can scan a codebase and produce per-principle compliance scores and an overall score
+    _Validation: python3 principles_checker.py --scan . --principles principles.yaml_
+  - [ ] Supports both structural checks (AST-based) and semantic checks (LLM-based)
+    _Validation: run with mixed check types_
+  _~150 LOC_
+- [ ] **Principles evolution workflow** -- Enable principles to be added, deprecated, and evolved over time with full audit trail
+  - [ ] `p46.d3.t1` Add principle lifecycle management to principles_checker.py
+    > Add to principles_checker.py: (1) --add-principle mode: interactive prompt to define a new principle (name, category, description, check_type), append to principles.yaml, (2) --deprecate mode: mark a principle as deprecated with reason and replacement, (3) --evolve mode: LLM analyzes compliance history and suggests new principles based on recurring violations that are not covered by existing principles, (4) --history mode: show evolution timeline of all principle changes, (5) store evolution history in ~/.orchestrator/principles/history.jsonl. The evolution mode is the key innovation -- the system learns what principles it needs based on what it keeps finding wrong.
+    _Files: ~/zion/projects/agent-orchestration/principles_checker.py_
+  - [ ] Can add a new principle, deprecate an old one, and track the evolution history
+    _Validation: python3 principles_checker.py --add-principle --evolve_
+  _~100 LOC_
+- [ ] **Principles integration with GC and self-improvement** -- Wire principles compliance into the garbage collection loop and self-improvement analysis
+  - [ ] `p46.d4.t1` Integrate principles into GC and self-improvement
+    > Modify garbage_collector.py to include principles_checker as a scan step (after convention scanning), reporting principle violations alongside convention violations. Modify self_improve.py (phase 19) to track principle compliance scores over time and include them in the improvement report. Add a principles compliance section to the health scorecard (phase 44). This creates a closed loop: principles define quality -> GC measures compliance -> self-improvement tracks trends -> evolution suggests new principles.
+    _Files: ~/zion/projects/agent-orchestration/garbage_collector.py_
+  - [ ] GC loop includes principles compliance in its scan output
+    _Validation: run GC scan, check output includes principles scores_
+  - [ ] Self-improvement analyzer tracks principle compliance trends over time
+    _Validation: run self-improve analysis, check for principles section_
+  _~60 LOC_
+
+### Technical Notes
+
+The key distinction from existing phases: conventions (phase 10) are style rules (naming, imports), invariants (phase 17) are architectural rules (layering, dependencies), and principles (this phase) are qualitative goals (readability, testability, security posture). Principles are the "taste invariants" from the research -- they require human judgment to define but can be mechanically measured once defined. The evolution workflow is what makes this phase unique: the system suggests new principles based on what it observes.
+
+### Risks
+
+- Semantic checks (LLM-based) are expensive and inconsistent -- use sparingly, only for high-value principles
+- Too many principles creates noise -- start with 10-15 and grow slowly
+- Principle evolution could drift from original intent -- human review required for all new principles
+
+## [ ] phase-47: Cattle vs Pets Worker Model (Session Identity and Disposability) (PLANNED)
+
+**Goal:** Implement the Symphony/Gas Town pattern of treating agent sessions as disposable "cattle" while maintaining persistent identity and project knowledge as "pets"
+
+The research describes the orchestrator treating "individual agent sessions as ephemeral cattle, while treating the agent's identity and the project's state as persistent pets." This architectural pattern is fundamental to the Dark Factory model: workers are thrown away after each task, but knowledge accumulates. Currently, the Hermes orchestrator creates workspaces but has no concept of worker identity (each worker is anonymous), no knowledge persistence between sessions (each pipeline run starts fresh), and no explicit disposability model (workspaces persist indefinitely). This phase adds: (1) worker identity cards that track what each worker "learned" during its session, (2) a knowledge carry-forward system that injects relevant past-learnings into new worker sessions, (3) explicit session lifecycle (spawn -> work -> harvest -> dispose) with knowledge extraction at harvest time, (4) a "pet" store for persistent project-level knowledge that survives across all worker sessions.
+
+### Deliverables
+
+- [ ] **Worker identity and session tracking** -- Assign unique identities to worker sessions and track what each worker learns
+  - [ ] `p47.d1.t1` Add worker identity system to spawner.py
+    > Modify spawner.py to: (1) generate a unique worker_id (UUID) for each session, (2) create a session card at workspace/.orchestrator/session.json with: worker_id, role, spawned_at, issue_number, pipeline, status, (3) during pipeline execution, append "learnings" to the session card: files_created, files_modified, errors_encountered, solutions_applied, (4) on completion, write a session_summary with: total duration, nodes executed, files changed, success/failure, key_insights (extracted from AI node outputs). This makes each worker traceable and its session inspectable after disposal.
+    _Files: ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Each worker session has a unique ID, role, and learns log
+    _Validation: spawn a worker, check session metadata_
+  _~80 LOC_
+- [ ] **Knowledge carry-forward system** -- Extract and persist learnings from completed sessions for injection into future sessions
+  - [ ] `p47.d2.t1` Create knowledge_store.py module
+    > Python module that: (1) on session completion (harvest), extracts key learnings from session.json: what worked, what failed, what files were involved, (2) stores learnings in a per-repo knowledge base at ~/.orchestrator/knowledge/{repo}/ as JSONL files indexed by topic (file paths, error types, task types), (3) on new session spawn, queries the knowledge base for relevant past learnings based on: files involved in the current issue, labels, similar issue titles, (4) formats relevant learnings as a compact context block (<500 tokens) for injection into the AI node prompt, (5) supports --query to manually search the knowledge base and --prune to remove stale entries. The carry-forward is the "pet" -- knowledge persists even though the "cattle" (worker) is disposed.
+    _Files: ~/zion/projects/agent-orchestration/knowledge_store.py_
+  - [ ] Learnings from past sessions are available for injection into new worker prompts
+    _Validation: complete a session, start a new one on similar task, check prompt includes past learnings_
+  _~150 LOC_
+- [ ] **Session harvest and disposal pipeline** -- Formalize the worker lifecycle with knowledge extraction at harvest time
+  - [ ] `p47.d3.t1` Add harvest step to orchestrator session lifecycle
+    > Modify orchestrator.py and workspace_manager.py to: (1) after pipeline completion (success or failure), run a "harvest" step that calls knowledge_store.py extract(), (2) harvest extracts: files changed (from git diff), errors encountered (from execution log), solutions that worked (from AI node outputs), (3) write harvested knowledge to the knowledge base, (4) then proceed to workspace archival (existing cleanup from phase 11), (5) add a HARVEST node type to dag.py that can be included in pipelines to trigger mid-session knowledge extraction (useful for long-running pipelines). The harvest step is what transforms disposable sessions into persistent organizational knowledge.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/workspace_manager.py, ~/zion/projects/agent-orchestration/dag.py_
+  - [ ] Completed sessions are harvested (learnings extracted) before disposal (workspace archived)
+    _Validation: complete a pipeline, verify harvest step runs before archival_
+  _~100 LOC_
+- [ ] **Persistent project knowledge ("pets")** -- Maintain a project-level knowledge store that accumulates across all worker sessions
+  - [ ] `p47.d4.t1` Add project knowledge summary and analytics to knowledge_store.py
+    > Add to knowledge_store.py: (1) --project-summary mode that outputs: total sessions, total learnings, most-modified files, common error patterns, successful solution patterns, knowledge coverage (which files/areas have accumulated the most knowledge), (2) --knowledge-graph mode that shows relationships between learnings (file A and file B are often modified together, error X is usually caused by pattern Y), (3) integrate with the executor prompt builder so project knowledge is automatically injected into AI node prompts when available, (4) add a knowledge retention policy: learnings older than N days with no re-use are pruned, keeping the knowledge base fresh and relevant. The project knowledge is the ultimate "pet" -- it outlives every individual worker session.
+    _Files: ~/zion/projects/agent-orchestration/knowledge_store.py_
+  - [ ] Project knowledge grows over time as more sessions complete
+    _Validation: run 3 sessions, check knowledge base has entries from all 3_
+  - [ ] Knowledge can be queried to understand what the system has learned about a project
+    _Validation: python3 knowledge_store.py --project-summary --repo owner/repo_
+  _~100 LOC_
+
+### Technical Notes
+
+The "cattle vs pets" metaphor is the core architectural insight. Workers (cattle) are created, do work, and are destroyed. Knowledge (pets) persists and grows. The knowledge store is the "organizational memory" of the orchestrator. Keep learnings compact -- store patterns, not raw outputs. The harvest step is critical: it is the moment where disposable session state becomes persistent organizational knowledge. Without harvest, every session starts from zero.
+
+### Risks
+
+- Knowledge extraction quality depends on the session summary -- poorly summarized sessions add noise
+- Knowledge base could grow large -- need retention policies and pruning
+- Injecting past knowledge into prompts adds context tokens -- must respect budget limits
+- Knowledge relevance scoring may be inaccurate for novel tasks -- don't let stale knowledge mislead
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -2385,6 +2550,16 @@ The health scorecard is the "instrument panel" for the orchestrator. The key ins
 - External observability (phase 42) could expose sensitive data from logs -- need PII/secrets filtering before injecting into agent context
 - Automated refactoring (phase 43) could make incorrect fixes that pass tests but change semantics -- always require human review for refactoring PRs
 - Health scorecard (phase 44) KPIs may not capture what matters initially -- need iteration based on real usage patterns
+- WORKFLOW.md format (phase 45) may evolve as Symphony matures -- parser needs version tolerance
+- Per-project WORKFLOW.md files (phase 45) could conflict with orchestrator.yaml global settings -- need clear precedence rules
+- Symphony-to-Hermes translation (phase 45) may lose information for Symphony features with no Hermes equivalent
+- Semantic principle checks (phase 46) are expensive and inconsistent -- use sparingly, only for high-value principles
+- Too many principles (phase 46) creates noise -- start with 10-15 and grow slowly
+- Principle evolution (phase 46) could drift from original intent -- human review required for all new principles
+- Knowledge extraction quality (phase 47) depends on session summary -- poorly summarized sessions add noise
+- Knowledge base (phase 47) could grow large -- need retention policies and pruning
+- Injecting past knowledge (phase 47) into prompts adds context tokens -- must respect budget limits
+- Knowledge relevance scoring (phase 47) may be inaccurate for novel tasks -- don't let stale knowledge mislead
 
 ## Conventions
 
