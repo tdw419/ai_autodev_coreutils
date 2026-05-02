@@ -2047,7 +2047,7 @@ phases:
     tasks:
     - id: p19.d1.t1
       title: Create self_improve.py analyzer module
-      status: planned
+      status: done
       description: 'Python module that: (1) reads all pipeline runs from execution_log.py, (2)
         computes per-node failure rates, (3) identifies failure sequences (which nodes fail after
         which), (4) detects bottlenecks (slowest nodes, most retried loops), (5) identifies pipeline-level
@@ -2072,7 +2072,7 @@ phases:
     tasks:
     - id: p19.d2.t1
       title: Add parameter tuning to self_improve.py
-      status: planned
+      status: done
       description: 'Add --tune mode to self_improve.py: (1) analyze loop nodes to determine
         if max_iterations is too low (most loops hit the limit) or too high (loops almost never
         reach it), (2) analyze timeout values for bash nodes (are tests timing out?), (3) suggest
@@ -2095,7 +2095,7 @@ phases:
     tasks:
     - id: p19.d3.t1
       title: Create weekly self-review cron
-      status: planned
+      status: done
       description: 'Create a weekly Hermes cron that runs self_improve.py --analyze --period week
         and outputs a summary report. The report includes: top failure patterns, pipeline success
         rates, parameter tuning suggestions, and a "health score" for the orchestrator. Optionally
@@ -2115,7 +2115,7 @@ phases:
     tasks:
     - id: p19.d4.t1
       title: Add improvement executor to self_improve.py
-      status: planned
+      status: done
       description: 'Add --apply mode with --auto flag: (1) apply parameter tuning (safe, mechanical
         changes to pipeline YAML), (2) for structural improvements (new test cases, missing invariants),
         create a draft GitHub Issue with the suggestion, (3) log all applied changes with before/after
