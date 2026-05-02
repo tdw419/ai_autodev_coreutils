@@ -1797,7 +1797,7 @@ phases:
     tasks:
     - id: p17.d2.t1
       title: Create invariants.yaml schema and example config
-      status: planned
+      status: done
       description: 'Define invariants.yaml schema with sections: layers (ordered list of module
         layers), forbidden_imports (regex patterns), dependency_rules (source_layer -> allowed_target_layers),
         required_annotations (functions/classes that need type hints), circular_limit (max allowed
@@ -1821,7 +1821,7 @@ phases:
     tasks:
     - id: p17.d3.t1
       title: Add invariant check to pipeline templates
-      status: planned
+      status: done
       description: 'Add a Bash node to standard-pipeline.yaml and team-pipeline.yaml that runs
         invariant_checker.py with the project''s invariants.yaml. Place it after the implement
         node and before tests, so architectural violations are caught early. Gate the pipeline
@@ -1847,7 +1847,7 @@ phases:
     tasks:
     - id: p17.d4.t1
       title: Create test_invariant_checker.py
-      status: planned
+      status: done
       description: 'Create test fixtures (sample Python files with intentional violations) and
         test cases: valid project passes all checks, forbidden import detected, layer violation
         detected, circular dependency detected, missing type annotation detected, empty project

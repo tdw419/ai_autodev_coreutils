@@ -6,7 +6,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 
 **Deliverables:** 65/187 complete
 
-**Tasks:** 64/187 complete
+**Tasks:** 67/187 complete
 
 ## Scope Summary
 
@@ -1009,7 +1009,7 @@ The Harness Engineering research emphasizes "Rigid Architecture" as a key pillar
     _Validation: run checker on test fixtures with known violations_
   _~150 LOC_
 - [x] **Invariants configuration schema** -- YAML schema for defining project-specific architectural invariants with sensible defaults
-  - [ ] `p17.d2.t1` Create invariants.yaml schema and example config (depends: p17.d1.t1)
+  - [x] `p17.d2.t1` Create invariants.yaml schema and example config (depends: p17.d1.t1)
     > Define invariants.yaml schema with sections: layers (ordered list of module layers), forbidden_imports (regex patterns), dependency_rules (source_layer -> allowed_target_layers), required_annotations (functions/classes that need type hints), circular_limit (max allowed cycle length, 0 = none). Create example-invariants.yaml for a typical layered project (models/repo/service/api).
     _Files: ~/zion/projects/agent-orchestration/invariants.yaml_
   - [x] invariants.yaml schema supports forbidden_imports, layer_order, dependency_direction, required_annotations, circular_dependency_limit
@@ -1018,14 +1018,14 @@ The Harness Engineering research emphasizes "Rigid Architecture" as a key pillar
     _Validation: read example config_
   _~80 LOC_
 - [ ] **Integrate invariant checker into pipelines** -- Add invariant checking as a gate in the standard and team pipelines
-  - [ ] `p17.d3.t1` Add invariant check to pipeline templates (depends: p17.d1.t1, p5.d3.t1)
+  - [x] `p17.d3.t1` Add invariant check to pipeline templates (depends: p17.d1.t1, p5.d3.t1)
     > Add a Bash node to standard-pipeline.yaml and team-pipeline.yaml that runs invariant_checker.py with the project's invariants.yaml. Place it after the implement node and before tests, so architectural violations are caught early. Gate the pipeline on failure (stop before tests if invariants fail).
     _Files: ~/zion/projects/agent-orchestration/pipelines/standard-pipeline.yaml, ~/zion/projects/agent-orchestration/pipelines/team-pipeline.yaml_
   - [ ] standard-pipeline.yaml and team-pipeline.yaml include an invariant check node after implementation
     _Validation: read pipeline YAML_
   _~40 LOC_
 - [ ] **Tests for invariant checker** -- Unit tests covering all violation types and edge cases
-  - [ ] `p17.d4.t1` Create test_invariant_checker.py (depends: p17.d1.t1)
+  - [x] `p17.d4.t1` Create test_invariant_checker.py (depends: p17.d1.t1)
     > Create test fixtures (sample Python files with intentional violations) and test cases: valid project passes all checks, forbidden import detected, layer violation detected, circular dependency detected, missing type annotation detected, empty project returns clean report, invalid config handled gracefully, --fix flag corrects reorderable violations.
     _Files: ~/zion/projects/agent-orchestration/test_invariant_checker.py_
   - [ ] Test file with 10+ test cases covering AST parsing, layer enforcement, cycle detection

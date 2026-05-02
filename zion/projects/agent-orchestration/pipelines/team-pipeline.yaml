@@ -47,6 +47,26 @@ nodes:
     depends_on: [plan]
     max_turns: 20
 
+  invariant_check:
+    type: bash
+    name: Invariant Check
+    description: Verify structural invariants pass after implementation
+    command: |
+      echo "=== Running structural invariant checks ==="
+      if [ -f "invariants.yaml" ]; then
+        python3 invariant_checker.py --config invariants.yaml --scan . --quiet 2>&1
+        INV_EXIT=$?
+        if [ $INV_EXIT -ne 0 ]; then
+          echo "❌ Structural invariant violations found. The implementer must fix these."
+          exit $INV_EXIT
+        fi
+        echo "✅ Structural invariants pass"
+      else
+        echo "No invariants.yaml found, skipping structural checks"
+      fi
+    depends_on: [implement]
+    timeout_seconds: 30
+
   test:
     type: bash
     name: Test
@@ -65,7 +85,7 @@ nodes:
         echo "No recognized test framework. Skipping."
         exit 0
       fi
-    depends_on: [implement]
+    depends_on: [invariant_check]
     timeout_seconds: 120
 
   fix:
@@ -75,7 +95,7 @@ nodes:
     depends_on: [test]
     max_iterations: 3
     until: "exit_code == 0"
-    children: [implement, test]
+    children: [implement, invariant_check, test]
 
   review:
     type: ai

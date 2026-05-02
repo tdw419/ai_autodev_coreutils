@@ -1,0 +1,117 @@
+# Structural Invariants Configuration
+# Defines architectural constraints that go beyond code style:
+# layer ordering, dependency direction, forbidden imports, and circular dependencies.
+#
+# Used by: python3 invariant_checker.py --config invariants.yaml --scan ./src
+#
+# Schema reference:
+#   layers: ordered list of architectural layers (outermost first)
+#     - name: human-readable layer name
+#       dir: directory path (absolute or relative to scan root)
+#       module_prefix: Python import prefix for this layer (optional, defaults to name with dots)
+#
+#   forbidden_imports: list of import patterns that should never appear
+#     Can be a regex string or a dict with pattern, severity, message
+#
+#   dependency_rules: which layers a given layer is allowed to import from
+#     key = source layer name, value = list of allowed target layer names
+#     If a source layer is not listed, it follows the layer ordering (can only import
+#     from layers at the same index or lower, i.e., inner layers)
+#
+#   required_annotations: which layers/functions require type annotations
+#     all_public: true = all public functions need return type annotations
+#     <layer_name>: { require_return_types: true }
+#
+#   circular_limit: max allowed cycle length (0 = no cycles allowed)
+#
+#   exclude_dirs: directories to skip during scanning
+#   exclude_files: file patterns to skip during scanning
+
+# Example: Typical layered web application
+#   models  ->  repo  ->  service  ->  api  ->  cli
+#
+# The layer list defines the architecture. Each layer can only import
+# from layers listed in dependency_rules (or layers below it in the list).
+
+layers:
+  - name: models
+    dir: src/models
+    module_prefix: models
+
+  - name: repo
+    dir: src/repo
+    module_prefix: repo
+
+  - name: service
+    dir: src/service
+    module_prefix: service
+
+  - name: api
+    dir: src/api
+    module_prefix: api
+
+  - name: cli
+    dir: src/cli
+    module_prefix: cli
+
+# Dependency rules: which layers each layer is allowed to import from
+# If not specified, follows layer ordering (can only import from same or lower)
+dependency_rules:
+  models:
+    - models  # models can only import from models (base layer)
+  repo:
+    - models  # repo imports from models
+    - repo    # repo can reference itself
+  service:
+    - models
+    - repo
+    - service
+  api:
+    - models
+    - repo
+    - service
+    - api
+  cli:
+    - models
+    - repo
+    - service
+    - api
+    - cli
+
+# Imports that should never appear in any file
+# Note: patterns are matched against the module name from the AST (e.g., "os", "pickle"),
+# NOT the full import statement (e.g., "import os")
+forbidden_imports:
+  - pattern: "^os$"
+    severity: error
+    message: "Use pathlib instead of os for file operations"
+  - pattern: "^(pickle|shelve|marshal|subprocess)$"
+    severity: error
+    message: "Security-sensitive import forbidden: use safer alternatives"
+
+# Type annotation requirements
+required_annotations:
+  all_public: false  # Don't require annotations everywhere
+  models:
+    require_return_types: true  # But require them in models (data layer)
+  api:
+    require_return_types: true  # And in API endpoints
+
+# Circular dependency detection
+circular_limit: 0  # 0 = no circular dependencies allowed at all
+
+# Exclude from scanning
+exclude_dirs:
+  - .git
+  - __pycache__
+  - node_modules
+  - .venv
+  - venv
+  - .mypy_cache
+  - .pytest_cache
+  - dist
+  - build
+  - .eggs
+  - "*.egg-info"
+
+exclude_files: []

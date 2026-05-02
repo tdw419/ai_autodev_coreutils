@@ -47,8 +47,21 @@ nodes:
   lint:
     type: bash
     name: Lint
-    description: Run linters to check code quality
+    description: Run linters and structural invariant checks to ensure code quality
     command: |
+      echo "=== Running structural invariant checks ==="
+      if [ -f "invariants.yaml" ]; then
+        python3 invariant_checker.py --config invariants.yaml --scan . --quiet 2>&1
+        INV_EXIT=$?
+        if [ $INV_EXIT -ne 0 ]; then
+          echo "❌ Structural invariant violations found. Fix before proceeding."
+          exit $INV_EXIT
+        fi
+        echo "✅ Structural invariants pass"
+      else
+        echo "No invariants.yaml found, skipping structural checks"
+      fi
+
       echo "=== Running linters ==="
       # Try common linters, don't fail if not available
       if command -v ruff &> /dev/null; then
