@@ -13801,6 +13801,270 @@ phases:
   - 'Playbook step timeouts could leave the system in an inconsistent state -- implement compensating rollback steps'
   scope_lines_total: 380
   test_target: 12
+- id: 'phase-111'
+  title: 'MCP (Model Context Protocol) Server/Client Integration'
+  status: planned
+  goal: 'Expose orchestrator capabilities as a standard MCP server and discover external tools via MCP clients, enabling interoperability with the broader agent ecosystem'
+  description: |
+    The Model Context Protocol (MCP), open-sourced by Anthropic, has become the standardized integration
+    layer for the agentic era -- described as a "USB-C port for AI applications." MCP provides a two-way
+    connection between AI tools and data sources via standardized primitives: Tools (executable functions),
+    Resources (readable data sources), and Prompts (reusable templates). The additional research doc
+    "Issue Trackers as AI Agent Control Planes" identifies MCP as a critical enabler for "AI readiness"
+    because it allows agents to evolve from pre-set prompt chains to truly autonomous systems by discovering
+    capabilities dynamically. Currently, the orchestrator's tool interface is entirely static and
+    Hermes-specific (delegate_task). This phase adds bidirectional MCP support: (1) an MCP server that
+    exposes orchestrator functions (poll issues, spawn workers, check status, manage workspaces) so external
+    agents and tools can interact with the orchestrator, and (2) an MCP client that discovers and consumes
+    external MCP servers, injecting discovered tools/resources into worker prompts dynamically. This makes
+    the orchestrator both a provider and consumer in the MCP ecosystem.
+  deliverables:
+  - name: MCP server for orchestrator capabilities
+    description: 'Expose key orchestrator functions as MCP tools, resources, and prompts'
+    status: planned
+    acceptance_criteria:
+    - description: 'MCP server starts and announces capabilities via the MCP protocol'
+      validation: 'connect MCP client, list tools/resources/prompts'
+      met: false
+    - description: 'At least 5 orchestrator functions exposed as MCP tools (poll_issues, spawn_worker, get_status, list_workspaces, create_issue)'
+      validation: 'MCP client can call each tool and get valid responses'
+      met: false
+    tasks:
+    - id: p111.d1.t1
+      title: Create MCP server module
+      status: planned
+      description: 'Create mcp_server.py: (1) MCPServer class using the MCP Python SDK (mcp package), (2) register_tools: poll_issues (filter by repo/label/status), spawn_worker (issue number, role, config), get_status (active/completed/failed counts), list_workspaces (path, state, age), create_issue (title, body, labels), (3) register_resources: execution_history (recent log entries as readable resource), workspace_state (per-workspace status), orchestrator_config (current config as resource), (4) register_prompts: standard_pipeline (pre-built prompt template for common dev tasks), review_prompt (pre-built review template), (5) server runs on stdio transport (for Claude Code integration) and optionally SSE transport (for web dashboard), (6) all tool calls are authenticated and logged to the audit trail (phase 85).'
+      files:
+      - '~/zion/projects/agent-orchestration/mcp_server.py'
+    scope_lines: 140
+    scope_files:
+    - '~/zion/projects/agent-orchestration/mcp_server.py'
+  - name: MCP client for external tool discovery
+    description: 'Discover and consume external MCP servers, injecting found capabilities into worker prompts'
+    status: planned
+    acceptance_criteria:
+    - description: 'MCP client connects to external servers and lists available tools'
+      validation: 'configure external server URL, verify tool discovery'
+      met: false
+    - description: 'Discovered tools are available to workers during pipeline execution'
+      validation: 'run pipeline with MCP client enabled, verify worker can use discovered tool'
+      met: false
+    tasks:
+    - id: p111.d2.t1
+      title: Create MCP client module
+      status: planned
+      description: 'Create mcp_client.py: (1) MCPClientManager class that manages connections to multiple MCP servers, (2) configure servers in orchestrator.yaml under mcp.servers list (url, auth, enabled_tools filter), (3) discover_tools(): connect to each server, list available tools, cache results with TTL (default 5min), (4) get_context_for_task(issue): analyze issue description, find relevant tools from discovered set, produce tool_descriptions block for injection into worker prompt, (5) call_tool(server_url, tool_name, args): execute external MCP tool and return result, (6) fallback: if MCP server is unreachable, skip discovered tools gracefully without failing the pipeline, (7) security: only tools explicitly listed in config are exposed to workers -- never auto-expose all discovered tools.'
+      dependencies:
+      - p111.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/mcp_client.py'
+    scope_lines: 130
+    scope_files:
+    - '~/zion/projects/agent-orchestration/mcp_client.py'
+  - name: MCP integration with DAG executor
+    description: 'Wire MCP client tool discovery into the DAG executor AI node prompt construction'
+    status: planned
+    acceptance_criteria:
+    - description: 'AI nodes in DAG pipelines can access MCP-discovered tools'
+      validation: 'run pipeline YAML with use_mcp: true, verify tool context in prompt'
+      met: false
+    tasks:
+    - id: p111.d3.t1
+      title: Integrate MCP client with DAG executor
+      status: planned
+      description: 'Extend executor.py: (1) add use_mcp flag to pipeline YAML and node config, (2) before constructing AI node prompt, call mcp_client.get_context_for_task() and append tool descriptions to the system prompt, (3) add MCP_TOOL node type: executes a tool via MCP client (server_url, tool_name, args), (4) in standard-pipeline.yaml, add optional pre-implementation MCP discovery step, (5) test with a pipeline that discovers and uses an external tool.'
+      dependencies:
+      - p111.d2.t1
+      files:
+      - '~/zion/projects/agent-orchestration/executor.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/executor.py'
+  - name: MCP integration tests
+    description: 'Tests for MCP server, client, and executor integration'
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover server tool execution, client discovery, and executor integration
+      validation: 'python3 -m pytest test_mcp.py -v'
+      met: false
+    tasks:
+    - id: p111.d4.t1
+      title: Create test_mcp.py
+      status: planned
+      description: 'Create test_mcp.py: (1) test_server_startup: verify MCP server starts and announces tools, (2) test_tool_execution: call each registered tool via MCP protocol, verify valid response, (3) test_resource_access: read each registered resource, verify content, (4) test_client_discovery: mock external MCP server, verify client discovers tools, (5) test_client_fallback: mock unreachable server, verify graceful degradation, (6) test_executor_mcp_node: run pipeline with MCP_TOOL node, verify tool called, (7) test_context_injection: verify MCP-discovered tools appear in AI node prompts, (8) test_security_filter: verify only explicitly enabled tools are exposed to workers.'
+      dependencies:
+      - p111.d3.t1
+      files:
+      - '~/zion/projects/agent-orchestration/test_mcp.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_mcp.py'
+  dependencies:
+  - source: 'phase-4'
+    target: 'phase-111'
+    type: soft
+    reason: 'MCP server wraps the orchestrator core from phase 4'
+  - source: 'phase-5'
+    target: 'phase-111'
+    type: soft
+    reason: 'MCP integration extends the DAG executor from phase 5'
+  - source: 'phase-81'
+    target: 'phase-111'
+    type: soft
+    reason: 'MCP tool discovery could be implemented as a plugin in the plugin system from phase 81'
+  - source: 'phase-85'
+    target: 'phase-111'
+    type: soft
+    reason: 'All MCP tool calls must be logged to the audit trail from phase 85'
+  - source: 'phase-99'
+    target: 'phase-111'
+    type: soft
+    reason: 'Unified CLI from phase 99 should include MCP server start/stop commands'
+  technical_notes: 'Uses the official MCP Python SDK (pip install mcp). The server runs on stdio transport by default for Claude Code integration -- this is how Claude Code natively communicates with MCP servers. SSE transport is optional for the web dashboard (phase 91). MCP client connections are lazy -- only connect when a pipeline actually requests MCP tools, not at orchestrator startup. Tool discovery results are cached with a 5-minute TTL to avoid hammering external servers on every pipeline run. Security model: only tools explicitly listed in orchestrator.yaml mcp.servers[].enabled_tools are exposed to workers -- auto-discovery lists all tools but only enabled ones are injected into prompts.'
+  risks:
+  - 'MCP protocol is still evolving -- implementation should be version-tolerant and handle unknown tool schemas gracefully'
+  - 'External MCP servers could be slow or unreliable -- timeouts (30s default) and fallback behavior are essential'
+  - 'MCP tool calls could have side effects (e.g., creating resources externally) -- require human approval for tools marked as destructive'
+  - 'MCP server exposes orchestrator internals -- restrict to localhost by default, require auth for network access'
+  scope_lines_total: 450
+  test_target: 10
+- id: 'phase-112'
+  title: 'Coordination Failure Detection and Recovery'
+  status: planned
+  goal: 'Detect and mitigate four named multi-agent coordination failure modes (Handoff Drift, Token Holding, Recursive Inception, Hallucination Loops) that emerge at Gas Town scale concurrency'
+  description: |
+    The additional research doc "Issue Trackers as AI Agent Control Planes" identifies four specific
+    coordination failure modes that occur when multiple agents collaborate on the same codebase. These
+    are distinct from the operational failures handled by incident response (phase 110) and the resource
+    failures handled by backpressure (phase 70) -- they are SEMANTIC coordination failures where agents
+    lose track of intent, refuse to release resources, or compound errors. The research provides concrete
+    mitigation patterns for each: (1) Handoff Drift -- the original objective is lost during delegation.
+    Mitigation: "Manifest of Objective" attached to every delegation. (2) Token Holding -- agents refuse
+    to transfer authority, holding resource locks. Mitigation: explicit lease tokens with Time-To-Live (TTL).
+    (3) Recursive Inception -- agents delegating to agents indefinitely, exploding token costs. Mitigation:
+    strict delegation depth limits. (4) Hallucination Loops -- errors in one agent's plan compound as
+    passed forward. Mitigation: phase gates with independent verification at each handoff. None of these
+    four patterns are addressed by existing phases. Phase 76 handles dedup but not handoff drift. Phase 70
+    handles backpressure but not token holding. Phase 15 handles safety but not delegation depth. Phase 9
+    handles review but not hallucination loop detection across handoffs. This phase creates a dedicated
+    coordination safety layer that monitors for these specific failure patterns and intervenes automatically.
+  deliverables:
+  - name: Manifest of Objective propagation
+    description: 'Attach structured objective manifests to every task delegation, detect drift from original intent'
+    status: planned
+    acceptance_criteria:
+    - description: 'Every spawned worker receives a structured objective manifest with success criteria'
+      validation: 'inspect worker prompt, verify manifest section present'
+      met: false
+    - description: 'Drift detection flags workers whose recent actions diverge from the manifest'
+      validation: 'simulate drift (worker working on wrong subtask), verify detection'
+      met: false
+    tasks:
+    - id: p112.d1.t1
+      title: Create objective manifest system
+      status: planned
+      description: 'Create coordination_safety.py: (1) ObjectiveManifest dataclass (original_issue_title, original_issue_body, success_criteria list, key_constraints list, created_at, issue_number), (2) build_manifest(issue): extract from GitHub issue -- title, body, acceptance criteria from checkboxes, constraints from "must not" / "should not" patterns, (3) attach_to_worker_prompt(manifest, worker_prompt): append manifest as structured section to worker system prompt, (4) detect_drift(manifest, worker_actions): compare worker actions against success_criteria -- if worker is making changes unrelated to any criterion, flag drift with confidence score, (5) on drift detection: log warning, if confidence > 0.8 inject course-correction into next worker turn, if confidence > 0.95 pause worker and alert operator, (6) drift_threshold config in orchestrator.yaml (default: 0.8 warning, 0.95 pause).'
+      files:
+      - '~/zion/projects/agent-orchestration/coordination_safety.py'
+    scope_lines: 120
+    scope_files:
+    - '~/zion/projects/agent-orchestration/coordination_safety.py'
+  - name: Lease token management with TTL
+    description: 'Assign time-limited ownership tokens for shared resources, prevent agents from holding locks indefinitely'
+    status: planned
+    acceptance_criteria:
+    - description: 'Shared resources (files, workspaces, merge slots) are protected by lease tokens'
+      validation: 'attempt concurrent access to same resource, verify lease enforcement'
+      met: false
+    - description: 'Expired leases are automatically released and available for reassignment'
+      validation: 'create lease with short TTL, wait for expiry, verify resource released'
+      met: false
+    tasks:
+    - id: p112.d2.t1
+      title: Create lease token manager
+      status: planned
+      description: 'Extend coordination_safety.py: (1) LeaseToken dataclass (resource_id, holder_id, issued_at, ttl_seconds, renewable bool, max_renewals), (2) LeaseManager class: acquire(resource_id, holder_id, ttl) -- returns token or raises if held, release(resource_id, holder_id) -- frees resource, renew(resource_id, holder_id) -- extends TTL if within max_renewals, check(resource_id) -- returns current holder or None, (3) default TTL per resource type: workspace=3600s, merge_slot=600s, file_lock=120s, (4) lease store: JSON file with all active leases, cleaned up on orchestrator startup (stale leases from crashes), (5) on lease expiry: log event, notify holder via alerting (phase 106), release resource for reassignment, (6) CLI: orch leases list, orch leases release RESOURCE_ID, orch leases stats.'
+      dependencies:
+      - p112.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/coordination_safety.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/coordination_safety.py'
+  - name: Delegation depth limiter
+    description: 'Prevent recursive inception by enforcing maximum delegation depth and tracking delegation chains'
+    status: planned
+    acceptance_criteria:
+    - description: 'Workers cannot delegate beyond configured max depth (default: 3)'
+      validation: 'configure max_depth=2, attempt 3-level delegation, verify blocked'
+      met: false
+    - description: 'Delegation chain is tracked and visible for debugging'
+      validation: 'orch delegation tree shows active delegation hierarchy'
+      met: false
+    tasks:
+    - id: p112.d3.t1
+      title: Create delegation depth limiter
+      status: planned
+      description: 'Extend coordination_safety.py: (1) DelegationChain dataclass (root_issue, chain list of {worker_id, depth, delegated_at, task_summary}), (2) check_depth(chain, max_depth): returns True if delegation is within limit, False if at max, (3) on spawn_worker: check if parent worker is itself a delegate -- if so, increment depth in chain, reject if depth > max_depth, (4) max_delegation_depth config in orchestrator.yaml (default: 3), (5) on depth rejection: log warning with full chain, suggest flattening the task, (6) CLI: orch delegation tree [--depth N], orch delegation stats.'
+      dependencies:
+      - p112.d2.t1
+      files:
+      - '~/zion/projects/agent-orchestration/coordination_safety.py'
+    scope_lines: 70
+    scope_files:
+    - '~/zion/projects/agent-orchestration/coordination_safety.py'
+  - name: Hallucination loop detection
+    description: 'Detect error compounding across agent handoffs where one agent''s mistakes amplify through delegation'
+    status: planned
+    acceptance_criteria:
+    - description: 'Consecutive failures on the same subtask across different workers trigger hallucination loop alert'
+      validation: 'simulate same error recurring across 3 workers, verify alert'
+      met: false
+    tasks:
+    - id: p112.d4.t1
+      title: Create hallucination loop detector
+      status: planned
+      description: 'Extend coordination_safety.py: (1) FailurePattern dataclass (subtask_signature, failure_count, last_failure_error, worker_ids list, first_seen, last_seen), (2) detect_loop(subtask, error): hash subtask signature (file+function+change_type), check if same subtask failed before with different workers, if >2 workers failed on same subtask signature: flag as hallucination loop, (3) on hallucination loop detection: pause delegation of that subtask, inject full failure history into next attempt prompt, suggest human review, (4) escalation: if 3+ workers fail on same subtask, create GitHub issue tagged coordination:hallucination-loop with full failure chain, (5) hallucination_loop_threshold config (default: 2 workers), (6) CLI: orch coordination loops, orch coordination patterns.'
+      dependencies:
+      - p112.d3.t1
+      files:
+      - '~/zion/projects/agent-orchestration/coordination_safety.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/coordination_safety.py'
+  dependencies:
+  - source: 'phase-4'
+    target: 'phase-112'
+    type: soft
+    reason: 'Coordination safety modifies the worker spawning from phase 4'
+  - source: 'phase-6'
+    target: 'phase-112'
+    type: soft
+    reason: 'Role specialization from phase 6 increases delegation complexity where coordination failures occur'
+  - source: 'phase-8'
+    target: 'phase-112'
+    type: soft
+    reason: 'Coordination events should be logged to execution history from phase 8'
+  - source: 'phase-21'
+    target: 'phase-112'
+    type: soft
+    reason: 'Merge queue from phase 21 benefits from lease token protection on merge slots'
+  - source: 'phase-26'
+    target: 'phase-112'
+    type: soft
+    reason: 'Work decomposition from phase 26 creates sub-issues where handoff drift is most likely'
+  - source: 'phase-85'
+    target: 'phase-112'
+    type: soft
+    reason: 'Coordination safety events must be logged to audit trail from phase 85'
+  technical_notes: 'The four failure modes are derived from the "Issue Trackers as AI Agent Control Planes" research doc, which identifies these as the primary coordination risks when multiple agents work on the same codebase. The mitigation patterns (Manifest of Objective, Lease Tokens, Depth Limits, Phase Gates) are adapted from the research''s recommendations. Implementation is a single module (coordination_safety.py) with four subsystems. Each subsystem operates independently but shares a common event log. The module integrates with the orchestrator main loop -- drift detection runs after each worker turn, lease enforcement runs on resource access, depth checking runs on worker spawn, and hallucination detection runs on worker failure. All four subsystems can be individually enabled/disabled in orchestrator.yaml.'
+  risks:
+  - 'Drift detection could false-positive on legitimate multi-step tasks that seem unrelated to the original issue -- use conservative thresholds and allow operators to mark subtasks as "intentional divergence"'
+  - 'Lease token enforcement could block legitimate long-running operations -- make TTLs configurable per resource type and allow renewal'
+  - 'Delegation depth limits could prevent necessary multi-level decomposition -- default of 3 is generous; operators can increase per-project'
+  - 'Hallucination loop detection could false-positive on genuinely hard bugs that multiple workers independently fail to solve -- require distinct error signatures, not just same subtask'
+  scope_lines_total: 370
+  test_target: 12
 global_risks:
 - 'Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change'
 - 'delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)'
@@ -13913,8 +14177,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 110
-  estimated_weeks: '125-150'
+  phases_total: 112
+  estimated_weeks: '128-155'
   updated: '2026-05-03'
   phases_added:
   - 13
@@ -14015,6 +14279,8 @@ meta:
   - 102
   - 103
   - 104
+  - 111
+  - 112
   phases_added_from: 'Phase 59-64: Six new phases derived from gap analysis of the research document against the existing 58-phase roadmap. Phase 59 (PR Velocity Metrics) addresses the "500% PR increase"
     claim with a dedicated ROI measurement layer -- the research opens with this metric but no phase measured it. Phase 60 (Human-Agent Workflow Optimization) builds tooling for the "from coder to architect"
     transformation described in the research, optimizing the human bottleneck (ticket filing, PR review queues, triage). Phase 61 (Agent Quality Regression Testing) creates a benchmarking framework to catch
@@ -14083,4 +14349,7 @@ meta:
     Phase 103-104: Two new phases derived from a tenth gap analysis pass focused on the operator experience and organizational governance gaps that emerge at production scale. Previous passes comprehensively covered the research document concepts (51/51 = 100%) and the operational lifecycle of individual components. This pass analyzed the workflow from the OPERATOR's perspective: (1) how does an operator efficiently feed work into the orchestrator, and (2) how does an organization maintain accountability when the orchestrator runs autonomously? Phase 103 (Agent-Ready Issue Filing and Speculative Ticket CLI) addresses the "input side" of the issue-tracker-as-control-plane pattern. The research's key insight for the 500% PR increase is that "engineers shifted from supervising single tasks to filing speculative tickets and reviewing completed work." While the orchestrator consumes issues (phase 4 poller), no phase helps operators create them efficiently. This phase provides a CLI with templates, validation, and bulk filing for speculative exploration. Phase 104 (Orchestrator Governance and Compliance Reporting) addresses the accountability gap in dark factory mode. The research describes 0% human review with 1B tokens/day spend. Phase 85 (audit trail) logs actions, Phase 44 (health scorecard) tracks health, and Phase 59 (PR velocity) measures throughput, but no phase synthesizes these into a stakeholder-facing governance report. This phase creates periodic compliance reports with trend analysis and anomaly detection, making dark factory mode defensible to engineering leadership.
   phases_added_from: |2
 
-    Phase 105-110: Six new phases derived from an eleventh gap analysis pass focused on production deployment readiness, operational automation, and enterprise scalability gaps that emerge at the 104-phase scale. Previous passes achieved 100% research concept coverage (51/51) and addressed operational readiness, operator experience, and governance. This pass analyzed the system from the DEPLOYMENT and OPERATIONS perspective: (1) how does the system get packaged and deployed, (2) how do operators get notified of problems proactively, (3) how are resources allocated intelligently, (4) how does the system maintain itself, (5) how do multiple teams coexist with different policies, and (6) how are incidents handled automatically? Phase 105 (Orchestrator Python Package and Deployment Profiles) addresses the deployment gap: 19 modules as standalone scripts with no packaging, no entry point, and no way to select a feature subset. Creates pyproject.toml, `orch` CLI entry point, and minimal/standard/full deployment profiles. Phase 106 (Real-Time Alerting and Notification System) addresses the observability-to-action gap: all monitoring is pull-based (operators check dashboards), none is push-based (system notifies operators). Creates configurable alert rules with GitHub comment, webhook, log, and stdout notification channels. Phase 107 (Task Complexity Scoring and Adaptive Resource Allocation) addresses the resource efficiency gap: all tasks get identical configuration regardless of complexity. Creates a complexity scorer that analyzes issue descriptions and maps to resource profiles (model tier, turns, budget, role), with calibration feedback from execution history. Phase 108 (Orchestrator Self-Upgrade Pipeline) addresses the meta-level self-improvement gap: the orchestrator can improve strategies but not its own code. Treats the orchestrator repo as a target project -- monitors for commits, pulls updates, runs tests, validates config, and hot-reloads with automatic rollback on failure. Phase 109 (Multi-Team Policy Isolation and Resource Quotas) addresses the enterprise scalability gap: all repos share global policies. Creates per-team policy namespaces with isolated trust scores, approval thresholds, cost budgets, and pipeline assignments. Phase 110 (Incident Response Automation and Escalation Playbooks) addresses the operational resilience gap: detection without response procedures. Creates YAML-defined playbooks for 6 common failure modes (stuck worker, test cluster, cost spike, workspace corruption, API rate limit, config drift) with automated steps and human escalation.
+    Phase 105-110: Six new phases derived from an eleventh gap analysis pass focused on production deployment readiness, operational automation, and enterprise scalability gaps that emerge at the 104-phase scale. Previous passes achieved 100% research concept coverage (51/51) and addressed operational readiness, operator experience, and governance. This pass analyzed the system from the DEPLOYMENT and OPERATIONS perspective: (1) how does the system get packaged and deployed, (2) how do operators get notified of problems proactively, (3) how are resources allocated intelligently, (4) how does the system maintain itself, (5) how do multiple teams coexist with different policies, and (6) how are incidents handled automatically? Phase 105 (Orchestrator Python Package and Deployment Profiles) addresses the deployment gap: 19 modules as standalone scripts with no packaging, no entry point, and no way to select a feature subset. Creates pyproject.toml, `orch` CLI entry point, and minimal/standard/full deployment profiles. Phase 106 (Real-Time Alerting and Notification System) addresses the observability-to-action gap: all monitoring is pull-based (operators check dashboards), none is push-based (system notifies operators). Creates configurable alert rules with GitHub comment, webhook, log, and stdout notification channels. Phase 107 (Task Complexity Scoring and Adaptive Resource Allocation) addresses the resource efficiency gap: all tasks get identical configuration regardless of complexity. Creates a complexity scorer that analyzes issue descriptions and maps to resource profiles (model tier, turns, budget, role), with calibration feedback from execution history. Phase 108 (Orchestrator Self-Upgrade Pipeline) addresses the meta-level self-improvement gap: the orchestrator can improve strategies but not its own code. Treats the orchestrator repo as a target project -- monitors for commits, pulls updates, runs tests, validates config, and hot-reloads with automatic rollback... [truncated]
+  phases_added_from: |2
+
+    Phase 111-112: Two new phases derived from a twelfth gap analysis pass focused on ADDITIONAL RESEARCH SOURCES not previously analyzed. Previous eleven passes analyzed only the primary research doc ("OpenAI Symphony: Agent Orchestration Explained") and achieved 100% concept coverage against that single source. This pass analyzed two additional research documents: (1) "Issue Trackers as AI Agent Control Planes" (Nate Jones analysis, 211 lines, 44 citations), and (2) "AI Drafting: From Autocomplete to Orchestration" (hierarchical orchestration patterns, 135 lines, 33 citations). From these sources, two genuinely new concepts were identified that have no equivalent in any of the 110 existing phases: (A) MCP (Model Context Protocol) Integration -- the "USB-C for AI" standard open-sourced by Anthropic that provides standardized tool/resource/prompt discovery between agents. No existing phase covers bidirectional MCP support (server + client). The orchestrator currently has a static, Hermes-specific tool interface (delegate_task). MCP makes the orchestrator interoperable with the broader agent ecosystem. Phase 111 creates an MCP server (exposing orchestrator capabilities) and MCP client (discovering external tools for workers). (B) Coordination Failure Detection -- the Issue Trackers research identifies four specific, named multi-agent coordination failure modes with concrete mitigation patterns: Handoff Drift (objective loss during delegation, mitigated by "Manifest of Objective"), Token Holding (agents refusing to release resources, mitigated by Lease Tokens with TTL), Recursive Inception (unbounded delegation depth, mitigated by depth limits), and Hallucination Loops (error compounding across handoffs, mitigated by phase gates). None of these four patterns are addressed by existing phases -- phase 76 covers dedup but not drift, phase 70 covers backpressure but not token holding, phase 15 covers safety but not delegation depth, phase 9 covers review but not cross-handoff hallucination detection. Phase 112 creates a dedicated coordination_safety.py module with four subsystems. Other concepts from the additional research (memory hierarchy, agent-to-agent communication, transaction closure theory, guardian agents) were found to be adequately covered by existing phases.

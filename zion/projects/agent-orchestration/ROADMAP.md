@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/110 phases complete, 0 in progress
+**Progress:** 22/112 phases complete, 0 in progress
 
-**Deliverables:** 86/439 complete
+**Deliverables:** 86/447 complete
 
-**Tasks:** 86/439 complete
+**Tasks:** 86/447 complete
 
 ## Scope Summary
 
@@ -122,6 +122,8 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-108 Orchestrator Self-Upgrade Pipeline | PLANNED | 0/4 | 320 | 10 |
 | phase-109 Multi-Team Policy Isolation and Resource Quotas | PLANNED | 0/4 | 330 | 10 |
 | phase-110 Incident Response Automation and Escalation Playbooks | PLANNED | 0/4 | 380 | 12 |
+| phase-111 MCP (Model Context Protocol) Server/Client Integration | PLANNED | 0/4 | 450 | 10 |
+| phase-112 Coordination Failure Detection and Recovery | PLANNED | 0/4 | 370 | 12 |
 
 ## Dependencies
 
@@ -535,6 +537,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-14 | phase-110 | soft | Health monitoring (phase 14) provides the health data that playbook triggers evaluate |
 | phase-85 | phase-110 | soft | Audit trail (phase 85) must log all incident response actions |
 | phase-25 | phase-110 | soft | State recovery (phase 25) provides the recovery patterns that playbooks reference |
+| phase-4 | phase-111 | soft | MCP server wraps the orchestrator core from phase 4 |
+| phase-5 | phase-111 | soft | MCP integration extends the DAG executor from phase 5 |
+| phase-81 | phase-111 | soft | MCP tool discovery could be implemented as a plugin in the plugin system from phase 81 |
+| phase-85 | phase-111 | soft | All MCP tool calls must be logged to the audit trail from phase 85 |
+| phase-99 | phase-111 | soft | Unified CLI from phase 99 should include MCP server start/stop commands |
+| phase-4 | phase-112 | soft | Coordination safety modifies the worker spawning from phase 4 |
+| phase-6 | phase-112 | soft | Role specialization from phase 6 increases delegation complexity where coordination failures occur |
+| phase-8 | phase-112 | soft | Coordination events should be logged to execution history from phase 8 |
+| phase-21 | phase-112 | soft | Merge queue from phase 21 benefits from lease token protection on merge slots |
+| phase-26 | phase-112 | soft | Work decomposition from phase 26 creates sub-issues where handoff drift is most likely |
+| phase-85 | phase-112 | soft | Coordination safety events must be logged to audit trail from phase 85 |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -6206,6 +6219,139 @@ Playbooks are YAML files that can be added/modified without code changes, making
 - Playbook conflicts (two playbooks triggered simultaneously with contradictory actions) -- serialize playbook execution with a queue
 - Too many false-positive escalations could cause alert fatigue -- track false positive rate and auto-tune thresholds
 - Playbook step timeouts could leave the system in an inconsistent state -- implement compensating rollback steps
+
+## [ ] phase-111: MCP (Model Context Protocol) Server/Client Integration (PLANNED)
+
+**Goal:** Expose orchestrator capabilities as a standard MCP server and discover external tools via MCP clients, enabling interoperability with the broader agent ecosystem
+
+The Model Context Protocol (MCP), open-sourced by Anthropic, has become the standardized integration
+layer for the agentic era -- described as a "USB-C port for AI applications." MCP provides a two-way
+connection between AI tools and data sources via standardized primitives: Tools (executable functions),
+Resources (readable data sources), and Prompts (reusable templates). The additional research doc
+"Issue Trackers as AI Agent Control Planes" identifies MCP as a critical enabler for "AI readiness"
+because it allows agents to evolve from pre-set prompt chains to truly autonomous systems by discovering
+capabilities dynamically. Currently, the orchestrator's tool interface is entirely static and
+Hermes-specific (delegate_task). This phase adds bidirectional MCP support: (1) an MCP server that
+exposes orchestrator functions (poll issues, spawn workers, check status, manage workspaces) so external
+agents and tools can interact with the orchestrator, and (2) an MCP client that discovers and consumes
+external MCP servers, injecting discovered tools/resources into worker prompts dynamically. This makes
+the orchestrator both a provider and consumer in the MCP ecosystem.
+
+
+### Deliverables
+
+- [ ] **MCP server for orchestrator capabilities** -- Expose key orchestrator functions as MCP tools, resources, and prompts
+  - [ ] `p111.d1.t1` Create MCP server module
+    > Create mcp_server.py: (1) MCPServer class using the MCP Python SDK (mcp package), (2) register_tools: poll_issues (filter by repo/label/status), spawn_worker (issue number, role, config), get_status (active/completed/failed counts), list_workspaces (path, state, age), create_issue (title, body, labels), (3) register_resources: execution_history (recent log entries as readable resource), workspace_state (per-workspace status), orchestrator_config (current config as resource), (4) register_prompts: standard_pipeline (pre-built prompt template for common dev tasks), review_prompt (pre-built review template), (5) server runs on stdio transport (for Claude Code integration) and optionally SSE transport (for web dashboard), (6) all tool calls are authenticated and logged to the audit trail (phase 85).
+    _Files: ~/zion/projects/agent-orchestration/mcp_server.py_
+  - [ ] MCP server starts and announces capabilities via the MCP protocol
+    _Validation: connect MCP client, list tools/resources/prompts_
+  - [ ] At least 5 orchestrator functions exposed as MCP tools (poll_issues, spawn_worker, get_status, list_workspaces, create_issue)
+    _Validation: MCP client can call each tool and get valid responses_
+  _~140 LOC_
+- [ ] **MCP client for external tool discovery** -- Discover and consume external MCP servers, injecting found capabilities into worker prompts
+  - [ ] `p111.d2.t1` Create MCP client module (depends: p111.d1.t1)
+    > Create mcp_client.py: (1) MCPClientManager class that manages connections to multiple MCP servers, (2) configure servers in orchestrator.yaml under mcp.servers list (url, auth, enabled_tools filter), (3) discover_tools(): connect to each server, list available tools, cache results with TTL (default 5min), (4) get_context_for_task(issue): analyze issue description, find relevant tools from discovered set, produce tool_descriptions block for injection into worker prompt, (5) call_tool(server_url, tool_name, args): execute external MCP tool and return result, (6) fallback: if MCP server is unreachable, skip discovered tools gracefully without failing the pipeline, (7) security: only tools explicitly listed in config are exposed to workers -- never auto-expose all discovered tools.
+    _Files: ~/zion/projects/agent-orchestration/mcp_client.py_
+  - [ ] MCP client connects to external servers and lists available tools
+    _Validation: configure external server URL, verify tool discovery_
+  - [ ] Discovered tools are available to workers during pipeline execution
+    _Validation: run pipeline with MCP client enabled, verify worker can use discovered tool_
+  _~130 LOC_
+- [ ] **MCP integration with DAG executor** -- Wire MCP client tool discovery into the DAG executor AI node prompt construction
+  - [ ] `p111.d3.t1` Integrate MCP client with DAG executor (depends: p111.d2.t1)
+    > Extend executor.py: (1) add use_mcp flag to pipeline YAML and node config, (2) before constructing AI node prompt, call mcp_client.get_context_for_task() and append tool descriptions to the system prompt, (3) add MCP_TOOL node type: executes a tool via MCP client (server_url, tool_name, args), (4) in standard-pipeline.yaml, add optional pre-implementation MCP discovery step, (5) test with a pipeline that discovers and uses an external tool.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] AI nodes in DAG pipelines can access MCP-discovered tools
+    _Validation: run pipeline YAML with use_mcp: true, verify tool context in prompt_
+  _~80 LOC_
+- [ ] **MCP integration tests** -- Tests for MCP server, client, and executor integration
+  - [ ] `p111.d4.t1` Create test_mcp.py (depends: p111.d3.t1)
+    > Create test_mcp.py: (1) test_server_startup: verify MCP server starts and announces tools, (2) test_tool_execution: call each registered tool via MCP protocol, verify valid response, (3) test_resource_access: read each registered resource, verify content, (4) test_client_discovery: mock external MCP server, verify client discovers tools, (5) test_client_fallback: mock unreachable server, verify graceful degradation, (6) test_executor_mcp_node: run pipeline with MCP_TOOL node, verify tool called, (7) test_context_injection: verify MCP-discovered tools appear in AI node prompts, (8) test_security_filter: verify only explicitly enabled tools are exposed to workers.
+    _Files: ~/zion/projects/agent-orchestration/test_mcp.py_
+  - [ ] Tests cover server tool execution, client discovery, and executor integration
+    _Validation: python3 -m pytest test_mcp.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+Uses the official MCP Python SDK (pip install mcp). The server runs on stdio transport by default for Claude Code integration -- this is how Claude Code natively communicates with MCP servers. SSE transport is optional for the web dashboard (phase 91). MCP client connections are lazy -- only connect when a pipeline actually requests MCP tools, not at orchestrator startup. Tool discovery results are cached with a 5-minute TTL to avoid hammering external servers on every pipeline run. Security model: only tools explicitly listed in orchestrator.yaml mcp.servers[].enabled_tools are exposed to workers -- auto-discovery lists all tools but only enabled ones are injected into prompts.
+
+### Risks
+
+- MCP protocol is still evolving -- implementation should be version-tolerant and handle unknown tool schemas gracefully
+- External MCP servers could be slow or unreliable -- timeouts (30s default) and fallback behavior are essential
+- MCP tool calls could have side effects (e.g., creating resources externally) -- require human approval for tools marked as destructive
+- MCP server exposes orchestrator internals -- restrict to localhost by default, require auth for network access
+
+## [ ] phase-112: Coordination Failure Detection and Recovery (PLANNED)
+
+**Goal:** Detect and mitigate four named multi-agent coordination failure modes (Handoff Drift, Token Holding, Recursive Inception, Hallucination Loops) that emerge at Gas Town scale concurrency
+
+The additional research doc "Issue Trackers as AI Agent Control Planes" identifies four specific
+coordination failure modes that occur when multiple agents collaborate on the same codebase. These
+are distinct from the operational failures handled by incident response (phase 110) and the resource
+failures handled by backpressure (phase 70) -- they are SEMANTIC coordination failures where agents
+lose track of intent, refuse to release resources, or compound errors. The research provides concrete
+mitigation patterns for each: (1) Handoff Drift -- the original objective is lost during delegation.
+Mitigation: "Manifest of Objective" attached to every delegation. (2) Token Holding -- agents refuse
+to transfer authority, holding resource locks. Mitigation: explicit lease tokens with Time-To-Live (TTL).
+(3) Recursive Inception -- agents delegating to agents indefinitely, exploding token costs. Mitigation:
+strict delegation depth limits. (4) Hallucination Loops -- errors in one agent's plan compound as
+passed forward. Mitigation: phase gates with independent verification at each handoff. None of these
+four patterns are addressed by existing phases. Phase 76 handles dedup but not handoff drift. Phase 70
+handles backpressure but not token holding. Phase 15 handles safety but not delegation depth. Phase 9
+handles review but not hallucination loop detection across handoffs. This phase creates a dedicated
+coordination safety layer that monitors for these specific failure patterns and intervenes automatically.
+
+
+### Deliverables
+
+- [ ] **Manifest of Objective propagation** -- Attach structured objective manifests to every task delegation, detect drift from original intent
+  - [ ] `p112.d1.t1` Create objective manifest system
+    > Create coordination_safety.py: (1) ObjectiveManifest dataclass (original_issue_title, original_issue_body, success_criteria list, key_constraints list, created_at, issue_number), (2) build_manifest(issue): extract from GitHub issue -- title, body, acceptance criteria from checkboxes, constraints from "must not" / "should not" patterns, (3) attach_to_worker_prompt(manifest, worker_prompt): append manifest as structured section to worker system prompt, (4) detect_drift(manifest, worker_actions): compare worker actions against success_criteria -- if worker is making changes unrelated to any criterion, flag drift with confidence score, (5) on drift detection: log warning, if confidence > 0.8 inject course-correction into next worker turn, if confidence > 0.95 pause worker and alert operator, (6) drift_threshold config in orchestrator.yaml (default: 0.8 warning, 0.95 pause).
+    _Files: ~/zion/projects/agent-orchestration/coordination_safety.py_
+  - [ ] Every spawned worker receives a structured objective manifest with success criteria
+    _Validation: inspect worker prompt, verify manifest section present_
+  - [ ] Drift detection flags workers whose recent actions diverge from the manifest
+    _Validation: simulate drift (worker working on wrong subtask), verify detection_
+  _~120 LOC_
+- [ ] **Lease token management with TTL** -- Assign time-limited ownership tokens for shared resources, prevent agents from holding locks indefinitely
+  - [ ] `p112.d2.t1` Create lease token manager (depends: p112.d1.t1)
+    > Extend coordination_safety.py: (1) LeaseToken dataclass (resource_id, holder_id, issued_at, ttl_seconds, renewable bool, max_renewals), (2) LeaseManager class: acquire(resource_id, holder_id, ttl) -- returns token or raises if held, release(resource_id, holder_id) -- frees resource, renew(resource_id, holder_id) -- extends TTL if within max_renewals, check(resource_id) -- returns current holder or None, (3) default TTL per resource type: workspace=3600s, merge_slot=600s, file_lock=120s, (4) lease store: JSON file with all active leases, cleaned up on orchestrator startup (stale leases from crashes), (5) on lease expiry: log event, notify holder via alerting (phase 106), release resource for reassignment, (6) CLI: orch leases list, orch leases release RESOURCE_ID, orch leases stats.
+    _Files: ~/zion/projects/agent-orchestration/coordination_safety.py_
+  - [ ] Shared resources (files, workspaces, merge slots) are protected by lease tokens
+    _Validation: attempt concurrent access to same resource, verify lease enforcement_
+  - [ ] Expired leases are automatically released and available for reassignment
+    _Validation: create lease with short TTL, wait for expiry, verify resource released_
+  _~100 LOC_
+- [ ] **Delegation depth limiter** -- Prevent recursive inception by enforcing maximum delegation depth and tracking delegation chains
+  - [ ] `p112.d3.t1` Create delegation depth limiter (depends: p112.d2.t1)
+    > Extend coordination_safety.py: (1) DelegationChain dataclass (root_issue, chain list of {worker_id, depth, delegated_at, task_summary}), (2) check_depth(chain, max_depth): returns True if delegation is within limit, False if at max, (3) on spawn_worker: check if parent worker is itself a delegate -- if so, increment depth in chain, reject if depth > max_depth, (4) max_delegation_depth config in orchestrator.yaml (default: 3), (5) on depth rejection: log warning with full chain, suggest flattening the task, (6) CLI: orch delegation tree [--depth N], orch delegation stats.
+    _Files: ~/zion/projects/agent-orchestration/coordination_safety.py_
+  - [ ] Workers cannot delegate beyond configured max depth (default: 3)
+    _Validation: configure max_depth=2, attempt 3-level delegation, verify blocked_
+  - [ ] Delegation chain is tracked and visible for debugging
+    _Validation: orch delegation tree shows active delegation hierarchy_
+  _~70 LOC_
+- [ ] **Hallucination loop detection** -- Detect error compounding across agent handoffs where one agent's mistakes amplify through delegation
+  - [ ] `p112.d4.t1` Create hallucination loop detector (depends: p112.d3.t1)
+    > Extend coordination_safety.py: (1) FailurePattern dataclass (subtask_signature, failure_count, last_failure_error, worker_ids list, first_seen, last_seen), (2) detect_loop(subtask, error): hash subtask signature (file+function+change_type), check if same subtask failed before with different workers, if >2 workers failed on same subtask signature: flag as hallucination loop, (3) on hallucination loop detection: pause delegation of that subtask, inject full failure history into next attempt prompt, suggest human review, (4) escalation: if 3+ workers fail on same subtask, create GitHub issue tagged coordination:hallucination-loop with full failure chain, (5) hallucination_loop_threshold config (default: 2 workers), (6) CLI: orch coordination loops, orch coordination patterns.
+    _Files: ~/zion/projects/agent-orchestration/coordination_safety.py_
+  - [ ] Consecutive failures on the same subtask across different workers trigger hallucination loop alert
+    _Validation: simulate same error recurring across 3 workers, verify alert_
+  _~80 LOC_
+
+### Technical Notes
+
+The four failure modes are derived from the "Issue Trackers as AI Agent Control Planes" research doc, which identifies these as the primary coordination risks when multiple agents work on the same codebase. The mitigation patterns (Manifest of Objective, Lease Tokens, Depth Limits, Phase Gates) are adapted from the research's recommendations. Implementation is a single module (coordination_safety.py) with four subsystems. Each subsystem operates independently but shares a common event log. The module integrates with the orchestrator main loop -- drift detection runs after each worker turn, lease enforcement runs on resource access, depth checking runs on worker spawn, and hallucination detection runs on worker failure. All four subsystems can be individually enabled/disabled in orchestrator.yaml.
+
+### Risks
+
+- Drift detection could false-positive on legitimate multi-step tasks that seem unrelated to the original issue -- use conservative thresholds and allow operators to mark subtasks as "intentional divergence"
+- Lease token enforcement could block legitimate long-running operations -- make TTLs configurable per resource type and allow renewal
+- Delegation depth limits could prevent necessary multi-level decomposition -- default of 3 is generous; operators can increase per-project
+- Hallucination loop detection could false-positive on genuinely hard bugs that multiple workers independently fail to solve -- require distinct error signatures, not just same subtask
 
 ## Global Risks
 
