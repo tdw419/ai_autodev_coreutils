@@ -15152,6 +15152,96 @@ global_risks:
 - 'Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks'
 - 'Speculative ticket filing (phase 103) could create too many low-quality issues -- require dry-run review first'
 - 'Governance reports (phase 104) aggregate from many data sources -- a bug in one source could corrupt the entire report'
+- 'Defect capsule vector search (phase 120) adds indexing overhead on every failure -- keep embedding generation async'
+- 'Code manifest (phase 121) may become stale if not regenerated after edits -- trigger regeneration on file change events'
+- 'Tool-use hooks (phase 122) intercepting every tool call adds latency -- make hooks optional and fast (<10ms)'
+- 'Template input validation (phase 123) could reject valid inputs if schema is too strict -- allow schema overrides'
+- 'Dynamic secrets (phase 124) adds Vault/secret store as a runtime dependency -- make file-based backend the default'
+- 'Artifact repository (phase 125) could consume significant disk space -- implement retention policies'
+phases_added_from_fifteenth_pass: |2
+
+    Phase 120-125: Six new phases derived from a fifteenth gap analysis pass focused on
+    four research sources not previously analyzed: (1) "DIS: Multi-Agent Orchestration
+    Research" (215 lines, 31 citations) describing the Semantic Intent Bus, intent-based
+    coordination primitives, kernel-level sandboxing, and the AestheticEngine for code
+    optimization; (2) "Multi-Agent Relay for Long-Horizon Tasks" (211 lines, 32 citations)
+    describing the Verification Loop (V-Loop), Defect Capsule schema, State Synopsis
+    compression, Signed Checkpoints, Task Ledger, and Agentic RAG for failure remediation;
+    (3) "Cross-Agent Reflex Loop Research Plan" (341 lines, 70 citations) describing
+    decentralized agent identity (DID/SSI), the reflex:// protocol, gossip protocols
+    for peer discovery, Merkle trees for reflex ancestry, and CRDT-based conflict
+    resolution; (4) "Archon V3: Harnessing AI Workflows" (231 lines, 8 citations)
+    describing Harness Engineering, pre/post tool-use hooks, git worktree isolation,
+    provider-agnostic workflows, and adaptive review intensity; (5) "Self-Correcting
+    Agent Loop" (322 lines, 77 citations) describing the Code Manifest (AST-based
+    codebase index), diff-patch generation, container sandboxing for code execution,
+    and Reinforcement Learning with Execution Feedback (RLEF); (6) "Enhancing Task
+    Orchestration Architecture" (254 lines, 14 citations) describing contract-first
+    template parameters, zero-trust verifier sandboxing, workload identity (JWT/OIDC),
+    JUnit XML standardized reporting, and diagnostic artifact repositories.
+
+    Previous fourteen passes achieved 100% concept coverage against the primary
+    Symphony research doc and all previously analyzed supplements. This pass analyzed
+    these six additional research documents and identified six genuinely new concepts
+    not covered by any of the 119 existing phases:
+
+    (A) Structured Defect Capsule and Agentic RAG for Remediation -- the Multi-Agent
+    Relay research describes a detailed Defect Capsule schema (defect_id, severity,
+    location, type, root_cause_synopsis, prescriptive_fix_steps, repro_steps_script,
+    vector_key) that transforms failure feedback from generic bug reports into
+    prescriptive, machine-readable remediation inputs. It also describes Agentic RAG
+    for remediation: vector-searching past RESOLVED failures and injecting relevant
+    fix patterns into agent prompts. Phase 93 (Long-Term Memory) performs semantic
+    search over knowledge but NOT specifically for failure remediation with
+    resolved-fix filtering. Phase 18 (Trace Formatter) formats execution traces but
+    does NOT create a structured defect schema. Phase 80 (Self-Healing Hints)
+    transforms error messages but NOT into a structured, queryable defect format.
+    Phase 120 closes this gap.
+
+    (B) Code Manifest and AST-Based Codebase Index -- the Self-Correcting Agent Loop
+    research describes automatically generating a machine-readable YAML manifest from
+    AST analysis, providing agents with a structured map of function signatures, class
+    hierarchies, and docstrings without processing full file contents. This is a form
+    of RAG where the knowledge base is a structured representation of the codebase
+    rather than raw code. Phase 12 (Self-Doc) generates human-readable documentation,
+    NOT machine-readable structured indexes. Phase 82 (Context Seeding) injects past
+    solutions but doesn't provide a codebase structural index. Phase 121 closes this
+    gap.
+
+    (C) Pre/Post Tool-Use Hooks -- the Archon V3 research describes self-correcting
+    hooks that intercept agent tool calls in real-time: pre-tool-use hooks can block
+    dangerous commands before execution, and post-tool-use hooks can enforce
+    constraints like running security audits after file writes. This is
+    INFRASTRUCTURAL enforcement, not prompt-based instruction. Phase 65 (Stop Hooks)
+    handles loop control at session TERMINATION, NOT tool-call interception during
+    execution. Phase 17 (Structural Invariants) validates code AFTER the fact, not
+    DURING tool execution. Phase 64 (Workspace Sandboxing) restricts filesystem
+    access but doesn't intercept individual tool calls. Phase 122 closes this gap.
+
+    (D) Contract-First Pipeline Template Input Validation -- the Task Orchestration
+    research describes replacing string-variable-based parameter passing with
+    strongly-typed input primitives that enforce schema validation at pipeline entry
+    points. This prevents command injection via type coercion and YAML parsing
+    ambiguities (e.g., octal misinterpretation of "012345"). Phase 71 (Config
+    Validation) validates orchestrator configuration YAML, NOT pipeline template input
+    contracts. Phase 77 (Template Library) creates reusable templates but doesn't
+    enforce input contracts with type safety. Phase 123 closes this gap.
+
+    (E) Dynamic Secrets Management -- the Task Orchestration research describes
+    workload identity (JWT/OIDC) for dynamic, time-bound secret retrieval from
+    centralized secrets stores, replacing static environment variables with
+    scoped, revocable credentials tied to execution context. No existing phase
+    covers secrets management at all -- agents currently access credentials via
+    environment variables with no rotation, scoping, or audit trail. Phase 124
+    closes this gap.
+
+    (F) Standardized Diagnostic Output and Artifact Repository -- the Task
+    Orchestration research mandates JUnit XML for test results and structured JSON
+    for all diagnostic data, with a consolidated artifact repository for
+    reproducibility and traceability. Phase 85 (Audit Trail) logs agent actions but
+    doesn't standardize diagnostic output formats. Phase 72 (Metrics) exposes
+    Prometheus metrics but doesn't mandate test output formats. Phase 125 closes
+    this gap.
 conventions:
 - Python scripts use python3 (no bare python command on this system)
 - 'GitHub API via gh CLI, not raw curl'
