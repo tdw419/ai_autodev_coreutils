@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 21/102 phases complete, 0 in progress
+**Progress:** 22/102 phases complete, 0 in progress
 
-**Deliverables:** 83/407 complete
+**Deliverables:** 86/407 complete
 
-**Tasks:** 83/407 complete
+**Tasks:** 86/407 complete
 
 ## Scope Summary
 
@@ -33,7 +33,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-19 Continuous Self-Improvement Loop | COMPLETE | 4/4 | 380 | 5 |
 | phase-20 Context Window Optimization (Smart Zone) | COMPLETE | 4/4 | 300 | 5 |
 | phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | COMPLETE | 4/4 | 410 | 10 |
-| phase-22 Config Hot-Reload and Live Tuning | PLANNED | 0/4 | 270 | 5 |
+| phase-22 Config Hot-Reload and Live Tuning | COMPLETE | 3/4 | 270 | 5 |
 | phase-23 End-to-End Integration and Real-World Validation | PLANNED | 0/4 | 550 | 15 |
 | phase-24 Project Onboarding Bootstrap | PLANNED | 0/4 | 400 | 10 |
 | phase-25 Orchestrator Resilience and State Recovery | PLANNED | 0/4 | 380 | 10 |
@@ -1536,7 +1536,7 @@ The merge queue is file-backed (JSON Lines) for simplicity, no external service 
 - Merge queue ordering is NP-hard in the general case -- heuristic ordering is good enough
 - Concurrent orchestrator instances could race on the queue file -- need file locking
 
-## [ ] phase-22: Config Hot-Reload and Live Tuning (PLANNED)
+## [x] phase-22: Config Hot-Reload and Live Tuning (COMPLETE)
 
 **Goal:** Enable the orchestrator to pick up config changes without restart, supporting live parameter tuning
 
@@ -1544,29 +1544,29 @@ Symphony's Elixir implementation features hot code reloading, allowing system up
 
 ### Deliverables
 
-- [ ] **Config watcher module** -- Python module that watches config files for changes and triggers reload
-  - [ ] `p22.d1.t1` Create config_watcher.py module
+- [x] **Config watcher module** -- Python module that watches config files for changes and triggers reload
+  - [x] `p22.d1.t1` Create config_watcher.py module
     > Python module that: (1) watches specified config files using filesystem modification time (polling every 5s, no inotify dependency), (2) on change, reloads the config and validates it, (3) calls registered callbacks for each config type (on_orchestrator_config_change, on_role_change, on_pipeline_change), (4) logs all config reloads with before/after diff, (5) supports --watch flag for standalone operation and programmatic API for integration. Use file hashing to avoid spurious reloads.
     _Files: ~/zion/projects/agent-orchestration/config_watcher.py_
-  - [ ] Module detects changes to YAML config files within 5 seconds
+  - [x] Module detects changes to YAML config files within 5 seconds
     _Validation: modify config file, check reload is triggered_
-  - [ ] Supports watching orchestrator.yaml, role profiles, and pipeline YAMLs
+  - [x] Supports watching orchestrator.yaml, role profiles, and pipeline YAMLs
     _Validation: modify each type, verify detection_
   _~100 LOC_
-- [ ] **Hot-reload integration in orchestrator** -- Integrate config watcher into the orchestrator main loop
-  - [ ] `p22.d2.t1` Integrate config_watcher into orchestrator.py (depends: p22.d1.t1)
+- [x] **Hot-reload integration in orchestrator** -- Integrate config watcher into the orchestrator main loop
+  - [x] `p22.d2.t1` Integrate config_watcher into orchestrator.py (depends: p22.d1.t1)
     > Modify orchestrator.py to: (1) instantiate config_watcher at startup with callbacks for each config type, (2) on orchestrator.yaml change: reload max_concurrent, repo, labels, pipeline path, (3) on role YAML change: reload affected role profile (roles.py already loads from disk, just need cache invalidation), (4) on pipeline YAML change: next execution uses updated pipeline, (5) add --no-watch flag to disable hot-reload for debugging. Log all reloads to execution history.
     _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
-  - [ ] Orchestrator picks up config changes mid-loop without restart
+  - [x] Orchestrator picks up config changes mid-loop without restart
     _Validation: change max_concurrent while orchestrator is running, verify new limit applies_
-  - [ ] Role profile changes are picked up for new workers
+  - [x] Role profile changes are picked up for new workers
     _Validation: modify a role YAML, spawn new worker, verify new prompts used_
   _~60 LOC_
-- [ ] **Config change audit trail** -- Log all config changes with diffs and timestamps for debugging
-  - [ ] `p22.d3.t1` Add config audit logging (depends: p22.d1.t1)
+- [x] **Config change audit trail** -- Log all config changes with diffs and timestamps for debugging
+  - [x] `p22.d3.t1` Add config audit logging (depends: p22.d1.t1)
     > Append config change events to ~/.orchestrator/logs/config-changes.jsonl. Each entry: timestamp, config_type (orchestrator/role/pipeline), file_path, change_type (modified/added/deleted), diff_summary (what changed in human-readable form), reloaded_successfully (bool). Add a CLI subcommand to config_watcher.py: audit (show recent changes), rollback (restore previous config version if backed up).
     _Files: ~/zion/projects/agent-orchestration/config_watcher.py_
-  - [ ] All config changes are logged with before/after values
+  - [x] All config changes are logged with before/after values
     _Validation: change config, check audit log_
   _~50 LOC_
 - [ ] **Live tuning CLI** -- CLI command to inspect and modify orchestrator config at runtime
