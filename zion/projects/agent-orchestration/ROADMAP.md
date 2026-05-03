@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/104 phases complete, 0 in progress
+**Progress:** 22/110 phases complete, 0 in progress
 
-**Deliverables:** 86/407 complete
+**Deliverables:** 86/439 complete
 
-**Tasks:** 86/407 complete
+**Tasks:** 86/439 complete
 
 ## Scope Summary
 
@@ -116,6 +116,12 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-102 Graceful Shutdown and Drain Mode | PLANNED | 0/4 | 420 | 8 |
 | phase-103 Agent-Ready Issue Filing and Speculative Ticket CLI | PLANNED | 0/4 | 410 | 8 |
 | phase-104 Orchestrator Governance and Compliance Reporting | PLANNED | 0/4 | 360 | 8 |
+| phase-105 Orchestrator Python Package and Deployment Profiles | PLANNED | 0/4 | 300 | 8 |
+| phase-106 Real-Time Alerting and Notification System | PLANNED | 0/4 | 340 | 10 |
+| phase-107 Task Complexity Scoring and Adaptive Resource Allocation | PLANNED | 0/4 | 330 | 10 |
+| phase-108 Orchestrator Self-Upgrade Pipeline | PLANNED | 0/4 | 320 | 10 |
+| phase-109 Multi-Team Policy Isolation and Resource Quotas | PLANNED | 0/4 | 330 | 10 |
+| phase-110 Incident Response Automation and Escalation Playbooks | PLANNED | 0/4 | 380 | 12 |
 
 ## Dependencies
 
@@ -503,6 +509,32 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-9 | phase-104 | soft | Review sensor scores from phase 9 feed the quality trends section |
 | phase-59 | phase-104 | soft | PR velocity metrics from phase 59 feed the throughput section |
 | phase-35 | phase-104 | hard | Governance reports are essential before enabling dark factory mode from phase 35 |
+| phase-99 | phase-105 | soft | Unified CLI (phase 99) provides the CLI foundation that the package entry point extends |
+| phase-81 | phase-105 | soft | Plugin system (phase 81) defines the module interface that deployment profiles toggle |
+| phase-14 | phase-106 | soft | Health monitoring (phase 14) provides the metrics that alert rules evaluate |
+| phase-44 | phase-106 | soft | Health scorecard (phase 44) provides aggregated KPIs that alert thresholds reference |
+| phase-32 | phase-106 | soft | Cost tracking (phase 32) provides token/cost data for cost spike alerts |
+| phase-72 | phase-106 | soft | Metrics pipeline (phase 72) provides the time-series data for change_pct conditions |
+| phase-4 | phase-107 | soft | Spawner from phase 4 is where resource configuration is applied |
+| phase-40 | phase-107 | soft | Multi-model backend (phase 40) provides the model tier routing that complexity scoring configures |
+| phase-32 | phase-107 | soft | Cost tracking (phase 32) provides the actual consumption data for calibration |
+| phase-20 | phase-107 | soft | Context budget (phase 20) is one of the resources allocated by complexity tier |
+| phase-8 | phase-107 | soft | Execution history (phase 8) provides the data for calibration feedback loop |
+| phase-22 | phase-108 | soft | Config hot-reload (phase 22) provides the reload infrastructure that self-upgrade extends |
+| phase-71 | phase-108 | soft | Config validation (phase 71) is used as a post-upgrade validation gate |
+| phase-7 | phase-108 | soft | Test suite (phase 7) is run as a post-upgrade validation gate |
+| phase-95 | phase-108 | soft | Auto-remediation (phase 95) handles the rollback if upgrade causes issues |
+| phase-85 | phase-108 | soft | Audit trail (phase 85) must log all self-upgrade events for compliance |
+| phase-16 | phase-109 | soft | Multi-repo orchestration (phase 16) provides the repo-level context that team policies apply to |
+| phase-32 | phase-109 | soft | Cost tracking (phase 32) provides the spending data that per-team budgets enforce |
+| phase-15 | phase-109 | soft | Safety policies (phase 15) provide the approval framework that per-team thresholds customize |
+| phase-74 | phase-109 | soft | Trust scoring (phase 74) provides the scoring system that per-team isolation scopes |
+| phase-106 | phase-109 | soft | Alerting (phase 106) provides the notification channel for budget alerts |
+| phase-95 | phase-110 | soft | Auto-remediation (phase 95) provides the remediation actions that playbooks compose |
+| phase-106 | phase-110 | soft | Alerting (phase 106) provides the notification channels that escalation uses |
+| phase-14 | phase-110 | soft | Health monitoring (phase 14) provides the health data that playbook triggers evaluate |
+| phase-85 | phase-110 | soft | Audit trail (phase 85) must log all incident response actions |
+| phase-25 | phase-110 | soft | State recovery (phase 25) provides the recovery patterns that playbooks reference |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 
@@ -5709,6 +5741,472 @@ Drain mode uses a simple file-based signal (~/.orchestrator/drain) rather than I
 - Restoring from a stale snapshot could conflict with changes made during the drain period
 - Signal file could be left behind if orchestrator crashes during cancel -- cleanup on startup
 
+## [ ] phase-103: Agent-Ready Issue Filing and Speculative Ticket CLI (PLANNED)
+
+**Goal:** Provide a CLI tool for operators to quickly create well-structured agent-ready issues, enabling the "speculative ticket filing" workflow described in the Symphony research
+
+The Symphony research describes the key workflow shift that drives the 500% PR increase: "engineers shifted from supervising single tasks to filing speculative tickets and reviewing completed work." The orchestrator consumes agent-ready issues (phase 4 poller), but no phase helps operators create them efficiently. Currently, filing a well-structured agent-ready issue requires manually writing a title, description, acceptance criteria, and applying the correct labels and assignees. This phase creates a CLI tool that: (1) provides interactive and non-interactive modes for filing agent-ready issues, (2) offers issue templates for common task types (bug fix, feature, refactor, test, docs), (3) auto-derives acceptance criteria from the issue description, (4) applies the correct labels, (5) supports bulk filing from a YAML manifest for speculative exploration (filing 5 variants of a task to let the orchestrator try multiple approaches), and (6) validates issue structure against the agent-ready schema before submission. This is the "input side" of the issue-tracker-as-control-plane pattern, complementing the "output side" handled by the poller.
+
+### Deliverables
+
+- [ ] **Issue filing CLI with templates** -- CLI tool for creating agent-ready issues with templates and validation
+  - [ ] `p103.d1.t1` Create issue_filer.py with templates
+    > Create issue_filer.py: (1) create_issue(repo, title, description, labels, template, acceptance_criteria) uses gh CLI to create a GitHub issue, (2) get_templates() returns built-in templates for bug-fix, feature, refactor, test-add, docs-update, each with a description skeleton and suggested acceptance criteria, (3) validate_issue(title, description, labels) checks minimum quality (title > 10 chars, description > 50 chars, has acceptance criteria or template), (4) interactive mode prompts for fields with tab-completion from templates, (5) CLI: python3 issue_filer.py create [--repo REPO] [--title TITLE] [--desc DESC] [--label LABEL] [--template TYPE] [--accept "crit1,crit2"] [--interactive] [--dry-run].
+    _Files: ~/zion/projects/agent-orchestration/issue_filer.py_
+  - [ ] Can create a single agent-ready issue from CLI with title, description, and labels
+    _Validation: python3 issue_filer.py create --repo owner/repo --title "Fix login bug" --desc "Users cannot login..." --label agent-ready_
+  - [ ] Provides at least 5 issue templates for common task types
+    _Validation: python3 issue_filer.py templates --list_
+  _~150 LOC_
+- [ ] **Bulk speculative filing from YAML manifest** -- File multiple related issues at once for speculative exploration
+  - [ ] `p103.d2.t1` Add bulk filing from YAML manifest (depends: p103.d1.t1)
+    > Extend issue_filer.py: (1) bulk_create(manifest_path) reads a YAML file with a list of issues (title, description, template, labels, parent_issue), (2) each issue body includes "Part of #{parent}" if parent is specified, (3) issues are created sequentially with rate limiting (respect GitHub API limits), (4) output includes a summary table with issue numbers and URLs, (5) CLI: python3 issue_filer.py bulk --manifest FILE [--dry-run] [--delay SECONDS]. The manifest format: issues: [{title, desc, template, labels, parent, priority}].
+    _Files: ~/zion/projects/agent-orchestration/issue_filer.py_
+  - [ ] Can create multiple issues from a YAML manifest file
+    _Validation: python3 issue_filer.py bulk --manifest speculative.yaml --dry-run_
+  - [ ] Each issue in the manifest can reference a parent issue for traceability
+    _Validation: created issues have "Part of #PARENT" in their body_
+  _~100 LOC_
+- [ ] **Acceptance criteria auto-generation** -- Generate acceptance criteria from issue description using LLM or heuristic rules
+  - [ ] `p103.d3.t1` Add acceptance criteria generation (depends: p103.d1.t1)
+    > Extend issue_filer.py: (1) generate_criteria(description, issue_type) uses template-based heuristic rules (not LLM) to suggest acceptance criteria, (2) bug-fix template: "Reproduction steps documented", "Fix does not break existing tests", "Edge case N handled", (3) feature template: "Acceptance criteria defined", "Tests added", "Documentation updated", (4) refactor template: "Behavior unchanged", "Tests pass", "Code complexity reduced", (5) CLI: python3 issue_filer.py generate-criteria --desc DESC --type TYPE [--format json|markdown].
+    _Files: ~/zion/projects/agent-orchestration/issue_filer.py_
+  - [ ] Can auto-generate acceptance criteria from a description
+    _Validation: python3 issue_filer.py generate-criteria --desc "Fix the login timeout issue" --type bug-fix_
+  _~80 LOC_
+- [ ] **Issue filing tests** -- Tests for issue filing CLI
+  - [ ] `p103.d4.t1` Create test_issue_filer.py (depends: p103.d2.t1, p103.d3.t1)
+    > Create test_issue_filer.py: (1) test_template_list: verify all 5+ templates exist with required fields, (2) test_validate_issue: verify validation catches empty title, short description, missing labels, (3) test_bulk_manifest_parsing: verify YAML manifest is parsed correctly, (4) test_criteria_generation: verify each template type produces sensible criteria, (5) test_dry_run: verify dry-run mode does not create actual issues, (6) test_parent_reference: verify parent issue is referenced in body. All tests use dry-run mode or mock gh CLI.
+    _Files: ~/zion/projects/agent-orchestration/test_issue_filer.py_
+  - [ ] Tests cover create, bulk, and criteria generation with dry-run
+    _Validation: python3 -m pytest test_issue_filer.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The filing tool uses gh CLI exclusively (no direct GitHub API calls) to stay consistent with the project convention. Templates are YAML-based and user-extensible. The bulk filing feature implements the research's "speculative ticket filing" concept where engineers file multiple variants of a task for the orchestrator to explore in parallel (with phase 28 speculative execution).
+
+### Risks
+
+- Poorly structured issues waste orchestrator tokens -- the validation step is critical
+- Bulk filing could spam repos with low-quality issues -- require dry-run review first
+- Template quality directly affects agent success rate -- templates need iteration based on actual results
+- Acceptance criteria auto-generation is heuristic-based and may not match project-specific standards
+
+## [ ] phase-104: Orchestrator Governance and Compliance Reporting (PLANNED)
+
+**Goal:** Generate periodic compliance reports summarizing orchestrator activity, enabling organizational accountability for dark factory mode operation
+
+The research describes the Dark Factory model where zero human review occurs before code is merged. This requires robust accountability: stakeholders need to understand what the orchestrator did, what changed, what was auto-approved, how much it cost, and whether quality is improving or degrading. Phase 85 (audit trail) logs individual agent actions, Phase 44 (health scorecard) tracks system health, and Phase 59 (PR velocity metrics) measures throughput. But no phase synthesizes these signals into a human-readable governance report suitable for stakeholders who don't read logs or dashboards. This phase creates a periodic report generator that produces weekly/monthly governance summaries: agent activity breakdown, auto-approval rates and trends, cost attribution by repo/role/task-type, quality trend analysis (review scores, test pass rates, invariant violations), and risk highlights (failed remediations, budget overruns, trust score changes). This makes dark factory mode defensible to engineering leadership and compliance teams.
+
+### Deliverables
+
+- [ ] **Governance report generator** -- Module that synthesizes orchestrator data into human-readable compliance reports
+  - [ ] `p104.d1.t1` Create governance_report.py module
+    > Create governance_report.py: (1) generate_report(period, output_format) aggregates data from execution_log (phase 8), audit trail (phase 85), cost_tracker (phase 32), health_scorecard (phase 44), and review_sensor (phase 9), (2) report sections: Executive Summary (key metrics, trend arrows), Agent Activity (issues processed, PRs created, by repo/role), Cost Attribution (tokens consumed, cost by repo/role/task-type, budget utilization), Quality Trends (review scores over time, test pass rates, invariant violations, trust score changes), Risk Highlights (failed remediations, budget overruns, approval escalations, worker crashes), (3) support markdown and JSON output formats, (4) CLI: python3 governance_report.py generate [--period weekly|monthly] [--format markdown|json] [--output FILE] [--repo REPO].
+    _Files: ~/zion/projects/agent-orchestration/governance_report.py_
+  - [ ] Can generate a weekly governance report from execution logs, audit trail, and cost data
+    _Validation: python3 governance_report.py generate --period weekly --output report.md_
+  - [ ] Report includes sections for activity, cost, quality, and risk
+    _Validation: generated report has all 4 sections with data_
+  _~150 LOC_
+- [ ] **Trend analysis and anomaly detection** -- Detect significant changes in orchestrator metrics that warrant attention
+  - [ ] `p104.d2.t1` Add trend analysis to governance reports (depends: p104.d1.t1)
+    > Extend governance_report.py: (1) compare_current_vs_previous(period) computes week-over-week or month-over-month changes for key metrics, (2) flag_anomalies() highlights metrics that changed by >20% or crossed a threshold (e.g., cost doubled, approval rate dropped below 90%, trust score decreased), (3) trend arrows in markdown output (↑↓→) with magnitude, (4) anomaly section at top of report with recommended actions ("Review: auto-approval rate dropped 15% -- check for quality regression"), (5) support baseline comparison against configurable thresholds.
+    _Files: ~/zion/projects/agent-orchestration/governance_report.py_
+  - [ ] Can detect when key metrics change significantly week-over-week
+    _Validation: inject metric changes, verify anomaly flags in report_
+  _~100 LOC_
+- [ ] **Scheduled governance reporting cron** -- Weekly cron job that generates and delivers governance reports
+  - [ ] `p104.d3.t1` Create governance reporting cron job (depends: p104.d1.t1)
+    > Create weekly Hermes cron job that generates a governance report and saves it to ~/zion/projects/agent-orchestration/reports/governance-YYYY-MM-DD.md. Include a summary in the cron output for the operator. Schedule weekly on Monday at 08:00 for previous week review.
+  - [ ] Cron job generates a weekly governance report automatically
+    _Validation: cronjob list shows governance-report job_
+  _~30 LOC_
+- [ ] **Governance report tests** -- Tests for governance report generation
+  - [ ] `p104.d4.t1` Create test_governance_report.py (depends: p104.d2.t1)
+    > Create test_governance_report.py: (1) test_report_generation: generate report from mock execution/cost/health data, verify all sections present, (2) test_trend_analysis: create two periods with known differences, verify trend arrows and percentages, (3) test_anomaly_detection: inject >20% cost increase and >10% quality drop, verify both flagged, (4) test_empty_data: generate report with no data, verify graceful handling with "no data" messages, (5) test_markdown_format: verify output is valid markdown with headers and tables, (6) test_json_format: verify JSON output is valid and contains all expected keys.
+    _Files: ~/zion/projects/agent-orchestration/test_governance_report.py_
+  - [ ] Tests cover report generation with mock data and anomaly detection
+    _Validation: python3 -m pytest test_governance_report.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Governance reports aggregate data from multiple existing modules without creating new data sources. The report is designed for human consumption (markdown) with structured output (JSON) for programmatic access. Anomaly detection uses simple threshold-based rules rather than ML to keep the system deterministic and auditable.
+
+### Risks
+
+- Governance reports could expose sensitive information -- respect per-repo visibility settings
+- Anomaly thresholds may need tuning per project -- start conservative (30%) and tighten based on experience
+- Report generation could be slow for high-volume orchestrators -- cache intermediate aggregations
+- Weekly reporting frequency may not catch acute issues -- consider adding alerting for critical anomalies
+- Package restructuring (phase 105) could break external scripts that import modules by path -- plan migration carefully
+- Alerting (phase 106) false positives could erode operator trust -- start with only critical severity enabled
+- Complexity scoring (phase 107) misestimates could waste premium resources on simple tasks or under-resource complex ones -- require manual review for epic-tier assignments
+- Self-upgrade (phase 108) could break the orchestrator irrecoverably -- always keep a manual rollback procedure documented
+- Multi-team policies (phase 109) could create governance sprawl -- limit initial rollout to 2-3 teams
+- Incident playbooks (phase 110) automated actions could make things worse -- start with alert-only mode and enable automated actions incrementally
+
+## [ ] phase-105: Orchestrator Python Package and Deployment Profiles (PLANNED)
+
+**Goal:** Package the 19+ orchestrator modules as a proper Python package with deployment profiles (minimal/standard/full), making the system installable, composable, and production-ready
+
+The orchestrator has 19 Python modules, 15 test files, and 8 pipeline YAMLs, but they are standalone scripts
+invoked with different patterns (python3 poller.py, bash status.sh, python3 -m pytest test_dag.py). Phase 99
+creates a unified CLI, but the system still cannot be installed as a dependency, versioned, or composed into
+other Python projects. This phase packages the orchestrator as a proper Python package with pyproject.toml,
+entry points, dependency management, and deployment profiles that let operators choose the right feature set
+for their scale (minimal for single-repo, standard for multi-repo, full for enterprise with all gates).
+
+
+### Deliverables
+
+- [ ] **Python package structure and pyproject.toml** -- Create pyproject.toml, __init__.py, and proper package layout so the orchestrator can be pip-installed
+  - [ ] `p105.d1.t1` Create pyproject.toml and package structure
+    > Create pyproject.toml with: (1) package metadata (name=orchestrator, version from git tags), (2) dependencies (pyyaml, requests, rich for CLI), (3) optional dependency groups [full] for sentence-transformers, fastapi, (4) console_scripts entry point "orch=orchestrator.cli:main", (5) python_requires>=3.11, (6) tool.pytest.ini_options for test discovery. Create __init__.py with version and public API surface. Refactor existing modules under an orchestrator/ package directory.
+    _Files: ~/zion/projects/agent-orchestration/pyproject.toml_
+  - [ ] Package can be installed with pip install -e .
+    _Validation: pip install -e . succeeds and imports work_
+  - [ ] Entry point script `orch` available after install
+    _Validation: orch --help works_
+  _~80 LOC_
+- [ ] **Deployment profiles (minimal/standard/full)** -- Define three deployment profiles that control which modules are active based on operational scale
+  - [ ] `p105.d2.t1` Implement deployment profile system (depends: p105.d1.t1)
+    > Create profiles/ module: (1) three YAML profile definitions -- minimal (poller, spawner, executor, basic logging), standard (adds DAG, roles, health, PR automation, safety, cost tracking), full (adds web dashboard, semantic memory, ensemble review, browser verification, speculative execution), (2) profile_loader.py reads active profile and returns set of enabled modules, (3) orchestrator startup checks profile and skips disabled modules, (4) CLI: orch config profile [minimal|standard|full|custom PATH]. This lets small teams start simple and scale up without refactoring.
+    _Files: ~/zion/projects/agent-orchestration/profiles/minimal.yaml, ~/zion/projects/agent-orchestration/profiles/standard.yaml, ~/zion/projects/agent-orchestration/profiles/full.yaml, ~/zion/projects/agent-orchestration/profiles/profile_loader.py_
+  - [ ] orch config profile minimal activates only core modules (poller, spawner, executor)
+    _Validation: orch config profile minimal && orch status shows 3 active modules_
+  - [ ] orch config profile full activates all modules including web dashboard, semantic memory, ensemble review
+    _Validation: orch config profile full && orch status shows all modules_
+  _~100 LOC_
+- [ ] **Integration with existing modules** -- Ensure all 19 existing modules work correctly under the new package structure
+  - [ ] `p105.d3.t1` Migrate existing modules to package structure (depends: p105.d1.t1)
+    > Move all .py modules under orchestrator/ package, update imports, move tests under tests/, update all shebangs and module-level imports. Ensure backward compatibility by keeping deprecated module-level scripts that import from the package. Run full test suite to verify nothing breaks.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator/_
+  - [ ] All existing tests pass under the new package layout
+    _Validation: python3 -m pytest tests/ -v passes_
+  _~60 LOC_
+- [ ] **Package tests** -- Tests for package installation, profiles, and entry points
+  - [ ] `p105.d4.t1` Create test_package.py (depends: p105.d2.t1, p105.d3.t1)
+    > Create tests/test_package.py: (1) test_package_install: verify import orchestrator works, (2) test_entry_point: verify orch CLI is callable, (3) test_profile_loading: load each profile YAML and verify expected modules are enabled/disabled, (4) test_profile_custom: load custom profile from file path, (5) test_backward_compat: verify deprecated top-level scripts still work with deprecation warning.
+    _Files: ~/zion/projects/agent-orchestration/tests/test_package.py_
+  - [ ] Tests cover package install, profile loading, and CLI entry point
+    _Validation: python3 -m pytest tests/test_package.py -v_
+  _~60 LOC_
+
+### Technical Notes
+
+The package restructuring is a refactor, not a rewrite -- all existing module logic stays the same, only import paths change. Backward compatibility scripts ensure the transition is seamless. Deployment profiles work by having each module check if it is enabled in the active profile at import time, not by physically excluding files.
+
+### Risks
+
+- Import path changes could break external references to existing scripts -- backward compat wrappers are essential
+- Package dependencies could conflict with target project dependencies -- use virtual environments
+- Profile system adds a layer of indirection that could confuse debugging -- always show active profile in status output
+
+## [ ] phase-106: Real-Time Alerting and Notification System (PLANNED)
+
+**Goal:** Implement push-based alerting that proactively notifies operators when orchestrator metrics breach configurable thresholds, bridging the gap between observability data and operator awareness
+
+The orchestrator has extensive observability infrastructure (execution logs phase 8, health monitoring phase 14,
+terminal dashboard phase 27, health scorecard phase 44, metrics pipeline phase 72) but ALL of it is pull-based:
+operators must check the dashboard, query metrics, or read reports to discover problems. The research describes
+Symphony's "Status Surface" as providing "real-time visibility" which implies proactive notification, not passive
+monitoring. When a worker gets stuck, costs spike, approval rates drop, or test failures cluster, operators
+should be notified immediately. This phase creates an alerting system with configurable rules and multiple
+notification channels (GitHub issue comments, log markers, webhook POST, stdout).
+
+
+### Deliverables
+
+- [ ] **Alert rule engine** -- Configurable alert rules that evaluate conditions against orchestrator metrics and trigger notifications
+  - [ ] `p106.d1.t1` Create alerting engine module
+    > Create alerting.py: (1) AlertRule dataclass (name, metric_path, condition [gt/lt/eq/change_pct], threshold, channel, cooldown_minutes, severity [info/warning/critical]), (2) AlertEngine evaluates rules against live metrics from health_monitor, cost_tracker, execution_log, (3) built-in rules: worker_stuck >30min, cost_spike >2x daily_avg, approval_rejection_rate >20%, test_failure_rate >50%, trust_score_drop >10%, (4) per-rule cooldown prevents alert fatigue, (5) CLI: orch alerts list, orch alerts test RULE_NAME.
+    _Files: ~/zion/projects/agent-orchestration/alerting.py, ~/zion/projects/agent-orchestration/alerts/default-rules.yaml_
+  - [ ] Can define alert rules in YAML with metric conditions and notification channels
+    _Validation: orch alerts list shows configured rules_
+  - [ ] Alert fires when a configured threshold is breached
+    _Validation: inject metric breach, verify notification sent_
+  _~120 LOC_
+- [ ] **Notification channels** -- Multiple notification channels for alerts: GitHub comments, webhook POST, log markers, stdout
+  - [ ] `p106.d2.t1` Implement notification channel adapters (depends: p106.d1.t1)
+    > Create alerting.py notification module: (1) GitHubCommentChannel: posts alert as comment on the relevant issue using gh CLI, (2) WebhookChannel: POSTs JSON alert payload to configurable URL with retry, (3) LogChannel: writes structured log entry with ALERT severity marker, (4) StdoutChannel: prints colored alert to terminal for cron job output, (5) ChannelRouter dispatches alerts to configured channels based on severity (info->log, warning->stdout+webhook, critical->all channels).
+    _Files: ~/zion/projects/agent-orchestration/alerting.py_
+  - [ ] Can send alerts to GitHub issue comments via gh CLI
+    _Validation: test alert creates a comment on a test issue_
+  - [ ] Can send alerts via webhook POST to configurable URL
+    _Validation: test alert POSTs to mock webhook server_
+  _~100 LOC_
+- [ ] **Alert evaluation cron integration** -- Wire alert evaluation into the orchestrator loop and as a standalone monitoring cron job
+  - [ ] `p106.d3.t1` Integrate alerting with orchestrator and create monitor cron (depends: p106.d2.t1)
+    > Integrate alert engine into orchestrator.py main loop: after each poll-spawn cycle, evaluate alert rules and dispatch notifications. Create standalone Hermes cron job that runs alert evaluation every 5 minutes for always-on monitoring even when the orchestrator is idle. Include alert summary in cron output.
+  - [ ] Alert engine runs as part of the orchestrator loop
+    _Validation: orchestrator status shows alert evaluation timestamp_
+  - [ ] Standalone alert monitor cron job exists
+    _Validation: cronjob list shows alert-monitor job_
+  _~40 LOC_
+- [ ] **Alerting tests** -- Tests for alert rule evaluation, notification channels, and cooldown logic
+  - [ ] `p106.d4.t1` Create test_alerting.py (depends: p106.d2.t1)
+    > Create test_alerting.py: (1) test_rule_evaluation: create rules with gt/lt/change_pct conditions, verify fire/no-fire, (2) test_cooldown: fire alert, verify second fire within cooldown is suppressed, (3) test_github_channel: mock gh CLI, verify correct comment format, (4) test_webhook_channel: mock HTTP POST, verify payload structure, (5) test_log_channel: verify structured log output with ALERT marker, (6) test_severity_routing: verify info goes to log, critical goes to all channels, (7) test_builtin_rules: verify all default rules evaluate correctly.
+    _Files: ~/zion/projects/agent-orchestration/test_alerting.py_
+  - [ ] Tests cover rule evaluation, all channels, and cooldown
+    _Validation: python3 -m pytest test_alerting.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Alert evaluation is lightweight (just threshold checks against cached metrics) so it adds negligible overhead to the orchestrator loop. Webhook channel uses urllib.request to avoid adding requests as a dependency. GitHub comments use gh CLI for auth. Cooldown prevents the same alert from firing repeatedly during sustained breaches -- only the first breach and resolution trigger notifications.
+
+### Risks
+
+- Too many alerts could cause operator fatigue -- start with conservative thresholds and only critical severity enabled
+- GitHub comment alerts could spam issue threads -- limit to one alert per issue per hour
+- Webhook endpoints could be unreachable -- implement timeout and retry with backoff
+- False positives from noisy metrics could erode trust in alerts -- require 2 consecutive breaches before firing
+
+## [ ] phase-107: Task Complexity Scoring and Adaptive Resource Allocation (PLANNED)
+
+**Goal:** Analyze issue descriptions to estimate task complexity and automatically configure model tier, max turns, context budget, and role assignment, preventing token waste on simple tasks and under-resourcing complex ones
+
+The orchestrator currently assigns identical configuration to all tasks regardless of complexity. A typo fix
+gets the same model tier, max turns, context budget, and role assignment as a multi-file architectural refactor.
+The research emphasizes that "code is free, but attention is scarce" and describes the Dark Factory team using
+1B tokens/day at $2-3K daily. Intelligent resource allocation is essential to the "token billionaire" strategy:
+trivial tasks should use fast/cheap models with few turns, while complex tasks deserve premium models with
+generous budgets. This phase adds a complexity scoring engine that analyzes issue descriptions (title, body,
+labels, affected files) and maps scores to resource configurations, optimizing token efficiency while
+maintaining quality.
+
+
+### Deliverables
+
+- [ ] **Task complexity scorer** -- Analyze issue descriptions to produce a complexity score (1-10) with feature breakdown
+  - [ ] `p107.d1.t1` Create complexity scorer module
+    > Create complexity_scorer.py: (1) score_issue(issue) returns ComplexityScore(score 1-10, features dict, tier trivial|medium|complex|epic), (2) features: title_word_count, body_line_count, label_count, affected_file_count (from git diff if available), keyword_density (refactor/migrate/architect=high, fix/typo/update=low), has_test_mention, has_breaking_change_mention, (3) scoring: weighted sum of normalized features with calibrated weights, (4) tier thresholds: trivial (1-3), medium (4-6), complex (7-8), epic (9-10), (5) calibration data from historical execution logs (correlate scores with actual turns used and success rates).
+    _Files: ~/zion/projects/agent-orchestration/complexity_scorer.py_
+  - [ ] Can score an issue and return complexity rating with reasoning
+    _Validation: orch score ISSUE_URL returns score with breakdown_
+  - [ ] Scoring considers title length, body size, label count, affected files, and keyword patterns
+    _Validation: test with varied issues, verify scores correlate with expected complexity_
+  _~100 LOC_
+- [ ] **Resource allocation profiles** -- Map complexity tiers to model tier, max turns, context budget, and role assignments
+  - [ ] `p107.d2.t1` Create resource allocation profiles (depends: p107.d1.t1)
+    > Create allocations module: (1) 4 YAML profiles mapping tiers to resources: trivial (model=fast, max_turns=5, context_budget=0.3, role=implementer, pipeline=test-pipeline), medium (model=standard, max_turns=10, context_budget=0.5, role=implementer, pipeline=standard-pipeline), complex (model=premium, max_turns=15, context_budget=0.7, role=implementer, pipeline=standard-pipeline+review), epic (model=premium, max_turns=20, context_budget=0.9, role=architect, pipeline=team-pipeline), (2) spawner.py integration: score issue before spawning, select profile, override defaults, (3) allow per-repo profile overrides in orchestrator.yaml.
+    _Files: ~/zion/projects/agent-orchestration/allocations/, ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Each complexity tier has a defined resource allocation profile
+    _Validation: orch config allocation list shows 4 profiles_
+  - [ ] Spawner uses complexity score to configure workers automatically
+    _Validation: orchestrator log shows "complexity=7, tier=complex, model=premium, turns=15"_
+  _~80 LOC_
+- [ ] **Historical calibration and learning** -- Use execution history to calibrate scoring weights and validate allocation effectiveness
+  - [ ] `p107.d3.t1` Add calibration from execution history (depends: p107.d1.t1, p107.d2.t1)
+    > Extend complexity_scorer.py: (1) calibrate() reads execution_log for past issues, compares predicted complexity with actual turns/tokens used, (2) compute mean absolute error per feature weight, (3) adjust_weights() nudges weights to reduce error, (4) orch score calibrate [--issues N] runs calibration on last N completed issues, (5) orch score report shows calibration accuracy and suggests weight adjustments. This creates a feedback loop where scoring improves over time.
+    _Files: ~/zion/projects/agent-orchestration/complexity_scorer.py_
+  - [ ] Can compare predicted complexity with actual resource consumption
+    _Validation: orch score calibrate shows prediction vs actual for recent issues_
+  _~70 LOC_
+- [ ] **Complexity scoring tests** -- Tests for scoring logic, allocation mapping, and calibration
+  - [ ] `p107.d4.t1` Create test_complexity.py (depends: p107.d2.t1)
+    > Create test_complexity.py: (1) test_scoring_trivial: simple "fix typo" issue scores 1-3, (2) test_scoring_complex: "migrate database layer to new ORM" issue scores 7-9, (3) test_scoring_epic: large architectural issue with many labels scores 9-10, (4) test_allocation_mapping: each tier maps to correct resources, (5) test_spawner_integration: mock spawner call with complexity, verify correct config, (6) test_calibration: mock execution history with known complexity, verify weights adjust correctly.
+    _Files: ~/zion/projects/agent-orchestration/test_complexity.py_
+  - [ ] Tests cover scoring, allocation, and calibration
+    _Validation: python3 -m pytest test_complexity.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Complexity scoring uses a simple weighted-sum model rather than ML to keep it deterministic and auditable. The scoring is a heuristic -- it does not need to be perfectly accurate, just good enough to prevent obvious mismatches (trivial tasks getting premium resources). Calibration runs weekly via the maintenance cron (phase 66) and adjusts weights incrementally. The scoring can be overridden manually per-issue via labels (e.g., complexity:epic forces epic allocation).
+
+### Risks
+
+- Scoring could consistently misestimate for certain issue types -- calibration feedback loop mitigates this over time
+- Keyword-based scoring could be gamed by issue authors -- add randomness to prevent strategic label manipulation
+- Over-optimization for cost could sacrifice quality on complex tasks -- set minimum resource floors per tier
+- Calibration on sparse data (few completed issues) could produce unstable weights -- require minimum 20 issues before adjusting
+
+## [ ] phase-108: Orchestrator Self-Upgrade Pipeline (PLANNED)
+
+**Goal:** Enable the orchestrator to monitor its own git repository, pull updates, run its test suite, validate configuration, and hot-reload -- treating itself as a target project and closing the meta-level self-improvement loop
+
+The orchestrator can improve its strategies (phase 19), auto-remediate issues (phase 95), and hot-reload
+configuration (phase 22), but it cannot upgrade its own code. The research describes the end-state as a
+"self-correcting codebase" where the system maintains itself. Currently, when a new phase adds a module or
+fixes a bug, a human must git pull, run tests, and restart the orchestrator. This phase closes the loop by
+making the orchestrator treat its own codebase as a target project: it monitors its git repo for new commits,
+pulls updates, runs its full test suite, validates configuration compatibility, and hot-reloads the updated
+modules. If anything fails, it auto-reverts and alerts. This is the ultimate expression of the Dark Factory
+principle applied to the orchestrator itself.
+
+
+### Deliverables
+
+- [ ] **Self-upgrade monitor** -- Monitor the orchestrator git repo for new commits and trigger upgrade process
+  - [ ] `p108.d1.t1` Create self-upgrade monitor module
+    > Create self_upgrade.py: (1) SelfUpgradeMonitor polls orchestrator git repo (~/zion/projects/agent-orchestration) for new commits on the active branch, (2) compare HEAD with last_known_commit (stored in state file), (3) on new commit: log commit details, trigger upgrade pipeline, (4) upgrade_pipeline: git stash -> git pull -> run tests -> validate config -> reload modules -> git stash pop, (5) any failure: git reset --hard to last_known_commit, log failure, alert operator, (6) CLI: orch self-upgrade status, orch self-upgrade run (manual trigger), orch self-upgrade enable|disable.
+    _Files: ~/zion/projects/agent-orchestration/self_upgrade.py_
+  - [ ] Detects new commits on the orchestrator repo
+    _Validation: push a commit, verify orchestrator detects it within polling interval_
+  _~100 LOC_
+- [ ] **Post-upgrade validation gate** -- Run full test suite and config validation after pulling updates, before applying
+  - [ ] `p108.d2.t1` Implement post-upgrade validation gate (depends: p108.d1.t1)
+    > Extend self_upgrade.py: (1) run_test_suite() executes python3 -m pytest tests/ --tb=short, captures exit code, (2) validate_config() runs config validation from phase 71, (3) check_imports() verifies all modules can be imported without errors, (4) validate_pipelines() loads all pipeline YAMLs through the DAG parser from phase 5, (5) validation_report() summarizes all checks, (6) all checks must pass before reload proceeds. Any single failure triggers rollback.
+    _Files: ~/zion/projects/agent-orchestration/self_upgrade.py_
+  - [ ] Tests run after git pull and must pass before reload
+    _Validation: inject failing test, verify upgrade is reverted_
+  - [ ] Config validation runs after test suite passes
+    _Validation: inject invalid config change, verify upgrade is reverted_
+  _~80 LOC_
+- [ ] **Module hot-reload after upgrade** -- Reload updated Python modules without restarting the orchestrator process
+  - [ ] `p108.d3.t1` Implement module hot-reload (depends: p108.d2.t1)
+    > Extend self_upgrade.py: (1) reload_module(name) uses importlib.reload() to reload updated modules, (2) reload_order defines dependency order (dag before executor, executor before orchestrator), (3) after_reload_verify() runs smoke tests on reloaded modules, (4) fallback: if reload causes import errors, fall back to process restart via cron respawn, (5) log all reloads with module names and timestamps for audit trail.
+    _Files: ~/zion/projects/agent-orchestration/self_upgrade.py_
+  - [ ] Updated module code takes effect without process restart
+    _Validation: upgrade a module, verify new behavior without restart_
+  _~60 LOC_
+- [ ] **Self-upgrade tests** -- Tests for the self-upgrade pipeline including rollback scenarios
+  - [ ] `p108.d4.t1` Create test_self_upgrade.py (depends: p108.d3.t1)
+    > Create test_self_upgrade.py: (1) test_commit_detection: create a test commit, verify monitor detects it, (2) test_upgrade_success: mock git pull with passing tests, verify reload happens, (3) test_upgrade_rollback_on_test_failure: mock failing test, verify git reset and alert, (4) test_upgrade_rollback_on_config_error: mock invalid config, verify rollback, (5) test_reload_order: verify modules reload in correct dependency order, (6) test_stash_handling: verify git stash/pop works when there are uncommitted changes.
+    _Files: ~/zion/projects/agent-orchestration/test_self_upgrade.py_
+  - [ ] Tests cover upgrade detection, validation gates, and rollback
+    _Validation: python3 -m pytest test_self_upgrade.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Self-upgrade runs in a separate process (forked from the orchestrator) to avoid corrupting the running process if reload fails. The upgrade monitor checks for new commits every 5 minutes (configurable). Self-upgrade is opt-in and disabled by default -- operators must explicitly enable it with orch self-upgrade enable. The orchestrator will never self-upgrade to a branch other than the currently active branch. Rollback uses git reset --hard to the last known good commit, which is simple and reliable.
+
+### Risks
+
+- Self-upgrade could break the orchestrator in ways that rollback cannot fix (e.g., state file format changes) -- require version compatibility checks
+- Race condition if upgrade happens while orchestrator is mid-task -- only upgrade when no active workers
+- importlib.reload() can cause subtle issues with module-level state -- prefer process restart as fallback
+- Self-upgrade creates a bootstrapping paradox: the upgrade monitor itself could have bugs -- keep the monitor simple and external
+
+## [ ] phase-109: Multi-Team Policy Isolation and Resource Quotas (PLANNED)
+
+**Goal:** Support multiple teams and projects with isolated policies, pipelines, approval thresholds, trust scores, and cost budgets -- enabling enterprise-scale deployment where different organizational units have different governance requirements
+
+Phase 16 handles multi-repo orchestration but all repos share the same global policies. Phase 51 handles
+federation across orchestrator instances but doesn't address policy isolation within a single instance. In a
+real organization, different teams need different governance: Team A might allow auto-merge for test projects
+(dark factory mode), while Team B requires human approval for every PR. Team A has a $100/day token budget,
+Team B has $500. Team A uses the standard pipeline, Team B adds a security review stage. The research describes
+Symphony as an enterprise orchestration layer and Gas Town as managing "20-30 concurrent agents" -- at this
+scale, policy isolation is essential to prevent one team's settings from affecting another. This phase adds
+per-team/per-project policy namespaces that overlay the global configuration.
+
+
+### Deliverables
+
+- [ ] **Policy namespace and override system** -- Per-team/per-project policy overrides that layer on top of global configuration
+  - [ ] `p109.d1.t1` Create policy namespace module
+    > Create policy_namespace.py: (1) PolicyNamespace(team, overrides) stores per-team config overrides, (2) resolve_config(team, key) returns team-specific value if set, else global default, (3) effective_config(team) returns full merged config for a team, (4) YAML storage: teams/ directory with one YAML per team, (5) supported overrides: approval_policy, max_concurrent, max_turns, model_tier, pipeline, trust_threshold, cost_budget_daily, labels_filter, repo_list, (6) CLI: orch config team list, orch config team set TEAM KEY VALUE, orch config team get TEAM KEY.
+    _Files: ~/zion/projects/agent-orchestration/policy_namespace.py, ~/zion/projects/agent-orchestration/teams/_
+  - [ ] Can define team-specific policies that override globals
+    _Validation: orch config team set TEAM_A approval_policy never_
+  - [ ] Unspecified team settings fall back to global defaults
+    _Validation: orch config team get TEAM_B max_concurrent returns global default_
+  _~100 LOC_
+- [ ] **Per-team cost budget enforcement** -- Enforce daily/monthly token cost budgets per team, blocking work when budget is exhausted
+  - [ ] `p109.d2.t1` Implement per-team cost budget enforcement (depends: p109.d1.t1, p32.d1.t1)
+    > Extend cost_tracker.py: (1) team_budgets dict tracks daily/monthly spending per team, (2) check_budget(team) returns remaining budget and status (ok/warning/exceeded), (3) budget enforcement in orchestrator loop: before spawning worker for a team, check budget, skip if exceeded, (4) budget reset cron: daily at midnight, reset daily counters, roll monthly if needed, (5) budget alerts at 80% (warning) and 100% (exceeded) via alerting system (phase 106), (6) budget rollover: unused daily budget does NOT roll over (prevents hoarding).
+    _Files: ~/zion/projects/agent-orchestration/cost_tracker.py_
+  - [ ] Work stops for a team when daily budget is exceeded
+    _Validation: set budget to $1, spend $1.01, verify no new workers spawned for that team_
+  - [ ] Budget alerts fire at 80% and 100% thresholds
+    _Validation: spend 80% of budget, verify alert sent_
+  _~80 LOC_
+- [ ] **Per-team trust score and approval isolation** -- Independent trust scores and approval thresholds per team, enabling different autonomy levels
+  - [ ] `p109.d3.t1` Implement per-team trust and approval isolation (depends: p109.d1.t1, p15.d1.t1)
+    > Extend safety.py and trust scoring: (1) per-team trust scores stored in teams/TEAM.yaml, (2) per-team approval thresholds (e.g., Team A auto-approves at trust >= 0.9, Team B at trust >= 0.95), (3) safety.py approval check reads team-specific threshold, (4) trust score updates are team-scoped (a failure on Team A does not affect Team B), (5) CLI: orch trust show TEAM, orch trust set TEAM THRESHOLD.
+    _Files: ~/zion/projects/agent-orchestration/safety.py_
+  - [ ] Each team has an independent trust score
+    _Validation: orch trust show TEAM_A and TEAM_B return different scores_
+  - [ ] Approval policy varies by team based on trust score
+    _Validation: high-trust team auto-approves, low-trust team requires human review_
+  _~70 LOC_
+- [ ] **Multi-team tests** -- Tests for policy isolation, cost budgets, and trust separation
+  - [ ] `p109.d4.t1` Create test_multi_team.py (depends: p109.d2.t1, p109.d3.t1)
+    > Create test_multi_team.py: (1) test_policy_override: set team-specific max_concurrent, verify used instead of global, (2) test_fallback_to_global: query unset team key, verify global returned, (3) test_budget_enforcement: set budget, spend past it, verify worker blocked, (4) test_budget_alerts: spend to 80% and 100%, verify alerts, (5) test_trust_isolation: failure on Team A does not change Team B trust score, (6) test_approval_isolation: Team A auto-approves, Team B requires review, verify correct behavior.
+    _Files: ~/zion/projects/agent-orchestration/test_multi_team.py_
+  - [ ] Tests cover all multi-team isolation scenarios
+    _Validation: python3 -m pytest test_multi_team.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Team policies are a layer on top of global config, not a replacement. The resolution order is: team override -> repo-specific config -> global default. Teams are identified by label on the issue (e.g., team:platform) or by repo mapping (all repos in org/platform use Team A policies). The default is a single "default" team that uses global config, so existing single-team setups require no changes.
+
+### Risks
+
+- Policy complexity grows with team count -- keep team config simple (YAML file per team)
+- Budget enforcement could block urgent work -- allow emergency budget override with approval
+- Trust score isolation could let one team drift to low quality unnoticed -- global dashboard should show all team scores
+- Team identification by label could be spoofed -- restrict label setting to repo admins
+
+## [ ] phase-110: Incident Response Automation and Escalation Playbooks (PLANNED)
+
+**Goal:** Define automated response playbooks for common orchestrator failure modes that execute remediation steps immediately and escalate to human operators when automated responses fail
+
+The orchestrator can detect problems (health monitoring phase 14, auto-remediation phase 95, alerting phase 106)
+but detection without defined response procedures means operators must manually diagnose and fix every issue.
+At Gas Town scale (20-30 concurrent agents), manual response doesn't scale. The research describes the Deacon
+role as a "daemon beacon" and "central health supervisor" -- this implies automated health responses, not just
+monitoring. This phase creates an incident response system with predefined playbooks for common failure modes:
+stuck workers, test failure clusters, cost spikes, workspace corruption, API rate limits, and config drift.
+Each playbook defines automated steps, escalation criteria, and human notification. When a playbook exhausts
+its automated steps, it creates a structured incident report for the operator.
+
+
+### Deliverables
+
+- [ ] **Incident playbook engine** -- Configurable playbooks that define automated response steps for specific failure modes
+  - [ ] `p110.d1.t1` Create incident playbook engine
+    > Create incident_response.py: (1) Playbook dataclass (name, trigger_condition, steps list, escalation_criteria, severity), (2) PlaybookStep (action [restart_worker|reset_workspace|disable_repo|reduce_concurrency|alert_human], params, timeout, on_failure [continue|abort|escalate]), (3) PlaybookEngine evaluates triggers against health/cost/alert data, (4) executes steps sequentially, handles failures per step config, (5) on escalation: create GitHub issue with incident report template, alert operator, (6) built-in playbooks: worker_stuck, test_cluster_failure, cost_spike, workspace_corruption, api_rate_limit, config_drift.
+    _Files: ~/zion/projects/agent-orchestration/incident_response.py, ~/zion/projects/agent-orchestration/playbooks/worker_stuck.yaml, ~/zion/projects/agent-orchestration/playbooks/cost_spike.yaml_
+  - [ ] Can define playbooks in YAML with trigger conditions and response steps
+    _Validation: orch incidents playbooks list shows defined playbooks_
+  - [ ] Playbook triggers automatically on matching conditions
+    _Validation: inject failure condition, verify playbook executes_
+  _~120 LOC_
+- [ ] **Built-in incident playbooks** -- Predefined playbooks for the 6 most common orchestrator failure modes
+  - [ ] `p110.d2.t1` Implement 6 built-in playbooks (depends: p110.d1.t1)
+    > Create 6 playbook YAML files in playbooks/: (1) worker_stuck: detect >30min no activity -> kill and restart worker -> if 3 restarts in 1hr, escalate (2) test_cluster_failure: detect >50% test failures across workers -> pause new spawns -> analyze common failure -> if unresolvable, escalate (3) cost_spike: detect >2x hourly average -> reduce max_concurrent by 50% -> if cost still rising after 10min, pause all spawns and escalate (4) workspace_corruption: detect git errors or missing files -> reset workspace from git -> if reset fails, delete and recreate workspace -> escalate if recreation fails (5) api_rate_limit: detect 429 errors -> exponential backoff on polls -> reduce concurrent API calls -> if sustained >15min, switch to reduced-operation mode (6) config_drift: detect config validation failures (phase 71) -> restore last known good config -> alert operator with diff.
+    _Files: ~/zion/projects/agent-orchestration/playbooks/_
+  - [ ] Worker stuck playbook: detect, attempt restart, escalate if repeated
+    _Validation: mock stuck worker, verify restart attempt then escalation_
+  - [ ] Cost spike playbook: detect, reduce concurrency, alert at thresholds
+    _Validation: mock cost spike, verify concurrency reduced and alert sent_
+  _~100 LOC_
+- [ ] **Incident reporting and history** -- Structured incident reports with timeline, actions taken, and outcome tracking
+  - [ ] `p110.d3.t1` Implement incident reporting (depends: p110.d2.t1)
+    > Extend incident_response.py: (1) Incident dataclass (id, playbook_name, trigger_time, trigger_data, actions_taken list, outcome [resolved|escalated|ongoing], resolution_time), (2) incident_store: JSON file with all incidents, append-only, (3) generate_report(incident) produces markdown timeline of what happened and what was done, (4) on escalation: create GitHub issue with report, add incident:escalated label, (5) CLI: orch incidents list [--playbook NAME] [--status resolved|escalated], orch incidents show ID, orch incidents report ID.
+    _Files: ~/zion/projects/agent-orchestration/incident_response.py_
+  - [ ] Incident creates a structured report with timeline
+    _Validation: trigger incident, verify report has trigger time, actions, outcome_
+  - [ ] Incident history is queryable
+    _Validation: orch incidents list shows past incidents_
+  _~80 LOC_
+- [ ] **Incident response tests** -- Tests for playbook execution, escalation, and reporting
+  - [ ] `p110.d4.t1` Create test_incident_response.py (depends: p110.d3.t1)
+    > Create test_incident_response.py: (1) test_playbook_trigger: inject matching condition, verify playbook fires, (2) test_step_execution: verify each step type executes correctly, (3) test_step_failure_handling: mock step failure, verify continue/abort/escalate behavior, (4) test_escalation: exhaust automated steps, verify GitHub issue created with report, (5) test_worker_stuck_playbook: full end-to-end test of worker stuck scenario, (6) test_cost_spike_playbook: full end-to-end test of cost spike scenario, (7) test_incident_history: trigger multiple incidents, verify list and show commands.
+    _Files: ~/zion/projects/agent-orchestration/test_incident_response.py_
+  - [ ] Tests cover playbook execution, step failures, and escalation
+    _Validation: python3 -m pytest test_incident_response.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+Playbooks are YAML files that can be added/modified without code changes, making them operator-editable. Step execution has timeouts (configurable per step, default 60s) to prevent playbooks from hanging. The playbook engine runs in the orchestrator main loop after health checks -- it does not run as a separate process. Escalation creates GitHub issues rather than sending emails to keep everything in the existing workflow.
+
+### Risks
+
+- Automated responses could make things worse (e.g., restarting a worker that is legitimately processing) -- use conservative triggers and require multiple signals before acting
+- Playbook conflicts (two playbooks triggered simultaneously with contradictory actions) -- serialize playbook execution with a queue
+- Too many false-positive escalations could cause alert fatigue -- track false positive rate and auto-tune thresholds
+- Playbook step timeouts could leave the system in an inconsistent state -- implement compensating rollback steps
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -5810,6 +6308,8 @@ Drain mode uses a simple file-based signal (~/.orchestrator/drain) rather than I
 - Capability gap detection (phase 84) could create unnecessary tools -- require human review before acting on suggestions
 - Audit log (phase 85) could grow very large -- implement rotation/archival for old entries
 - Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks
+- Speculative ticket filing (phase 103) could create too many low-quality issues -- require dry-run review first
+- Governance reports (phase 104) aggregate from many data sources -- a bug in one source could corrupt the entire report
 
 ## Conventions
 
