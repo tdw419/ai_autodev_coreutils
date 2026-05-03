@@ -2,7 +2,7 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/102 phases complete, 0 in progress
+**Progress:** 22/104 phases complete, 0 in progress
 
 **Deliverables:** 86/407 complete
 
@@ -114,6 +114,8 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-100 Agent PR Quality Standards and Output Formatting | PLANNED | 0/4 | 340 | 10 |
 | phase-101 Orchestrator Data Lifecycle and Retention | PLANNED | 0/4 | 330 | 8 |
 | phase-102 Graceful Shutdown and Drain Mode | PLANNED | 0/4 | 420 | 8 |
+| phase-103 Agent-Ready Issue Filing and Speculative Ticket CLI | PLANNED | 0/4 | 410 | 8 |
+| phase-104 Orchestrator Governance and Compliance Reporting | PLANNED | 0/4 | 360 | 8 |
 
 ## Dependencies
 
@@ -490,6 +492,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-11 | phase-102 | soft | Workspace lifecycle from phase 11 provides the state tracking that drain mode preserves |
 | phase-25 | phase-102 | soft | State recovery from phase 25 provides the resilience patterns that drain mode extends |
 | phase-14 | phase-102 | soft | Health monitoring from phase 14 reports drain status |
+| phase-4 | phase-103 | soft | Issue filer creates the issues that the orchestrator poller from phase 4 consumes |
+| phase-13 | phase-103 | soft | PR automation from phase 13 closes the loop -- issues filed by 103 are executed by the orchestrator and turned into PRs by 13 |
+| phase-26 | phase-103 | soft | Work decomposition from phase 26 may generate sub-issues that benefit from the filing tool |
+| phase-60 | phase-103 | soft | Human-agent workflow optimization from phase 60 benefits from streamlined issue filing |
+| phase-8 | phase-104 | soft | Governance reports read execution history logs from phase 8 |
+| phase-32 | phase-104 | soft | Cost tracking data from phase 32 feeds the cost attribution section |
+| phase-44 | phase-104 | soft | Health scorecard data from phase 44 feeds the quality trends section |
+| phase-85 | phase-104 | soft | Audit trail data from phase 85 feeds the activity and risk sections |
+| phase-9 | phase-104 | soft | Review sensor scores from phase 9 feed the quality trends section |
+| phase-59 | phase-104 | soft | PR velocity metrics from phase 59 feed the throughput section |
+| phase-35 | phase-104 | hard | Governance reports are essential before enabling dark factory mode from phase 35 |
 
 ## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
 

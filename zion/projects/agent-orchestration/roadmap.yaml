@@ -12799,6 +12799,266 @@ phases:
   - 'Signal file could be left behind if orchestrator crashes during cancel -- cleanup on startup'
   scope_lines_total: 420
   test_target: 8
+- id: 'phase-103'
+  title: Agent-Ready Issue Filing and Speculative Ticket CLI
+  status: planned
+  goal: 'Provide a CLI tool for operators to quickly create well-structured agent-ready issues, enabling the "speculative ticket filing" workflow described in the Symphony research'
+  description: 'The Symphony research describes the key workflow shift that drives the 500% PR increase: "engineers shifted from supervising single tasks to filing speculative tickets and reviewing completed work." The orchestrator consumes agent-ready
+    issues (phase 4 poller), but no phase helps operators create them efficiently. Currently, filing a well-structured agent-ready issue requires manually writing a title, description, acceptance criteria, and applying the correct labels and assignees.
+    This phase creates a CLI tool that: (1) provides interactive and non-interactive modes for filing agent-ready issues, (2) offers issue templates for common task types (bug fix, feature, refactor, test, docs), (3) auto-derives acceptance
+    criteria from the issue description, (4) applies the correct labels, (5) supports bulk filing from a YAML manifest for speculative exploration (filing 5 variants of a task to let the orchestrator try multiple approaches), and (6) validates
+    issue structure against the agent-ready schema before submission. This is the "input side" of the issue-tracker-as-control-plane pattern, complementing the "output side" handled by the poller.'
+  deliverables:
+  - name: Issue filing CLI with templates
+    description: CLI tool for creating agent-ready issues with templates and validation
+    status: planned
+    acceptance_criteria:
+    - description: Can create a single agent-ready issue from CLI with title, description, and labels
+      validation: 'python3 issue_filer.py create --repo owner/repo --title "Fix login bug" --desc "Users cannot login..." --label agent-ready'
+      met: false
+    - description: Provides at least 5 issue templates for common task types
+      validation: 'python3 issue_filer.py templates --list'
+      met: false
+    tasks:
+    - id: p103.d1.t1
+      title: Create issue_filer.py with templates
+      status: planned
+      description: 'Create issue_filer.py: (1) create_issue(repo, title, description, labels, template, acceptance_criteria) uses gh CLI to create a GitHub issue, (2) get_templates() returns built-in templates
+        for bug-fix, feature, refactor, test-add, docs-update, each with a description skeleton and suggested acceptance criteria, (3) validate_issue(title, description, labels) checks minimum quality
+        (title > 10 chars, description > 50 chars, has acceptance criteria or template), (4) interactive mode prompts for fields with tab-completion from templates, (5) CLI: python3 issue_filer.py create
+        [--repo REPO] [--title TITLE] [--desc DESC] [--label LABEL] [--template TYPE] [--accept "crit1,crit2"] [--interactive] [--dry-run].'
+      files:
+      - '~/zion/projects/agent-orchestration/issue_filer.py'
+    scope_lines: 150
+    scope_files:
+    - '~/zion/projects/agent-orchestration/issue_filer.py'
+  - name: Bulk speculative filing from YAML manifest
+    description: File multiple related issues at once for speculative exploration
+    status: planned
+    acceptance_criteria:
+    - description: Can create multiple issues from a YAML manifest file
+      validation: 'python3 issue_filer.py bulk --manifest speculative.yaml --dry-run'
+      met: false
+    - description: Each issue in the manifest can reference a parent issue for traceability
+      validation: 'created issues have "Part of #PARENT" in their body'
+      met: false
+    tasks:
+    - id: p103.d2.t1
+      title: Add bulk filing from YAML manifest
+      status: planned
+      description: 'Extend issue_filer.py: (1) bulk_create(manifest_path) reads a YAML file with a list of issues (title, description, template, labels, parent_issue), (2) each issue body includes
+        "Part of #{parent}" if parent is specified, (3) issues are created sequentially with rate limiting (respect GitHub API limits), (4) output includes a summary table with issue numbers and URLs,
+        (5) CLI: python3 issue_filer.py bulk --manifest FILE [--dry-run] [--delay SECONDS]. The manifest format: issues: [{title, desc, template, labels, parent, priority}].'
+      dependencies:
+      - p103.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/issue_filer.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/issue_filer.py'
+  - name: Acceptance criteria auto-generation
+    description: Generate acceptance criteria from issue description using LLM or heuristic rules
+    status: planned
+    acceptance_criteria:
+    - description: Can auto-generate acceptance criteria from a description
+      validation: 'python3 issue_filer.py generate-criteria --desc "Fix the login timeout issue" --type bug-fix'
+      met: false
+    tasks:
+    - id: p103.d3.t1
+      title: Add acceptance criteria generation
+      status: planned
+      description: 'Extend issue_filer.py: (1) generate_criteria(description, issue_type) uses template-based heuristic rules (not LLM) to suggest acceptance criteria, (2) bug-fix template:
+        "Reproduction steps documented", "Fix does not break existing tests", "Edge case N handled", (3) feature template: "Acceptance criteria defined", "Tests added", "Documentation updated",
+        (4) refactor template: "Behavior unchanged", "Tests pass", "Code complexity reduced", (5) CLI: python3 issue_filer.py generate-criteria --desc DESC --type TYPE [--format json|markdown].'
+      dependencies:
+      - p103.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/issue_filer.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/issue_filer.py'
+  - name: Issue filing tests
+    description: Tests for issue filing CLI
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover create, bulk, and criteria generation with dry-run
+      validation: 'python3 -m pytest test_issue_filer.py -v'
+      met: false
+    tasks:
+    - id: p103.d4.t1
+      title: Create test_issue_filer.py
+      status: planned
+      description: 'Create test_issue_filer.py: (1) test_template_list: verify all 5+ templates exist with required fields, (2) test_validate_issue: verify validation catches empty title,
+        short description, missing labels, (3) test_bulk_manifest_parsing: verify YAML manifest is parsed correctly, (4) test_criteria_generation: verify each template type produces sensible criteria,
+        (5) test_dry_run: verify dry-run mode does not create actual issues, (6) test_parent_reference: verify parent issue is referenced in body. All tests use dry-run mode or mock gh CLI.'
+      dependencies:
+      - p103.d2.t1
+      - p103.d3.t1
+      files:
+      - '~/zion/projects/agent-orchestration/test_issue_filer.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_issue_filer.py'
+  dependencies:
+  - source: 'phase-4'
+    target: 'phase-103'
+    type: soft
+    reason: Issue filer creates the issues that the orchestrator poller from phase 4 consumes
+  - source: 'phase-13'
+    target: 'phase-103'
+    type: soft
+    reason: PR automation from phase 13 closes the loop -- issues filed by 103 are executed by the orchestrator and turned into PRs by 13
+  - source: 'phase-26'
+    target: 'phase-103'
+    type: soft
+    reason: Work decomposition from phase 26 may generate sub-issues that benefit from the filing tool
+  - source: 'phase-60'
+    target: 'phase-103'
+    type: soft
+    reason: Human-agent workflow optimization from phase 60 benefits from streamlined issue filing
+  technical_notes: 'The filing tool uses gh CLI exclusively (no direct GitHub API calls) to stay consistent with the project convention. Templates are YAML-based and user-extensible. The bulk filing
+    feature implements the research''s "speculative ticket filing" concept where engineers file multiple variants of a task for the orchestrator to explore in parallel (with phase 28 speculative execution).'
+  risks:
+  - 'Poorly structured issues waste orchestrator tokens -- the validation step is critical'
+  - 'Bulk filing could spam repos with low-quality issues -- require dry-run review first'
+  - 'Template quality directly affects agent success rate -- templates need iteration based on actual results'
+  - 'Acceptance criteria auto-generation is heuristic-based and may not match project-specific standards'
+  scope_lines_total: 410
+  test_target: 8
+- id: 'phase-104'
+  title: Orchestrator Governance and Compliance Reporting
+  status: planned
+  goal: 'Generate periodic compliance reports summarizing orchestrator activity, enabling organizational accountability for dark factory mode operation'
+  description: 'The research describes the Dark Factory model where zero human review occurs before code is merged. This requires robust accountability: stakeholders need to understand what the orchestrator
+    did, what changed, what was auto-approved, how much it cost, and whether quality is improving or degrading. Phase 85 (audit trail) logs individual agent actions, Phase 44 (health scorecard) tracks
+    system health, and Phase 59 (PR velocity metrics) measures throughput. But no phase synthesizes these signals into a human-readable governance report suitable for stakeholders who don''t read
+    logs or dashboards. This phase creates a periodic report generator that produces weekly/monthly governance summaries: agent activity breakdown, auto-approval rates and trends, cost attribution by
+    repo/role/task-type, quality trend analysis (review scores, test pass rates, invariant violations), and risk highlights (failed remediations, budget overruns, trust score changes). This makes
+    dark factory mode defensible to engineering leadership and compliance teams.'
+  deliverables:
+  - name: Governance report generator
+    description: Module that synthesizes orchestrator data into human-readable compliance reports
+    status: planned
+    acceptance_criteria:
+    - description: Can generate a weekly governance report from execution logs, audit trail, and cost data
+      validation: 'python3 governance_report.py generate --period weekly --output report.md'
+      met: false
+    - description: Report includes sections for activity, cost, quality, and risk
+      validation: 'generated report has all 4 sections with data'
+      met: false
+    tasks:
+    - id: p104.d1.t1
+      title: Create governance_report.py module
+      status: planned
+      description: 'Create governance_report.py: (1) generate_report(period, output_format) aggregates data from execution_log (phase 8), audit trail (phase 85), cost_tracker (phase 32), health_scorecard
+        (phase 44), and review_sensor (phase 9), (2) report sections: Executive Summary (key metrics, trend arrows), Agent Activity (issues processed, PRs created, by repo/role), Cost Attribution
+        (tokens consumed, cost by repo/role/task-type, budget utilization), Quality Trends (review scores over time, test pass rates, invariant violations, trust score changes), Risk Highlights
+        (failed remediations, budget overruns, approval escalations, worker crashes), (3) support markdown and JSON output formats, (4) CLI: python3 governance_report.py generate [--period weekly|monthly]
+        [--format markdown|json] [--output FILE] [--repo REPO].'
+      files:
+      - '~/zion/projects/agent-orchestration/governance_report.py'
+    scope_lines: 150
+    scope_files:
+    - '~/zion/projects/agent-orchestration/governance_report.py'
+  - name: Trend analysis and anomaly detection
+    description: Detect significant changes in orchestrator metrics that warrant attention
+    status: planned
+    acceptance_criteria:
+    - description: Can detect when key metrics change significantly week-over-week
+      validation: 'inject metric changes, verify anomaly flags in report'
+      met: false
+    tasks:
+    - id: p104.d2.t1
+      title: Add trend analysis to governance reports
+      status: planned
+      description: 'Extend governance_report.py: (1) compare_current_vs_previous(period) computes week-over-week or month-over-month changes for key metrics, (2) flag_anomalies() highlights metrics
+        that changed by >20% or crossed a threshold (e.g., cost doubled, approval rate dropped below 90%, trust score decreased), (3) trend arrows in markdown output (↑↓→) with magnitude, (4) anomaly
+        section at top of report with recommended actions ("Review: auto-approval rate dropped 15% -- check for quality regression"), (5) support baseline comparison against configurable thresholds.'
+      dependencies:
+      - p104.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/governance_report.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/governance_report.py'
+  - name: Scheduled governance reporting cron
+    description: Weekly cron job that generates and delivers governance reports
+    status: planned
+    acceptance_criteria:
+    - description: Cron job generates a weekly governance report automatically
+      validation: 'cronjob list shows governance-report job'
+      met: false
+    tasks:
+    - id: p104.d3.t1
+      title: Create governance reporting cron job
+      status: planned
+      description: 'Create weekly Hermes cron job that generates a governance report and saves it to ~/zion/projects/agent-orchestration/reports/governance-YYYY-MM-DD.md. Include a summary in the
+        cron output for the operator. Schedule weekly on Monday at 08:00 for previous week review.'
+      dependencies:
+      - p104.d1.t1
+      files: []
+    scope_lines: 30
+    scope_files: []
+  - name: Governance report tests
+    description: Tests for governance report generation
+    status: planned
+    acceptance_criteria:
+    - description: Tests cover report generation with mock data and anomaly detection
+      validation: 'python3 -m pytest test_governance_report.py -v'
+      met: false
+    tasks:
+    - id: p104.d4.t1
+      title: Create test_governance_report.py
+      status: planned
+      description: 'Create test_governance_report.py: (1) test_report_generation: generate report from mock execution/cost/health data, verify all sections present, (2) test_trend_analysis: create
+        two periods with known differences, verify trend arrows and percentages, (3) test_anomaly_detection: inject >20% cost increase and >10% quality drop, verify both flagged, (4) test_empty_data:
+        generate report with no data, verify graceful handling with "no data" messages, (5) test_markdown_format: verify output is valid markdown with headers and tables, (6) test_json_format:
+        verify JSON output is valid and contains all expected keys.'
+      dependencies:
+      - p104.d2.t1
+      files:
+      - '~/zion/projects/agent-orchestration/test_governance_report.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_governance_report.py'
+  dependencies:
+  - source: 'phase-8'
+    target: 'phase-104'
+    type: soft
+    reason: Governance reports read execution history logs from phase 8
+  - source: 'phase-32'
+    target: 'phase-104'
+    type: soft
+    reason: Cost tracking data from phase 32 feeds the cost attribution section
+  - source: 'phase-44'
+    target: 'phase-104'
+    type: soft
+    reason: Health scorecard data from phase 44 feeds the quality trends section
+  - source: 'phase-85'
+    target: 'phase-104'
+    type: soft
+    reason: Audit trail data from phase 85 feeds the activity and risk sections
+  - source: 'phase-9'
+    target: 'phase-104'
+    type: soft
+    reason: Review sensor scores from phase 9 feed the quality trends section
+  - source: 'phase-59'
+    target: 'phase-104'
+    type: soft
+    reason: PR velocity metrics from phase 59 feed the throughput section
+  - source: 'phase-35'
+    target: 'phase-104'
+    type: hard
+    reason: Governance reports are essential before enabling dark factory mode from phase 35
+  technical_notes: 'Governance reports aggregate data from multiple existing modules without creating new data sources. The report is designed for human consumption (markdown) with structured output
+    (JSON) for programmatic access. Anomaly detection uses simple threshold-based rules rather than ML to keep the system deterministic and auditable.'
+  risks:
+  - 'Governance reports could expose sensitive information -- respect per-repo visibility settings'
+  - 'Anomaly thresholds may need tuning per project -- start conservative (30%) and tighten based on experience'
+  - 'Report generation could be slow for high-volume orchestrators -- cache intermediate aggregations'
+  - 'Weekly reporting frequency may not catch acute issues -- consider adding alerting for critical anomalies'
+  scope_lines_total: 360
+  test_target: 8
 global_risks:
 - 'Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change'
 - 'delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)'
@@ -12899,6 +13159,8 @@ global_risks:
 - 'Capability gap detection (phase 84) could create unnecessary tools -- require human review before acting on suggestions'
 - 'Audit log (phase 85) could grow very large -- implement rotation/archival for old entries'
 - 'Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks'
+- 'Speculative ticket filing (phase 103) could create too many low-quality issues -- require dry-run review first'
+- 'Governance reports (phase 104) aggregate from many data sources -- a bug in one source could corrupt the entire report'
 conventions:
 - Python scripts use python3 (no bare python command on this system)
 - 'GitHub API via gh CLI, not raw curl'
@@ -12909,8 +13171,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 102
-  estimated_weeks: '110-130'
+  phases_total: 104
+  estimated_weeks: '115-135'
   updated: '2026-05-02'
   phases_added:
   - 13
@@ -13065,7 +13327,10 @@ meta:
     without a linter. (2) Multi-session task chaining -- the research describes the Ralph Wiggum pattern where agents persist across sessions via externalized artifacts, and specifically calls out "large-scale
     refactors or complex migrations" as the target use case. While phase 20 handles context budgeting and phase 65 handles stop hooks for single-session loops, nothing implements the CHAINING pattern where
     one session''s output becomes the next session''s input with automatic context marshaling. Phase 97 closes this gap with a session chain manager that detects when tasks need multi-session execution,
-    saves intermediate state, and creates new sessions with smart-zone-compliant context briefs.'
-phases_added_from: |2
+  - 102
+  - 103
+  - 104
+  phases_added_from: |2
 
   Phase 98-102: Five new phases derived from a ninth gap analysis pass focused on operational readiness, compositional integration, and operator experience gaps that emerge at the 97-phase scale. The previous eight passes achieved 96.1% research concept coverage (49/51), but concept coverage does not equal operational readiness. This pass analyzed the actual implemented codebase (30+ modules, 15+ independent scripts) and identified gaps in how the system operates as a whole rather than as individual components. Phase 98 (End-to-End Scenario Test Harness) addresses the critical gap that while phase 69 tests individual modules, no test validates the full issue-to-merge lifecycle as a coherent scenario. Phase 99 (Unified Orchestrator CLI) addresses the operator experience gap: 15+ independent Python scripts with different invocation patterns make the system unnecessarily hard to operate. Phase 100 (Agent PR Quality Standards) addresses application legibility at the PR level -- agents create PRs (phase 13) but no phase defines what a good agent-authored PR looks like. Phase 101 (Data Lifecycle and Retention) addresses the storage growth problem: with 20+ data-producing modules, storage grows unboundedly and no phase handles retention or cleanup. Phase 102 (Graceful Shutdown and Drain Mode) addresses operational safety: no phase handles stopping the orchestrator without losing active work or corrupting state.
+  Phase 103-104: Two new phases derived from a tenth gap analysis pass focused on the operator experience and organizational governance gaps that emerge at production scale. Previous passes comprehensively covered the research document concepts (51/51 = 100%) and the operational lifecycle of individual components. This pass analyzed the workflow from the OPERATOR's perspective: (1) how does an operator efficiently feed work into the orchestrator, and (2) how does an organization maintain accountability when the orchestrator runs autonomously? Phase 103 (Agent-Ready Issue Filing and Speculative Ticket CLI) addresses the "input side" of the issue-tracker-as-control-plane pattern. The research's key insight for the 500% PR increase is that "engineers shifted from supervising single tasks to filing speculative tickets and reviewing completed work." While the orchestrator consumes issues (phase 4 poller), no phase helps operators create them efficiently. This phase provides a CLI with templates, validation, and bulk filing for speculative exploration. Phase 104 (Orchestrator Governance and Compliance Reporting) addresses the accountability gap in dark factory mode. The research describes 0% human review with 1B tokens/day spend. Phase 85 (audit trail) logs actions, Phase 44 (health scorecard) tracks health, and Phase 59 (PR velocity) measures throughput, but no phase synthesizes these into a stakeholder-facing governance report. This phase creates periodic compliance reports with trend analysis and anomaly detection, making dark factory mode defensible to engineering leadership.
