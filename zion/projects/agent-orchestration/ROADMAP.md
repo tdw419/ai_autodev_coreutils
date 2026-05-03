@@ -2,17 +2,16 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/112 phases complete, 0 in progress
+**Progress:** 22/115 phases complete, 0 in progress
 
-**Deliverables:** 86/447 complete
+**Deliverables:** 86/459 complete
 
-**Tasks:** 86/447 complete
+**Tasks:** 86/459 complete
 
 ## Scope Summary
 
 | Phase | Status | Deliverables | LOC Target | Tests |
 |-------|--------|-------------|-----------|-------|
-| phase-1 Wiki Synthesis from Symphony Research | COMPLETE | 8/8 | 530 | - |
 | phase-2 Map Symphony Patterns to Hermes Infrastructure | COMPLETE | 2/2 | 740 | - |
 | phase-3 Close High-Value Gaps with Existing Tools | COMPLETE | 3/3 | 890 | - |
 | phase-4 Build Lightweight Symphony-Style Orchestrator | COMPLETE | 4/4 | 1,160 | - |
@@ -124,6 +123,10 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-110 Incident Response Automation and Escalation Playbooks | PLANNED | 0/4 | 380 | 12 |
 | phase-111 MCP (Model Context Protocol) Server/Client Integration | PLANNED | 0/4 | 450 | 10 |
 | phase-112 Coordination Failure Detection and Recovery | PLANNED | 0/4 | 370 | 12 |
+| phase-1 Wiki Synthesis from Symphony Research | COMPLETE | 8/8 | 530 | - |
+| phase-113 Cognitive Forgetting and Skill Quality Lifecycle | PLANNED | 0/4 | 300 | 8 |
+| phase-114 Multi-Platform Control Plane Adapters | PLANNED | 0/4 | 360 | 10 |
+| phase-115 Shadow Prompt Engine and Parallel Comparison | PLANNED | 0/4 | 340 | 8 |
 
 ## Dependencies
 
@@ -548,89 +551,16 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-21 | phase-112 | soft | Merge queue from phase 21 benefits from lease token protection on merge slots |
 | phase-26 | phase-112 | soft | Work decomposition from phase 26 creates sub-issues where handoff drift is most likely |
 | phase-85 | phase-112 | soft | Coordination safety events must be logged to audit trail from phase 85 |
-
-## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
-
-**Goal:** Extract and synthesize all key concepts from the OpenAI Symphony doc into persistent wiki pages
-
-The research doc at ~/zion/docs/research/ covers 6 major concepts that have no wiki
-representation yet: Symphony, Harness Engineering, Gas Town, Archon, Ralph Wiggum
-pattern, and agent.md spec. Create focused wiki pages for each, cross-referenced
-with existing pages. Update the tag taxonomy in SCHEMA.md to include new tags.
-
-
-### Deliverables
-
-- [x] **Update wiki tag taxonomy** -- Add orchestration, harness-engineering, codex, openai, workflow-dag to SCHEMA.md tag taxonomy
-  - [x] `p1.d1.t1` Add orchestration-related tags to SCHEMA.md
-    > Add tags: orchestration, harness-engineering, codex, openai, workflow-dag, agent-md under appropriate taxonomy sections
-    _Files: ~/wiki/SCHEMA.md_
-  - [x] New tags added to SCHEMA.md under appropriate section
-    _Validation: grep for each tag in SCHEMA.md_
-  _~20 LOC_
-- [x] **Symphony wiki page** -- Create concepts/openai-symphony.md covering the orchestration spec, architecture, config params, and issue-tracker-as-control-plane pattern
-  - [x] `p1.d2.t1` Create concepts/openai-symphony.md
-    > Write wiki page covering Symphony spec mechanics, architecture table, config params, Elixir implementation notes, and 500% PR increase claim
-    _Files: ~/wiki/concepts/openai-symphony.md_
-  - [x] Page exists with proper frontmatter and 2+ wikilinks
-    _Validation: read_file and check links_
-  - [x] Covers polling daemon, workspace manager, workflow loader, agent runner, status surface
-    _Validation: read page content_
-  _~80 LOC_
-- [x] **Harness Engineering wiki page** -- Create concepts/harness-engineering.md covering the three-layer hierarchy (inner/outer/orchestrator), dark factory model, application legibility
-  - [x] `p1.d3.t1` Create concepts/harness-engineering.md
-    > Write wiki page covering the three-layer harness hierarchy, dark factory model (1M LOC, 0% review), application legibility principles, and structural invariants
-    _Files: ~/wiki/concepts/harness-engineering.md_
-  - [x] Page covers all three harness layers with tooling examples
-    _Validation: read page content_
-  - [x] Links to Symphony and existing hermes-related pages
-    _Validation: check wikilinks_
-  _~100 LOC_
-- [x] **Gas Town wiki page** -- Create concepts/gas-town.md covering the swarm coordination architecture, Beads state management, and specialized agent roles
-  - [x] `p1.d4.t1` Create concepts/gas-town.md
-    > Write wiki page covering Gas Town architecture, Beads/Dolt state mgmt, agent role taxonomy, GUPP principle, and Kubernetes comparison
-    _Files: ~/wiki/concepts/gas-town.md_
-  - [x] Page covers all 6 agent roles (Mayor, Polecat, Deacon, Refinery, Witness, Dog)
-    _Validation: read page content_
-  _~90 LOC_
-- [x] **Archon wiki page** -- Create concepts/archon-deterministic-workflows.md covering YAML DAG pipelines and deterministic vs probabilistic node types
-  - [x] `p1.d5.t1` Create concepts/archon-deterministic-workflows.md
-    > Write wiki page covering Archon's YAML DAG approach, node types table, harness-vs-brain debate, and CI/CD-style pipeline for agents
-    _Files: ~/wiki/concepts/archon-deterministic-workflows.md_
-  - [x] Page covers all 4 node types (AI, Bash, Loop, Dependency)
-    _Validation: read page content_
-  _~70 LOC_
-- [x] **Ralph Wiggum pattern wiki page** -- Create concepts/ralph-wiggum-pattern.md covering context management, smart zone, and persistence artifacts
-  - [x] `p1.d6.t1` Create concepts/ralph-wiggum-pattern.md
-    > Write wiki page covering the Ralph Wiggum loop pattern, context window decay, smart zone concept, git/filesystem persistence, and comparison table
-    _Files: ~/wiki/concepts/ralph-wiggum-pattern.md_
-  - [x] Page covers context decay problem, fresh-per-iteration solution, stop hooks
-    _Validation: read page content_
-  _~70 LOC_
-- [x] **agent.md spec wiki page** -- Create concepts/agent-md-specification.md covering structure, AAIF adoption, and effective implementation patterns
-  - [x] `p1.d7.t1` Create concepts/agent-md-specification.md
-    > Write wiki page covering agent.md structure (4 key sections), AAIF adoption, 2500-repo analysis findings
-    _Files: ~/wiki/concepts/agent-md-specification.md_
-  - [x] Page covers tech stack definition, executable commands, code examples, three-tier boundaries
-    _Validation: read page content_
-  _~70 LOC_
-- [x] **Update wiki index and log** -- Add all new pages to index.md, fix stale ralph-loop entry, append log entry
-  - [x] `p1.d8.t1` Update index.md and log.md
-    > Add all 6 concept pages to index.md, fix stale ralph-loop entry, append bulk ingest log entry
-    _Files: ~/wiki/index.md, ~/wiki/log.md_
-  - [x] All 6 new pages appear in index.md under correct section
-    _Validation: grep index.md for each page_
-  - [x] Stale claude-code-ralph-loop-explained entry removed or fixed
-    _Validation: grep index.md_
-  _~30 LOC_
-
-### Technical Notes
-
-Use wiki_ingest MCP tool to pull source material from RAG. Track synthesis with wiki_track. Each page must have 2+ wikilinks to other wiki pages.
-
-### Risks
-
-- Some concepts may already have partial coverage in existing pages -- search before creating
+| phase-57 | phase-113 | soft | Skill registry from phase 57 provides the skills that quality scoring evaluates |
+| phase-82 | phase-113 | soft | Context seeding from phase 82 is the injection point where quality filtering applies |
+| phase-101 | phase-113 | soft | Data lifecycle from phase 101 handles storage cleanup; this phase handles cognitive quality pruning |
+| phase-4 | phase-114 | soft | Multi-platform adapters refactor the poller from phase 4 |
+| phase-56 | phase-114 | soft | Symphony compliance adapter from phase 56 already references Linear; this phase provides the generic framework |
+| phase-71 | phase-114 | soft | Config validation from phase 71 should validate tracker adapter configuration |
+| phase-62 | phase-115 | soft | Prompt library from phase 62 provides the base prompts that shadow comparison evaluates |
+| phase-90 | phase-115 | soft | Prompt optimization from phase 90 consumes shadow comparison results |
+| phase-29 | phase-115 | soft | A/B testing analytics from phase 29 can incorporate shadow comparison data |
+| phase-32 | phase-115 | soft | Cost tracking from phase 32 provides the cost data that shadow comparison needs |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -6352,6 +6282,292 @@ The four failure modes are derived from the "Issue Trackers as AI Agent Control 
 - Lease token enforcement could block legitimate long-running operations -- make TTLs configurable per resource type and allow renewal
 - Delegation depth limits could prevent necessary multi-level decomposition -- default of 3 is generous; operators can increase per-project
 - Hallucination loop detection could false-positive on genuinely hard bugs that multiple workers independently fail to solve -- require distinct error signatures, not just same subtask
+
+## [x] phase-1: Wiki Synthesis from Symphony Research (COMPLETE)
+
+**Goal:** Extract and synthesize all key concepts from the OpenAI Symphony doc into persistent wiki pages
+
+The research doc at ~/zion/docs/research/ covers 6 major concepts that have no wiki
+representation yet: Symphony, Harness Engineering, Gas Town, Archon, Ralph Wiggum
+pattern, and agent.md spec. Create focused wiki pages for each, cross-referenced
+with existing pages. Update the tag taxonomy in SCHEMA.md to include new tags.
+
+
+### Deliverables
+
+- [x] **Update wiki tag taxonomy** -- Add orchestration, harness-engineering, codex, openai, workflow-dag to SCHEMA.md tag taxonomy
+  - [x] `p1.d1.t1` Add orchestration-related tags to SCHEMA.md
+    > Add tags: orchestration, harness-engineering, codex, openai, workflow-dag, agent-md under appropriate taxonomy sections
+    _Files: ~/wiki/SCHEMA.md_
+  - [x] New tags added to SCHEMA.md under appropriate section
+    _Validation: grep for each tag in SCHEMA.md_
+  _~20 LOC_
+- [x] **Symphony wiki page** -- Create concepts/openai-symphony.md covering the orchestration spec, architecture, config params, and issue-tracker-as-control-plane pattern
+  - [x] `p1.d2.t1` Create concepts/openai-symphony.md
+    > Write wiki page covering Symphony spec mechanics, architecture table, config params, Elixir implementation notes, and 500% PR increase claim
+    _Files: ~/wiki/concepts/openai-symphony.md_
+  - [x] Page exists with proper frontmatter and 2+ wikilinks
+    _Validation: read_file and check links_
+  - [x] Covers polling daemon, workspace manager, workflow loader, agent runner, status surface
+    _Validation: read page content_
+  _~80 LOC_
+- [x] **Harness Engineering wiki page** -- Create concepts/harness-engineering.md covering the three-layer hierarchy (inner/outer/orchestrator), dark factory model, application legibility
+  - [x] `p1.d3.t1` Create concepts/harness-engineering.md
+    > Write wiki page covering the three-layer harness hierarchy, dark factory model (1M LOC, 0% review), application legibility principles, and structural invariants
+    _Files: ~/wiki/concepts/harness-engineering.md_
+  - [x] Page covers all three harness layers with tooling examples
+    _Validation: read page content_
+  - [x] Links to Symphony and existing hermes-related pages
+    _Validation: check wikilinks_
+  _~100 LOC_
+- [x] **Gas Town wiki page** -- Create concepts/gas-town.md covering the swarm coordination architecture, Beads state management, and specialized agent roles
+  - [x] `p1.d4.t1` Create concepts/gas-town.md
+    > Write wiki page covering Gas Town architecture, Beads/Dolt state mgmt, agent role taxonomy, GUPP principle, and Kubernetes comparison
+    _Files: ~/wiki/concepts/gas-town.md_
+  - [x] Page covers all 6 agent roles (Mayor, Polecat, Deacon, Refinery, Witness, Dog)
+    _Validation: read page content_
+  _~90 LOC_
+- [x] **Archon wiki page** -- Create concepts/archon-deterministic-workflows.md covering YAML DAG pipelines and deterministic vs probabilistic node types
+  - [x] `p1.d5.t1` Create concepts/archon-deterministic-workflows.md
+    > Write wiki page covering Archon's YAML DAG approach, node types table, harness-vs-brain debate, and CI/CD-style pipeline for agents
+    _Files: ~/wiki/concepts/archon-deterministic-workflows.md_
+  - [x] Page covers all 4 node types (AI, Bash, Loop, Dependency)
+    _Validation: read page content_
+  _~70 LOC_
+- [x] **Ralph Wiggum pattern wiki page** -- Create concepts/ralph-wiggum-pattern.md covering context management, smart zone, and persistence artifacts
+  - [x] `p1.d6.t1` Create concepts/ralph-wiggum-pattern.md
+    > Write wiki page covering the Ralph Wiggum loop pattern, context window decay, smart zone concept, git/filesystem persistence, and comparison table
+    _Files: ~/wiki/concepts/ralph-wiggum-pattern.md_
+  - [x] Page covers context decay problem, fresh-per-iteration solution, stop hooks
+    _Validation: read page content_
+  _~70 LOC_
+- [x] **agent.md spec wiki page** -- Create concepts/agent-md-specification.md covering structure, AAIF adoption, and effective implementation patterns
+  - [x] `p1.d7.t1` Create concepts/agent-md-specification.md
+    > Write wiki page covering agent.md structure (4 key sections), AAIF adoption, 2500-repo analysis findings
+    _Files: ~/wiki/concepts/agent-md-specification.md_
+  - [x] Page covers tech stack definition, executable commands, code examples, three-tier boundaries
+    _Validation: read page content_
+  _~70 LOC_
+- [x] **Update wiki index and log** -- Add all new pages to index.md, fix stale ralph-loop entry, append log entry
+  - [x] `p1.d8.t1` Update index.md and log.md
+    > Add all 6 concept pages to index.md, fix stale ralph-loop entry, append bulk ingest log entry
+    _Files: ~/wiki/index.md, ~/wiki/log.md_
+  - [x] All 6 new pages appear in index.md under correct section
+    _Validation: grep index.md for each page_
+  - [x] Stale claude-code-ralph-loop-explained entry removed or fixed
+    _Validation: grep index.md_
+  _~30 LOC_
+
+### Technical Notes
+
+Use wiki_ingest MCP tool to pull source material from RAG. Track synthesis with wiki_track. Each page must have 2+ wikilinks to other wiki pages.
+
+### Risks
+
+- Some concepts may already have partial coverage in existing pages -- search before creating
+
+## [ ] phase-113: Cognitive Forgetting and Skill Quality Lifecycle (PLANNED)
+
+**Goal:** Score accumulated skills, context, and knowledge by utility, and prune low-value entries to maintain agent cognitive performance over time
+
+The Hermes Bots research doc describes a "Dynamic Forgetting Layer" that identifies and prunes
+"unpriced memory" -- outdated skills or noisy data that no longer provide value but consume
+computational resources. As agents operate continuously, their accumulated knowledge can become
+bloated, leading to high latency, cost, and context noise. Phase 101 (Data Lifecycle and Retention)
+handles storage-level retention (log rotation, file cleanup) but does NOT score knowledge or skills
+by QUALITY. The Dynamic Forgetting Layer is distinct from storage cleanup -- it prunes based on
+cognitive utility, not age. This phase implements: (1) skill quality scoring based on usage frequency,
+success rate, and relevance decay curves, (2) context quality assessment that detects when accumulated
+context is adding noise rather than signal, (3) automatic pruning of low-utility entries before they
+are injected into agent prompts, (4) quality metrics reporting to the health scorecard (phase 44).
+Without this, long-running orchestrators accumulate stale knowledge that degrades agent performance
+-- the "Red Queen effect" where the system must continuously prune just to maintain quality.
+
+
+### Deliverables
+
+- [ ] **Skill quality scoring engine** -- Score each accumulated skill/context entry by utility metrics (usage frequency, success rate, recency, relevance)
+  - [ ] `p113.d1.t1` Create skill quality scorer module
+    > Python module that computes quality scores for skills/context entries. Score = f(usage_count, success_rate, recency_decay, relevance_to_current_work). Support configurable decay curves (linear, exponential, step-function). Store scores alongside skill metadata.
+    _Files: ~/zion/projects/agent-orchestration/skill_quality.py_
+  - [ ] Each skill in the registry (phase 57) has an associated quality score
+    _Validation: query skill registry, verify quality_score field exists_
+  - [ ] Quality scores decay over time based on configurable decay curves
+    _Validation: check score after simulated time passage_
+  _~100 LOC_
+- [ ] **Context noise detection** -- Detect when accumulated context is adding noise rather than signal to agent prompts
+  - [ ] `p113.d2.t1` Create context noise detector (depends: p113.d1.t1)
+    > Module that analyzes context entries before injection and flags low-utility entries. Uses skill quality scores + heuristic rules (stale references, superseded patterns, conflicting advice). Output: filtered context list with quality annotations.
+    _Files: ~/zion/projects/agent-orchestration/context_noise.py_
+  - [ ] System can identify context entries that have negative utility (add noise)
+    _Validation: inject known-noisy context, verify detection_
+  - [ ] Context injection (phase 82) respects quality thresholds
+    _Validation: check context seeding integration_
+  _~80 LOC_
+- [ ] **Automatic pruning pipeline** -- Automatically prune low-utility skills and context entries based on configurable thresholds
+  - [ ] `p113.d3.t1` Create pruning pipeline (depends: p113.d1.t1, p113.d2.t1)
+    > Module that runs periodically: (1) score all skills/context, (2) identify entries below threshold, (3) archive to ~/.orchestrator/pruned/ with metadata, (4) report pruning stats. Support --dry-run. Integrate with maintenance automation (phase 66).
+    _Files: ~/zion/projects/agent-orchestration/pruning.py_
+  - [ ] Entries below quality threshold are archived (not deleted) after review period
+    _Validation: run pruning, check archive_
+  - [ ] Pruning runs as part of periodic maintenance (phase 66)
+    _Validation: check maintenance cron integration_
+  _~80 LOC_
+- [ ] **Quality metrics integration** -- Report skill/context quality metrics to health scorecard and self-improvement analysis
+  - [ ] `p113.d4.t1` Integrate quality metrics with health scorecard (depends: p113.d3.t1)
+    > Add knowledge quality section to health scorecard: total skills, average quality, pruned count, noise ratio trend. Feed into self-improvement loop (phase 19) for analysis.
+    _Files: ~/zion/projects/agent-orchestration/skill_quality.py_
+  - [ ] Health scorecard (phase 44) includes knowledge quality trend
+    _Validation: check health scorecard output_
+  - [ ] Self-improvement loop (phase 19) consumes quality trends
+    _Validation: check improvement analysis input_
+  _~40 LOC_
+
+### Technical Notes
+
+The Dynamic Forgetting Layer is complementary to Phase 101 (storage lifecycle). Phase 101 deletes old files; this phase scores knowledge quality and archives low-utility entries. The distinction is cognitive vs. storage: a skill can be "old" but still highly useful (e.g., a rarely-used but critical security check), or "new" but low-quality (e.g., a recently created but buggy tool).
+
+### Risks
+
+- Pruning useful skills is worse than keeping useless ones -- default thresholds should be conservative
+- Quality scoring requires execution history data -- cold start problem for new skills
+- Different task types may have different quality criteria -- one-size-fits-all scoring may not work
+
+## [ ] phase-114: Multi-Platform Control Plane Adapters (PLANNED)
+
+**Goal:** Abstract the orchestrator poller to support multiple issue tracker backends (GitHub, Linear, Jira, GitLab) via pluggable adapters
+
+The OpenAI Symphony spec defines tracker.kind as a configuration parameter supporting multiple
+issue tracker types (currently Linear). The Issue Trackers research doc emphasizes that "any
+enterprise application with a clear data model is a candidate for an agent substrate," citing
+Jira, Linear, GitHub, and even CRMs/ERPs as potential control planes. The current orchestrator
+(phase 4) is hardcoded to GitHub Issues via the gh CLI. This phase abstracts the poller into
+a pluggable adapter interface, enabling the orchestrator to consume work from any issue tracker
+that implements the adapter protocol. This directly supports the Symphony spec's tracker.kind
+parameter and makes the orchestrator applicable to teams that use Jira, Linear, or GitLab instead
+of GitHub. Each adapter implements: list_issues(filter), get_issue(id), update_status(id, status),
+add_comment(id, body), and create_issue(data). The orchestrator calls the adapter interface
+instead of gh CLI directly. Phase 56 (Symphony Spec Compliance Adapter) already references
+Linear support but focuses on Symphony compliance, not generic multi-platform support.
+
+
+### Deliverables
+
+- [ ] **Tracker adapter interface** -- Define abstract tracker adapter protocol with standardized methods for issue CRUD operations
+  - [ ] `p114.d1.t1` Create tracker adapter interface
+    > Python module with abstract TrackerAdapter base class and NormalizedIssue dataclass. Define standard methods: list_issues(filter_state, filter_labels), get_issue(id), update_status(id, status), add_comment(id, body), create_issue(title, body, labels). Normalize platform-specific fields to standard model.
+    _Files: ~/zion/projects/agent-orchestration/tracker_adapter.py_
+  - [ ] Abstract base class or protocol defines: list_issues, get_issue, update_status, add_comment, create_issue
+    _Validation: read adapter interface definition_
+  - [ ] Issue model normalizes fields across platforms (title, body, status, labels, assignee)
+    _Validation: check model definition_
+  _~80 LOC_
+- [ ] **GitHub Issues adapter (refactor)** -- Refactor existing poller.py to implement the adapter interface, preserving current functionality
+  - [ ] `p114.d2.t1` Refactor poller.py to use adapter interface (depends: p114.d1.t1)
+    > Create GitHubAdapter class implementing TrackerAdapter. Wraps existing gh CLI calls. Refactor poller.py to accept a tracker adapter instead of calling gh directly. Ensure all existing tests pass.
+    _Files: ~/zion/projects/agent-orchestration/github_adapter.py, ~/zion/projects/agent-orchestration/poller.py_
+  - [ ] GitHub adapter implements TrackerAdapter and passes all existing poller tests
+    _Validation: python3 -m pytest test_orchestrator_modules.py -v_
+  - [ ] No behavioral change to existing orchestrator cron jobs
+    _Validation: run orchestrator, verify same output_
+  _~80 LOC_
+- [ ] **Linear adapter** -- Implement Linear API adapter as second backend, matching the Symphony spec tracker.kind
+  - [ ] `p114.d3.t1` Create Linear adapter (depends: p114.d1.t1)
+    > Create LinearAdapter class implementing TrackerAdapter. Uses Linear GraphQL API (via urllib, no external deps). Maps Linear states (Todo, In Progress, Done, Canceled) to standard model. Maps Linear labels to standard labels. Requires LINEAR_API_KEY in config.
+    _Files: ~/zion/projects/agent-orchestration/linear_adapter.py_
+  - [ ] Linear adapter implements TrackerAdapter using Linear GraphQL API
+    _Validation: read adapter code, verify API calls_
+  - [ ] Config can select tracker.kind: linear and orchestrator polls Linear instead of GitHub
+    _Validation: test with Linear API key_
+  _~100 LOC_
+- [ ] **Jira adapter** -- Implement Jira REST API adapter for enterprise teams using Atlassian products
+  - [ ] `p114.d4.t1` Create Jira adapter (depends: p114.d1.t1)
+    > Create JiraAdapter class implementing TrackerAdapter. Uses Jira REST API v3 (via urllib, no external deps). Maps Jira workflow states to standard model. Supports JQL queries for filtering. Requires JIRA_URL and JIRA_TOKEN in config.
+    _Files: ~/zion/projects/agent-orchestration/jira_adapter.py_
+  - [ ] Jira adapter implements TrackerAdapter using Jira REST API v3
+    _Validation: read adapter code_
+  - [ ] Config can select tracker.kind: jira with Jira server URL and auth token
+    _Validation: test config loading_
+  _~100 LOC_
+
+### Technical Notes
+
+No external dependencies. Use urllib for HTTP calls. Each adapter is a standalone Python file. The orchestrator config adds tracker.kind (github|linear|jira) and tracker.* auth fields. GitHub adapter wraps existing gh CLI calls -- no behavioral change to existing users.
+
+### Risks
+
+- Linear and Jira APIs have rate limits different from GitHub -- need per-adapter rate limiting
+- Issue field mapping across platforms is lossy -- some platform-specific fields cannot be normalized
+- API tokens for Linear/Jira need secure storage -- use env vars, never commit to config
+- Platform-specific webhook handling may be needed for event-driven triggers (phase 37)
+
+## [ ] phase-115: Shadow Prompt Engine and Parallel Comparison (PLANNED)
+
+**Goal:** Run parallel prompt variations on the same task for diagnostic comparison, optimization, and regression testing
+
+The Geometry OS Autodev Loop research describes a "Shadow Compiler" -- parallel prompt generation
+for diagnostic comparison and regression testing. Unlike Phase 92 (Agent Simulation) which uses
+mock agent backends for zero-cost testing, the Shadow Prompt Engine runs REAL prompt variations
+in parallel on the same task and compares outputs for quality, cost, and latency. This enables:
+(1) A/B testing of prompt strategies without manual intervention, (2) regression detection when
+prompt templates change, (3) identification of the most cost-effective prompt for each task type,
+(4) diagnostic comparison when an agent produces unexpected results. The engine takes a task
+description, generates N prompt variations (from prompt library phase 62, with optional mutations),
+runs them in parallel via delegate_task, and produces a comparison report. Results feed into
+prompt optimization (phase 90) and A/B testing analytics (phase 29). This is distinct from
+Phase 92 because simulation uses mocks (no real LLM calls) while shadow prompting runs real
+prompts (actual LLM calls with real token costs, but on the same task for apples-to-apples comparison).
+
+
+### Deliverables
+
+- [ ] **Shadow prompt runner** -- Module that takes a task, generates prompt variations, runs them in parallel, and collects results
+  - [ ] `p115.d1.t1` Create shadow prompt runner module
+    > Python module that: (1) takes a task description and N prompt variations, (2) runs each variation via delegate_task in parallel subprocesses, (3) collects structured results (output, token_cost, duration, exit_code), (4) optionally runs quality assessment on each output. Support --max-parallel flag to limit concurrent runs.
+    _Files: ~/zion/projects/agent-orchestration/shadow_prompt.py_
+  - [ ] Can run 2+ prompt variations on the same task in parallel
+    _Validation: run shadow comparison, verify parallel execution_
+  - [ ] Each variation produces structured output (result, cost, latency, quality score)
+    _Validation: check output format_
+  _~120 LOC_
+- [ ] **Prompt variation generator** -- Generate systematic prompt variations from base prompts for comparison testing
+  - [ ] `p115.d2.t1` Create prompt variation generator (depends: p115.d1.t1)
+    > Module that takes a base prompt and generates N variations using configurable mutation strategies: (1) temperature variants (low/medium/high), (2) system prompt additions/removals, (3) context section permutations, (4) instruction rephrasing (formal/casual/concise), (5) few-shot example variations. Use seeded randomization for reproducibility.
+    _Files: ~/zion/projects/agent-orchestration/prompt_variator.py_
+  - [ ] Can generate variations by: temperature, system prompt changes, context inclusion/exclusion, instruction rephrasing
+    _Validation: generate variations, verify differences_
+  - [ ] Variations are deterministic and reproducible (seeded randomization)
+    _Validation: run twice, verify same variations_
+  _~80 LOC_
+- [ ] **Comparison report generator** -- Generate structured comparison reports from shadow prompt run results
+  - [ ] `p115.d3.t1` Create comparison report generator (depends: p115.d1.t1)
+    > Module that takes shadow run results and produces: (1) terminal table with per-variation metrics, (2) ranking by configurable scoring function, (3) diff view showing output differences, (4) recommendation (best prompt for this task type). Output as terminal table, JSON, or Markdown.
+    _Files: ~/zion/projects/agent-orchestration/shadow_report.py_
+  - [ ] Report shows side-by-side comparison of all variations with quality, cost, latency metrics
+    _Validation: generate report, check format_
+  - [ ] Report identifies the best variation by configurable scoring (quality-weighted, cost-weighted, balanced)
+    _Validation: check ranking logic_
+  _~80 LOC_
+- [ ] **Regression detection integration** -- Detect prompt regression by comparing current outputs against historical baselines
+  - [ ] `p115.d4.t1` Create regression detection module (depends: p115.d3.t1)
+    > Module that maintains historical baselines for recurring task types. When a prompt template changes, automatically runs shadow comparison against baseline. Flags regression if quality drops below threshold. Feeds results into prompt optimization (phase 90) for automated rollback or refinement.
+    _Files: ~/zion/projects/agent-orchestration/shadow_regression.py_
+  - [ ] Can detect when a prompt template change degrades output quality vs. historical baseline
+    _Validation: change prompt, run comparison, verify regression detected_
+  - [ ] Regression results feed into prompt optimization (phase 90)
+    _Validation: check optimization input_
+  _~60 LOC_
+
+### Technical Notes
+
+Shadow prompting is expensive (N real LLM calls per task). Default to N=2 for routine use, N=3-5 for optimization passes. Support --dry-run to preview variations without execution. Cost tracking integration (phase 32) ensures shadow runs are attributed correctly. This is a POWER USER feature -- not for everyday use, but essential for prompt optimization and regression detection.
+
+### Risks
+
+- Shadow prompting multiplies token costs by N -- needs explicit cost controls and warnings
+- Parallel execution may hit API rate limits -- respect backpressure from phase 70
+- Quality comparison between variations is subjective -- use deterministic metrics where possible
+- Historical baselines may become stale as models improve -- need periodic baseline refresh
 
 ## Global Risks
 

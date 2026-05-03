@@ -4,169 +4,6 @@ description: 'Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town
   concrete improvements.'
 project_url: ''
 phases:
-- id: 'phase-1'
-  title: Wiki Synthesis from Symphony Research
-  status: complete
-  goal: Extract and synthesize all key concepts from the OpenAI Symphony doc into persistent wiki pages
-  description: |
-    The research doc at ~/zion/docs/research/ covers 6 major concepts that have no wiki
-    representation yet: Symphony, Harness Engineering, Gas Town, Archon, Ralph Wiggum
-    pattern, and agent.md spec. Create focused wiki pages for each, cross-referenced
-    with existing pages. Update the tag taxonomy in SCHEMA.md to include new tags.
-  deliverables:
-  - name: Update wiki tag taxonomy
-    description: 'Add orchestration, harness-engineering, codex, openai, workflow-dag to SCHEMA.md tag taxonomy'
-    status: done
-    acceptance_criteria:
-    - description: New tags added to SCHEMA.md under appropriate section
-      validation: grep for each tag in SCHEMA.md
-      met: true
-    tasks:
-    - id: p1.d1.t1
-      title: 'Add orchestration-related tags to SCHEMA.md'
-      status: done
-      description: 'Add tags: orchestration, harness-engineering, codex, openai, workflow-dag, agent-md under appropriate taxonomy sections'
-      files:
-      - ~/wiki/SCHEMA.md
-    scope_lines: 20
-    scope_files:
-    - ~/wiki/SCHEMA.md
-  - name: Symphony wiki page
-    description: 'Create concepts/openai-symphony.md covering the orchestration spec, architecture, config params, and issue-tracker-as-control-plane pattern'
-    status: done
-    acceptance_criteria:
-    - description: Page exists with proper frontmatter and 2+ wikilinks
-      validation: read_file and check links
-      met: true
-    - description: 'Covers polling daemon, workspace manager, workflow loader, agent runner, status surface'
-      validation: read page content
-      met: true
-    tasks:
-    - id: p1.d2.t1
-      title: 'Create concepts/openai-symphony.md'
-      status: done
-      description: 'Write wiki page covering Symphony spec mechanics, architecture table, config params, Elixir implementation notes, and 500% PR increase claim'
-      files:
-      - '~/wiki/concepts/openai-symphony.md'
-    scope_lines: 80
-    scope_files:
-    - '~/wiki/concepts/openai-symphony.md'
-  - name: Harness Engineering wiki page
-    description: 'Create concepts/harness-engineering.md covering the three-layer hierarchy (inner/outer/orchestrator), dark factory model, application legibility'
-    status: done
-    acceptance_criteria:
-    - description: Page covers all three harness layers with tooling examples
-      validation: read page content
-      met: true
-    - description: 'Links to Symphony and existing hermes-related pages'
-      validation: check wikilinks
-      met: true
-    tasks:
-    - id: p1.d3.t1
-      title: 'Create concepts/harness-engineering.md'
-      status: done
-      description: 'Write wiki page covering the three-layer harness hierarchy, dark factory model (1M LOC, 0% review), application legibility principles, and structural invariants'
-      files:
-      - '~/wiki/concepts/harness-engineering.md'
-    scope_lines: 100
-    scope_files:
-    - '~/wiki/concepts/harness-engineering.md'
-  - name: Gas Town wiki page
-    description: 'Create concepts/gas-town.md covering the swarm coordination architecture, Beads state management, and specialized agent roles'
-    status: done
-    acceptance_criteria:
-    - description: 'Page covers all 6 agent roles (Mayor, Polecat, Deacon, Refinery, Witness, Dog)'
-      validation: read page content
-      met: true
-    tasks:
-    - id: p1.d4.t1
-      title: 'Create concepts/gas-town.md'
-      status: done
-      description: 'Write wiki page covering Gas Town architecture, Beads/Dolt state mgmt, agent role taxonomy, GUPP principle, and Kubernetes comparison'
-      files:
-      - '~/wiki/concepts/gas-town.md'
-    scope_lines: 90
-    scope_files:
-    - '~/wiki/concepts/gas-town.md'
-  - name: Archon wiki page
-    description: 'Create concepts/archon-deterministic-workflows.md covering YAML DAG pipelines and deterministic vs probabilistic node types'
-    status: done
-    acceptance_criteria:
-    - description: 'Page covers all 4 node types (AI, Bash, Loop, Dependency)'
-      validation: read page content
-      met: true
-    tasks:
-    - id: p1.d5.t1
-      title: 'Create concepts/archon-deterministic-workflows.md'
-      status: done
-      description: 'Write wiki page covering Archon''s YAML DAG approach, node types table, harness-vs-brain debate, and CI/CD-style pipeline for agents'
-      files:
-      - '~/wiki/concepts/archon-deterministic-workflows.md'
-    scope_lines: 70
-    scope_files:
-    - '~/wiki/concepts/archon-deterministic-workflows.md'
-  - name: Ralph Wiggum pattern wiki page
-    description: 'Create concepts/ralph-wiggum-pattern.md covering context management, smart zone, and persistence artifacts'
-    status: done
-    acceptance_criteria:
-    - description: 'Page covers context decay problem, fresh-per-iteration solution, stop hooks'
-      validation: read page content
-      met: true
-    tasks:
-    - id: p1.d6.t1
-      title: 'Create concepts/ralph-wiggum-pattern.md'
-      status: done
-      description: 'Write wiki page covering the Ralph Wiggum loop pattern, context window decay, smart zone concept, git/filesystem persistence, and comparison table'
-      files:
-      - '~/wiki/concepts/ralph-wiggum-pattern.md'
-    scope_lines: 70
-    scope_files:
-    - '~/wiki/concepts/ralph-wiggum-pattern.md'
-  - name: agent.md spec wiki page
-    description: 'Create concepts/agent-md-specification.md covering structure, AAIF adoption, and effective implementation patterns'
-    status: done
-    acceptance_criteria:
-    - description: 'Page covers tech stack definition, executable commands, code examples, three-tier boundaries'
-      validation: read page content
-      met: true
-    tasks:
-    - id: p1.d7.t1
-      title: 'Create concepts/agent-md-specification.md'
-      status: done
-      description: 'Write wiki page covering agent.md structure (4 key sections), AAIF adoption, 2500-repo analysis findings'
-      files:
-      - '~/wiki/concepts/agent-md-specification.md'
-    scope_lines: 70
-    scope_files:
-    - '~/wiki/concepts/agent-md-specification.md'
-  - name: Update wiki index and log
-    description: 'Add all new pages to index.md, fix stale ralph-loop entry, append log entry'
-    status: done
-    acceptance_criteria:
-    - description: All 6 new pages appear in index.md under correct section
-      validation: grep index.md for each page
-      met: true
-    - description: 'Stale claude-code-ralph-loop-explained entry removed or fixed'
-      validation: grep index.md
-      met: true
-    tasks:
-    - id: p1.d8.t1
-      title: Update index.md and log.md
-      status: done
-      description: 'Add all 6 concept pages to index.md, fix stale ralph-loop entry, append bulk ingest log entry'
-      files:
-      - ~/wiki/index.md
-      - ~/wiki/log.md
-    scope_lines: 30
-    scope_files:
-    - ~/wiki/index.md
-    - ~/wiki/log.md
-  dependencies: []
-  technical_notes: Use wiki_ingest MCP tool to pull source material from RAG. Track synthesis with wiki_track. Each page must have 2+ wikilinks to other wiki pages.
-  risks:
-  - 'Some concepts may already have partial coverage in existing pages -- search before creating'
-  scope_lines_total: 530
-  test_target: 0
 - id: 'phase-2'
   title: Map Symphony Patterns to Hermes Infrastructure
   status: complete
@@ -14065,6 +13902,552 @@ phases:
   - 'Hallucination loop detection could false-positive on genuinely hard bugs that multiple workers independently fail to solve -- require distinct error signatures, not just same subtask'
   scope_lines_total: 370
   test_target: 12
+
+- id: 'phase-1'
+  title: Wiki Synthesis from Symphony Research
+  status: complete
+  goal: Extract and synthesize all key concepts from the OpenAI Symphony doc into persistent wiki pages
+  description: |
+    The research doc at ~/zion/docs/research/ covers 6 major concepts that have no wiki
+    representation yet: Symphony, Harness Engineering, Gas Town, Archon, Ralph Wiggum
+    pattern, and agent.md spec. Create focused wiki pages for each, cross-referenced
+    with existing pages. Update the tag taxonomy in SCHEMA.md to include new tags.
+  deliverables:
+  - name: Update wiki tag taxonomy
+    description: 'Add orchestration, harness-engineering, codex, openai, workflow-dag to SCHEMA.md tag taxonomy'
+    status: done
+    acceptance_criteria:
+    - description: New tags added to SCHEMA.md under appropriate section
+      validation: grep for each tag in SCHEMA.md
+      met: true
+    tasks:
+    - id: p1.d1.t1
+      title: 'Add orchestration-related tags to SCHEMA.md'
+      status: done
+      description: 'Add tags: orchestration, harness-engineering, codex, openai, workflow-dag, agent-md under appropriate taxonomy sections'
+      files:
+      - ~/wiki/SCHEMA.md
+    scope_lines: 20
+    scope_files:
+    - ~/wiki/SCHEMA.md
+  - name: Symphony wiki page
+    description: 'Create concepts/openai-symphony.md covering the orchestration spec, architecture, config params, and issue-tracker-as-control-plane pattern'
+    status: done
+    acceptance_criteria:
+    - description: Page exists with proper frontmatter and 2+ wikilinks
+      validation: read_file and check links
+      met: true
+    - description: 'Covers polling daemon, workspace manager, workflow loader, agent runner, status surface'
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d2.t1
+      title: 'Create concepts/openai-symphony.md'
+      status: done
+      description: 'Write wiki page covering Symphony spec mechanics, architecture table, config params, Elixir implementation notes, and 500% PR increase claim'
+      files:
+      - '~/wiki/concepts/openai-symphony.md'
+    scope_lines: 80
+    scope_files:
+    - '~/wiki/concepts/openai-symphony.md'
+  - name: Harness Engineering wiki page
+    description: 'Create concepts/harness-engineering.md covering the three-layer hierarchy (inner/outer/orchestrator), dark factory model, application legibility'
+    status: done
+    acceptance_criteria:
+    - description: Page covers all three harness layers with tooling examples
+      validation: read page content
+      met: true
+    - description: 'Links to Symphony and existing hermes-related pages'
+      validation: check wikilinks
+      met: true
+    tasks:
+    - id: p1.d3.t1
+      title: 'Create concepts/harness-engineering.md'
+      status: done
+      description: 'Write wiki page covering the three-layer harness hierarchy, dark factory model (1M LOC, 0% review), application legibility principles, and structural invariants'
+      files:
+      - '~/wiki/concepts/harness-engineering.md'
+    scope_lines: 100
+    scope_files:
+    - '~/wiki/concepts/harness-engineering.md'
+  - name: Gas Town wiki page
+    description: 'Create concepts/gas-town.md covering the swarm coordination architecture, Beads state management, and specialized agent roles'
+    status: done
+    acceptance_criteria:
+    - description: 'Page covers all 6 agent roles (Mayor, Polecat, Deacon, Refinery, Witness, Dog)'
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d4.t1
+      title: 'Create concepts/gas-town.md'
+      status: done
+      description: 'Write wiki page covering Gas Town architecture, Beads/Dolt state mgmt, agent role taxonomy, GUPP principle, and Kubernetes comparison'
+      files:
+      - '~/wiki/concepts/gas-town.md'
+    scope_lines: 90
+    scope_files:
+    - '~/wiki/concepts/gas-town.md'
+  - name: Archon wiki page
+    description: 'Create concepts/archon-deterministic-workflows.md covering YAML DAG pipelines and deterministic vs probabilistic node types'
+    status: done
+    acceptance_criteria:
+    - description: 'Page covers all 4 node types (AI, Bash, Loop, Dependency)'
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d5.t1
+      title: 'Create concepts/archon-deterministic-workflows.md'
+      status: done
+      description: 'Write wiki page covering Archon''s YAML DAG approach, node types table, harness-vs-brain debate, and CI/CD-style pipeline for agents'
+      files:
+      - '~/wiki/concepts/archon-deterministic-workflows.md'
+    scope_lines: 70
+    scope_files:
+    - '~/wiki/concepts/archon-deterministic-workflows.md'
+  - name: Ralph Wiggum pattern wiki page
+    description: 'Create concepts/ralph-wiggum-pattern.md covering context management, smart zone, and persistence artifacts'
+    status: done
+    acceptance_criteria:
+    - description: 'Page covers context decay problem, fresh-per-iteration solution, stop hooks'
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d6.t1
+      title: 'Create concepts/ralph-wiggum-pattern.md'
+      status: done
+      description: 'Write wiki page covering the Ralph Wiggum loop pattern, context window decay, smart zone concept, git/filesystem persistence, and comparison table'
+      files:
+      - '~/wiki/concepts/ralph-wiggum-pattern.md'
+    scope_lines: 70
+    scope_files:
+    - '~/wiki/concepts/ralph-wiggum-pattern.md'
+  - name: agent.md spec wiki page
+    description: 'Create concepts/agent-md-specification.md covering structure, AAIF adoption, and effective implementation patterns'
+    status: done
+    acceptance_criteria:
+    - description: 'Page covers tech stack definition, executable commands, code examples, three-tier boundaries'
+      validation: read page content
+      met: true
+    tasks:
+    - id: p1.d7.t1
+      title: 'Create concepts/agent-md-specification.md'
+      status: done
+      description: 'Write wiki page covering agent.md structure (4 key sections), AAIF adoption, 2500-repo analysis findings'
+      files:
+      - '~/wiki/concepts/agent-md-specification.md'
+    scope_lines: 70
+    scope_files:
+    - '~/wiki/concepts/agent-md-specification.md'
+  - name: Update wiki index and log
+    description: 'Add all new pages to index.md, fix stale ralph-loop entry, append log entry'
+    status: done
+    acceptance_criteria:
+    - description: All 6 new pages appear in index.md under correct section
+      validation: grep index.md for each page
+      met: true
+    - description: 'Stale claude-code-ralph-loop-explained entry removed or fixed'
+      validation: grep index.md
+      met: true
+    tasks:
+    - id: p1.d8.t1
+      title: Update index.md and log.md
+      status: done
+      description: 'Add all 6 concept pages to index.md, fix stale ralph-loop entry, append bulk ingest log entry'
+      files:
+      - ~/wiki/index.md
+      - ~/wiki/log.md
+    scope_lines: 30
+    scope_files:
+    - ~/wiki/index.md
+    - ~/wiki/log.md
+  dependencies: []
+  technical_notes: Use wiki_ingest MCP tool to pull source material from RAG. Track synthesis with wiki_track. Each page must have 2+ wikilinks to other wiki pages.
+  risks:
+  - 'Some concepts may already have partial coverage in existing pages -- search before creating'
+  scope_lines_total: 530
+  test_target: 0
+
+- id: 'phase-113'
+  title: 'Cognitive Forgetting and Skill Quality Lifecycle'
+  status: planned
+  goal: 'Score accumulated skills, context, and knowledge by utility, and prune low-value entries to maintain agent cognitive performance over time'
+  description: |
+    The Hermes Bots research doc describes a "Dynamic Forgetting Layer" that identifies and prunes
+    "unpriced memory" -- outdated skills or noisy data that no longer provide value but consume
+    computational resources. As agents operate continuously, their accumulated knowledge can become
+    bloated, leading to high latency, cost, and context noise. Phase 101 (Data Lifecycle and Retention)
+    handles storage-level retention (log rotation, file cleanup) but does NOT score knowledge or skills
+    by QUALITY. The Dynamic Forgetting Layer is distinct from storage cleanup -- it prunes based on
+    cognitive utility, not age. This phase implements: (1) skill quality scoring based on usage frequency,
+    success rate, and relevance decay curves, (2) context quality assessment that detects when accumulated
+    context is adding noise rather than signal, (3) automatic pruning of low-utility entries before they
+    are injected into agent prompts, (4) quality metrics reporting to the health scorecard (phase 44).
+    Without this, long-running orchestrators accumulate stale knowledge that degrades agent performance
+    -- the "Red Queen effect" where the system must continuously prune just to maintain quality.
+  deliverables:
+  - name: Skill quality scoring engine
+    description: 'Score each accumulated skill/context entry by utility metrics (usage frequency, success rate, recency, relevance)'
+    status: planned
+    acceptance_criteria:
+    - description: 'Each skill in the registry (phase 57) has an associated quality score'
+      validation: query skill registry, verify quality_score field exists
+      met: false
+    - description: 'Quality scores decay over time based on configurable decay curves'
+      validation: 'check score after simulated time passage'
+      met: false
+    tasks:
+    - id: p113.d1.t1
+      title: Create skill quality scorer module
+      status: planned
+      description: 'Python module that computes quality scores for skills/context entries. Score = f(usage_count, success_rate, recency_decay, relevance_to_current_work). Support configurable decay curves (linear, exponential, step-function). Store scores alongside skill metadata.'
+      files:
+      - '~/zion/projects/agent-orchestration/skill_quality.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/skill_quality.py'
+  - name: Context noise detection
+    description: 'Detect when accumulated context is adding noise rather than signal to agent prompts'
+    status: planned
+    acceptance_criteria:
+    - description: 'System can identify context entries that have negative utility (add noise)'
+      validation: 'inject known-noisy context, verify detection'
+      met: false
+    - description: 'Context injection (phase 82) respects quality thresholds'
+      validation: check context seeding integration
+      met: false
+    tasks:
+    - id: p113.d2.t1
+      title: Create context noise detector
+      status: planned
+      description: 'Module that analyzes context entries before injection and flags low-utility entries. Uses skill quality scores + heuristic rules (stale references, superseded patterns, conflicting advice). Output: filtered context list with quality annotations.'
+      dependencies:
+      - p113.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/context_noise.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/context_noise.py'
+  - name: Automatic pruning pipeline
+    description: 'Automatically prune low-utility skills and context entries based on configurable thresholds'
+    status: planned
+    acceptance_criteria:
+    - description: 'Entries below quality threshold are archived (not deleted) after review period'
+      validation: run pruning, check archive
+      met: false
+    - description: 'Pruning runs as part of periodic maintenance (phase 66)'
+      validation: check maintenance cron integration
+      met: false
+    tasks:
+    - id: p113.d3.t1
+      title: Create pruning pipeline
+      status: planned
+      description: 'Module that runs periodically: (1) score all skills/context, (2) identify entries below threshold, (3) archive to ~/.orchestrator/pruned/ with metadata, (4) report pruning stats. Support --dry-run. Integrate with maintenance automation (phase 66).'
+      dependencies:
+      - p113.d1.t1
+      - p113.d2.t1
+      files:
+      - '~/zion/projects/agent-orchestration/pruning.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/pruning.py'
+  - name: Quality metrics integration
+    description: 'Report skill/context quality metrics to health scorecard and self-improvement analysis'
+    status: planned
+    acceptance_criteria:
+    - description: 'Health scorecard (phase 44) includes knowledge quality trend'
+      validation: check health scorecard output
+      met: false
+    - description: 'Self-improvement loop (phase 19) consumes quality trends'
+      validation: check improvement analysis input
+      met: false
+    tasks:
+    - id: p113.d4.t1
+      title: Integrate quality metrics with health scorecard
+      status: planned
+      description: 'Add knowledge quality section to health scorecard: total skills, average quality, pruned count, noise ratio trend. Feed into self-improvement loop (phase 19) for analysis.'
+      dependencies:
+      - p113.d3.t1
+      files:
+      - '~/zion/projects/agent-orchestration/skill_quality.py'
+    scope_lines: 40
+    scope_files:
+    - '~/zion/projects/agent-orchestration/skill_quality.py'
+  dependencies:
+  - source: 'phase-57'
+    target: 'phase-113'
+    type: soft
+    reason: 'Skill registry from phase 57 provides the skills that quality scoring evaluates'
+  - source: 'phase-82'
+    target: 'phase-113'
+    type: soft
+    reason: 'Context seeding from phase 82 is the injection point where quality filtering applies'
+  - source: 'phase-101'
+    target: 'phase-113'
+    type: soft
+    reason: 'Data lifecycle from phase 101 handles storage cleanup; this phase handles cognitive quality pruning'
+  technical_notes: 'The Dynamic Forgetting Layer is complementary to Phase 101 (storage lifecycle). Phase 101 deletes old files; this phase scores knowledge quality and archives low-utility entries. The distinction is cognitive vs. storage: a skill can be "old" but still highly useful (e.g., a rarely-used but critical security check), or "new" but low-quality (e.g., a recently created but buggy tool).'
+  risks:
+  - 'Pruning useful skills is worse than keeping useless ones -- default thresholds should be conservative'
+  - 'Quality scoring requires execution history data -- cold start problem for new skills'
+  - 'Different task types may have different quality criteria -- one-size-fits-all scoring may not work'
+  scope_lines_total: 300
+  test_target: 8
+- id: 'phase-114'
+  title: 'Multi-Platform Control Plane Adapters'
+  status: planned
+  goal: 'Abstract the orchestrator poller to support multiple issue tracker backends (GitHub, Linear, Jira, GitLab) via pluggable adapters'
+  description: |
+    The OpenAI Symphony spec defines tracker.kind as a configuration parameter supporting multiple
+    issue tracker types (currently Linear). The Issue Trackers research doc emphasizes that "any
+    enterprise application with a clear data model is a candidate for an agent substrate," citing
+    Jira, Linear, GitHub, and even CRMs/ERPs as potential control planes. The current orchestrator
+    (phase 4) is hardcoded to GitHub Issues via the gh CLI. This phase abstracts the poller into
+    a pluggable adapter interface, enabling the orchestrator to consume work from any issue tracker
+    that implements the adapter protocol. This directly supports the Symphony spec's tracker.kind
+    parameter and makes the orchestrator applicable to teams that use Jira, Linear, or GitLab instead
+    of GitHub. Each adapter implements: list_issues(filter), get_issue(id), update_status(id, status),
+    add_comment(id, body), and create_issue(data). The orchestrator calls the adapter interface
+    instead of gh CLI directly. Phase 56 (Symphony Spec Compliance Adapter) already references
+    Linear support but focuses on Symphony compliance, not generic multi-platform support.
+  deliverables:
+  - name: Tracker adapter interface
+    description: 'Define abstract tracker adapter protocol with standardized methods for issue CRUD operations'
+    status: planned
+    acceptance_criteria:
+    - description: 'Abstract base class or protocol defines: list_issues, get_issue, update_status, add_comment, create_issue'
+      validation: read adapter interface definition
+      met: false
+    - description: 'Issue model normalizes fields across platforms (title, body, status, labels, assignee)'
+      validation: check model definition
+      met: false
+    tasks:
+    - id: p114.d1.t1
+      title: Create tracker adapter interface
+      status: planned
+      description: 'Python module with abstract TrackerAdapter base class and NormalizedIssue dataclass. Define standard methods: list_issues(filter_state, filter_labels), get_issue(id), update_status(id, status), add_comment(id, body), create_issue(title, body, labels). Normalize platform-specific fields to standard model.'
+      files:
+      - '~/zion/projects/agent-orchestration/tracker_adapter.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/tracker_adapter.py'
+  - name: GitHub Issues adapter (refactor)
+    description: 'Refactor existing poller.py to implement the adapter interface, preserving current functionality'
+    status: planned
+    acceptance_criteria:
+    - description: 'GitHub adapter implements TrackerAdapter and passes all existing poller tests'
+      validation: 'python3 -m pytest test_orchestrator_modules.py -v'
+      met: false
+    - description: 'No behavioral change to existing orchestrator cron jobs'
+      validation: run orchestrator, verify same output
+      met: false
+    tasks:
+    - id: p114.d2.t1
+      title: Refactor poller.py to use adapter interface
+      status: planned
+      description: 'Create GitHubAdapter class implementing TrackerAdapter. Wraps existing gh CLI calls. Refactor poller.py to accept a tracker adapter instead of calling gh directly. Ensure all existing tests pass.'
+      dependencies:
+      - p114.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/github_adapter.py'
+      - '~/zion/projects/agent-orchestration/poller.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/github_adapter.py'
+    - '~/zion/projects/agent-orchestration/poller.py'
+  - name: Linear adapter
+    description: 'Implement Linear API adapter as second backend, matching the Symphony spec tracker.kind'
+    status: planned
+    acceptance_criteria:
+    - description: 'Linear adapter implements TrackerAdapter using Linear GraphQL API'
+      validation: read adapter code, verify API calls
+      met: false
+    - description: 'Config can select tracker.kind: linear and orchestrator polls Linear instead of GitHub'
+      validation: test with Linear API key
+      met: false
+    tasks:
+    - id: p114.d3.t1
+      title: Create Linear adapter
+      status: planned
+      description: 'Create LinearAdapter class implementing TrackerAdapter. Uses Linear GraphQL API (via urllib, no external deps). Maps Linear states (Todo, In Progress, Done, Canceled) to standard model. Maps Linear labels to standard labels. Requires LINEAR_API_KEY in config.'
+      dependencies:
+      - p114.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/linear_adapter.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/linear_adapter.py'
+  - name: Jira adapter
+    description: 'Implement Jira REST API adapter for enterprise teams using Atlassian products'
+    status: planned
+    acceptance_criteria:
+    - description: 'Jira adapter implements TrackerAdapter using Jira REST API v3'
+      validation: read adapter code
+      met: false
+    - description: 'Config can select tracker.kind: jira with Jira server URL and auth token'
+      validation: test config loading
+      met: false
+    tasks:
+    - id: p114.d4.t1
+      title: Create Jira adapter
+      status: planned
+      description: 'Create JiraAdapter class implementing TrackerAdapter. Uses Jira REST API v3 (via urllib, no external deps). Maps Jira workflow states to standard model. Supports JQL queries for filtering. Requires JIRA_URL and JIRA_TOKEN in config.'
+      dependencies:
+      - p114.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/jira_adapter.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/jira_adapter.py'
+  dependencies:
+  - source: 'phase-4'
+    target: 'phase-114'
+    type: soft
+    reason: 'Multi-platform adapters refactor the poller from phase 4'
+  - source: 'phase-56'
+    target: 'phase-114'
+    type: soft
+    reason: 'Symphony compliance adapter from phase 56 already references Linear; this phase provides the generic framework'
+  - source: 'phase-71'
+    target: 'phase-114'
+    type: soft
+    reason: 'Config validation from phase 71 should validate tracker adapter configuration'
+  technical_notes: 'No external dependencies. Use urllib for HTTP calls. Each adapter is a standalone Python file. The orchestrator config adds tracker.kind (github|linear|jira) and tracker.* auth fields. GitHub adapter wraps existing gh CLI calls -- no behavioral change to existing users.'
+  risks:
+  - 'Linear and Jira APIs have rate limits different from GitHub -- need per-adapter rate limiting'
+  - 'Issue field mapping across platforms is lossy -- some platform-specific fields cannot be normalized'
+  - 'API tokens for Linear/Jira need secure storage -- use env vars, never commit to config'
+  - 'Platform-specific webhook handling may be needed for event-driven triggers (phase 37)'
+  scope_lines_total: 360
+  test_target: 10
+- id: 'phase-115'
+  title: 'Shadow Prompt Engine and Parallel Comparison'
+  status: planned
+  goal: 'Run parallel prompt variations on the same task for diagnostic comparison, optimization, and regression testing'
+  description: |
+    The Geometry OS Autodev Loop research describes a "Shadow Compiler" -- parallel prompt generation
+    for diagnostic comparison and regression testing. Unlike Phase 92 (Agent Simulation) which uses
+    mock agent backends for zero-cost testing, the Shadow Prompt Engine runs REAL prompt variations
+    in parallel on the same task and compares outputs for quality, cost, and latency. This enables:
+    (1) A/B testing of prompt strategies without manual intervention, (2) regression detection when
+    prompt templates change, (3) identification of the most cost-effective prompt for each task type,
+    (4) diagnostic comparison when an agent produces unexpected results. The engine takes a task
+    description, generates N prompt variations (from prompt library phase 62, with optional mutations),
+    runs them in parallel via delegate_task, and produces a comparison report. Results feed into
+    prompt optimization (phase 90) and A/B testing analytics (phase 29). This is distinct from
+    Phase 92 because simulation uses mocks (no real LLM calls) while shadow prompting runs real
+    prompts (actual LLM calls with real token costs, but on the same task for apples-to-apples comparison).
+  deliverables:
+  - name: Shadow prompt runner
+    description: 'Module that takes a task, generates prompt variations, runs them in parallel, and collects results'
+    status: planned
+    acceptance_criteria:
+    - description: 'Can run 2+ prompt variations on the same task in parallel'
+      validation: run shadow comparison, verify parallel execution
+      met: false
+    - description: 'Each variation produces structured output (result, cost, latency, quality score)'
+      validation: check output format
+      met: false
+    tasks:
+    - id: p115.d1.t1
+      title: Create shadow prompt runner module
+      status: planned
+      description: 'Python module that: (1) takes a task description and N prompt variations, (2) runs each variation via delegate_task in parallel subprocesses, (3) collects structured results (output, token_cost, duration, exit_code), (4) optionally runs quality assessment on each output. Support --max-parallel flag to limit concurrent runs.'
+      files:
+      - '~/zion/projects/agent-orchestration/shadow_prompt.py'
+    scope_lines: 120
+    scope_files:
+    - '~/zion/projects/agent-orchestration/shadow_prompt.py'
+  - name: Prompt variation generator
+    description: 'Generate systematic prompt variations from base prompts for comparison testing'
+    status: planned
+    acceptance_criteria:
+    - description: 'Can generate variations by: temperature, system prompt changes, context inclusion/exclusion, instruction rephrasing'
+      validation: generate variations, verify differences
+      met: false
+    - description: 'Variations are deterministic and reproducible (seeded randomization)'
+      validation: run twice, verify same variations
+      met: false
+    tasks:
+    - id: p115.d2.t1
+      title: Create prompt variation generator
+      status: planned
+      description: 'Module that takes a base prompt and generates N variations using configurable mutation strategies: (1) temperature variants (low/medium/high), (2) system prompt additions/removals, (3) context section permutations, (4) instruction rephrasing (formal/casual/concise), (5) few-shot example variations. Use seeded randomization for reproducibility.'
+      dependencies:
+      - p115.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/prompt_variator.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/prompt_variator.py'
+  - name: Comparison report generator
+    description: 'Generate structured comparison reports from shadow prompt run results'
+    status: planned
+    acceptance_criteria:
+    - description: 'Report shows side-by-side comparison of all variations with quality, cost, latency metrics'
+      validation: generate report, check format
+      met: false
+    - description: 'Report identifies the best variation by configurable scoring (quality-weighted, cost-weighted, balanced)'
+      validation: check ranking logic
+      met: false
+    tasks:
+    - id: p115.d3.t1
+      title: Create comparison report generator
+      status: planned
+      description: 'Module that takes shadow run results and produces: (1) terminal table with per-variation metrics, (2) ranking by configurable scoring function, (3) diff view showing output differences, (4) recommendation (best prompt for this task type). Output as terminal table, JSON, or Markdown.'
+      dependencies:
+      - p115.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/shadow_report.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/shadow_report.py'
+  - name: Regression detection integration
+    description: 'Detect prompt regression by comparing current outputs against historical baselines'
+    status: planned
+    acceptance_criteria:
+    - description: 'Can detect when a prompt template change degrades output quality vs. historical baseline'
+      validation: change prompt, run comparison, verify regression detected
+      met: false
+    - description: 'Regression results feed into prompt optimization (phase 90)'
+      validation: check optimization input
+      met: false
+    tasks:
+    - id: p115.d4.t1
+      title: Create regression detection module
+      status: planned
+      description: 'Module that maintains historical baselines for recurring task types. When a prompt template changes, automatically runs shadow comparison against baseline. Flags regression if quality drops below threshold. Feeds results into prompt optimization (phase 90) for automated rollback or refinement.'
+      dependencies:
+      - p115.d3.t1
+      files:
+      - '~/zion/projects/agent-orchestration/shadow_regression.py'
+    scope_lines: 60
+    scope_files:
+    - '~/zion/projects/agent-orchestration/shadow_regression.py'
+  dependencies:
+  - source: 'phase-62'
+    target: 'phase-115'
+    type: soft
+    reason: 'Prompt library from phase 62 provides the base prompts that shadow comparison evaluates'
+  - source: 'phase-90'
+    target: 'phase-115'
+    type: soft
+    reason: 'Prompt optimization from phase 90 consumes shadow comparison results'
+  - source: 'phase-29'
+    target: 'phase-115'
+    type: soft
+    reason: 'A/B testing analytics from phase 29 can incorporate shadow comparison data'
+  - source: 'phase-32'
+    target: 'phase-115'
+    type: soft
+    reason: 'Cost tracking from phase 32 provides the cost data that shadow comparison needs'
+  technical_notes: 'Shadow prompting is expensive (N real LLM calls per task). Default to N=2 for routine use, N=3-5 for optimization passes. Support --dry-run to preview variations without execution. Cost tracking integration (phase 32) ensures shadow runs are attributed correctly. This is a POWER USER feature -- not for everyday use, but essential for prompt optimization and regression detection.'
+  risks:
+  - 'Shadow prompting multiplies token costs by N -- needs explicit cost controls and warnings'
+  - 'Parallel execution may hit API rate limits -- respect backpressure from phase 70'
+  - 'Quality comparison between variations is subjective -- use deterministic metrics where possible'
+  - 'Historical baselines may become stale as models improve -- need periodic baseline refresh'
+  scope_lines_total: 340
+  test_target: 8
 global_risks:
 - 'Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change'
 - 'delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)'
@@ -14177,7 +14560,7 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 112
+  phases_total: 115
   estimated_weeks: '128-155'
   updated: '2026-05-03'
   phases_added:
@@ -14281,6 +14664,9 @@ meta:
   - 104
   - 111
   - 112
+  - 113
+  - 114
+  - 115
   phases_added_from: 'Phase 59-64: Six new phases derived from gap analysis of the research document against the existing 58-phase roadmap. Phase 59 (PR Velocity Metrics) addresses the "500% PR increase"
     claim with a dedicated ROI measurement layer -- the research opens with this metric but no phase measured it. Phase 60 (Human-Agent Workflow Optimization) builds tooling for the "from coder to architect"
     transformation described in the research, optimizing the human bottleneck (ticket filing, PR review queues, triage). Phase 61 (Agent Quality Regression Testing) creates a benchmarking framework to catch
@@ -14353,3 +14739,25 @@ meta:
   phases_added_from: |2
 
     Phase 111-112: Two new phases derived from a twelfth gap analysis pass focused on ADDITIONAL RESEARCH SOURCES not previously analyzed. Previous eleven passes analyzed only the primary research doc ("OpenAI Symphony: Agent Orchestration Explained") and achieved 100% concept coverage against that single source. This pass analyzed two additional research documents: (1) "Issue Trackers as AI Agent Control Planes" (Nate Jones analysis, 211 lines, 44 citations), and (2) "AI Drafting: From Autocomplete to Orchestration" (hierarchical orchestration patterns, 135 lines, 33 citations). From these sources, two genuinely new concepts were identified that have no equivalent in any of the 110 existing phases: (A) MCP (Model Context Protocol) Integration -- the "USB-C for AI" standard open-sourced by Anthropic that provides standardized tool/resource/prompt discovery between agents. No existing phase covers bidirectional MCP support (server + client). The orchestrator currently has a static, Hermes-specific tool interface (delegate_task). MCP makes the orchestrator interoperable with the broader agent ecosystem. Phase 111 creates an MCP server (exposing orchestrator capabilities) and MCP client (discovering external tools for workers). (B) Coordination Failure Detection -- the Issue Trackers research identifies four specific, named multi-agent coordination failure modes with concrete mitigation patterns: Handoff Drift (objective loss during delegation, mitigated by "Manifest of Objective"), Token Holding (agents refusing to release resources, mitigated by Lease Tokens with TTL), Recursive Inception (unbounded delegation depth, mitigated by depth limits), and Hallucination Loops (error compounding across handoffs, mitigated by phase gates). None of these four patterns are addressed by existing phases -- phase 76 covers dedup but not drift, phase 70 covers backpressure but not token holding, phase 15 covers safety but not delegation depth, phase 9 covers review but not cross-handoff hallucination detection. Phase 112 creates a dedicated coordination_safety.py module with four subsystems. Other concepts from the additional research (memory hierarchy, agent-to-agent communication, transaction closure theory, guardian agents) were found to be adequately covered by existing phases.
+  phases_added_from_thirteenth_pass: |2
+
+    Phase 113-115: Three new phases derived from a thirteenth gap analysis pass focused on two
+    research sources not previously analyzed: (1) "Hermes Bots: Autonomous AI Architecture" (167 lines,
+    13 citations), describing Cognitive CI/CD, skill authoring, three-tiered memory, and the Dynamic
+    Forgetting Layer concept, and (2) "Geometry OS Autodev Loop" (259 lines), describing lease-based
+    worker election, stale claim stealing, block/defer escalation, and the Shadow Compiler concept.
+    Previous twelve passes achieved 100% concept coverage against the primary Symphony research doc and
+    its supplements. This pass analyzed the two remaining research documents and identified three genuinely
+    new concepts not covered by any of the 112 existing phases: (A) Dynamic Forgetting Layer -- the
+    Hermes Bots research describes a system that scores accumulated skills/knowledge by cognitive utility
+    and prunes low-value entries to reduce context noise. Phase 101 (Data Lifecycle) handles storage
+    retention but NOT cognitive quality scoring. Phase 113 closes this gap with skill quality scoring,
+    context noise detection, and automated pruning. (B) Multi-Platform Control Plane Adapters -- the
+    Symphony spec defines tracker.kind as a configuration parameter, and the Issue Trackers research
+    emphasizes that any enterprise tool with a clear data model can serve as an agent substrate.
+    Phase 4 is hardcoded to GitHub Issues. Phase 114 creates a pluggable adapter interface with
+    GitHub, Linear, and Jira backends. (C) Shadow Prompt Engine -- the Geometry OS research describes
+    a "Shadow Compiler" that runs parallel prompt variations for diagnostic comparison. Phase 92
+    (Simulation) uses mock backends for zero-cost testing, but shadow prompting runs REAL prompts in
+    parallel for quality/cost optimization and regression detection. Phase 115 creates the shadow
+    prompt runner, variation generator, comparison reporter, and regression detector.
