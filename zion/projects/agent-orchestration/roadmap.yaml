@@ -2211,7 +2211,7 @@ phases:
   test_target: 10
 - id: 'phase-22'
   title: 'Config Hot-Reload and Live Tuning'
-  status: planned
+  status: complete
   goal: 'Enable the orchestrator to pick up config changes without restart, supporting live parameter tuning'
   description: 'Symphony''s Elixir implementation features hot code reloading, allowing system updates without interrupting active agent sessions. The Hermes orchestrator reads its config (orchestrator.yaml,
     role profiles, pipeline YAMLs) once at startup. If you change max_concurrent or swap a pipeline template, you must restart the cron job. This phase adds file-watching that detects config changes and
@@ -2220,18 +2220,18 @@ phases:
   deliverables:
   - name: Config watcher module
     description: Python module that watches config files for changes and triggers reload
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Module detects changes to YAML config files within 5 seconds
       validation: 'modify config file, check reload is triggered'
-      met: false
+      met: true
     - description: 'Supports watching orchestrator.yaml, role profiles, and pipeline YAMLs'
       validation: 'modify each type, verify detection'
-      met: false
+      met: true
     tasks:
     - id: p22.d1.t1
       title: Create config_watcher.py module
-      status: planned
+      status: done
       description: 'Python module that: (1) watches specified config files using filesystem modification time (polling every 5s, no inotify dependency), (2) on change, reloads the config and validates it,
         (3) calls registered callbacks for each config type (on_orchestrator_config_change, on_role_change, on_pipeline_change), (4) logs all config reloads with before/after diff, (5) supports --watch
         flag for standalone operation and programmatic API for integration. Use file hashing to avoid spurious reloads.'
@@ -2242,18 +2242,18 @@ phases:
     - '~/zion/projects/agent-orchestration/config_watcher.py'
   - name: 'Hot-reload integration in orchestrator'
     description: Integrate config watcher into the orchestrator main loop
-    status: planned
+    status: done
     acceptance_criteria:
     - description: 'Orchestrator picks up config changes mid-loop without restart'
       validation: 'change max_concurrent while orchestrator is running, verify new limit applies'
-      met: false
+      met: true
     - description: Role profile changes are picked up for new workers
       validation: 'modify a role YAML, spawn new worker, verify new prompts used'
-      met: false
+      met: true
     tasks:
     - id: p22.d2.t1
       title: Integrate config_watcher into orchestrator.py
-      status: planned
+      status: done
       description: 'Modify orchestrator.py to: (1) instantiate config_watcher at startup with callbacks for each config type, (2) on orchestrator.yaml change: reload max_concurrent, repo, labels, pipeline
         path, (3) on role YAML change: reload affected role profile (roles.py already loads from disk, just need cache invalidation), (4) on pipeline YAML change: next execution uses updated pipeline, (5)
         add --no-watch flag to disable hot-reload for debugging. Log all reloads to execution history.'
@@ -2266,15 +2266,15 @@ phases:
     - '~/zion/projects/agent-orchestration/orchestrator.py'
   - name: Config change audit trail
     description: Log all config changes with diffs and timestamps for debugging
-    status: planned
+    status: done
     acceptance_criteria:
     - description: All config changes are logged with before/after values
       validation: 'change config, check audit log'
-      met: false
+      met: true
     tasks:
     - id: p22.d3.t1
       title: Add config audit logging
-      status: planned
+      status: done
       description: 'Append config change events to ~/.orchestrator/logs/config-changes.jsonl. Each entry: timestamp, config_type (orchestrator/role/pipeline), file_path, change_type (modified/added/deleted),
         diff_summary (what changed in human-readable form), reloaded_successfully (bool). Add a CLI subcommand to config_watcher.py: audit (show recent changes), rollback (restore previous config version
         if backed up).'
