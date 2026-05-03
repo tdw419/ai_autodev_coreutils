@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/115 phases complete, 0 in progress
+**Progress:** 22/119 phases complete, 0 in progress
 
-**Deliverables:** 86/459 complete
+**Deliverables:** 86/475 complete
 
-**Tasks:** 86/459 complete
+**Tasks:** 86/475 complete
 
 ## Scope Summary
 
@@ -127,6 +127,10 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-113 Cognitive Forgetting and Skill Quality Lifecycle | PLANNED | 0/4 | 300 | 8 |
 | phase-114 Multi-Platform Control Plane Adapters | PLANNED | 0/4 | 360 | 10 |
 | phase-115 Shadow Prompt Engine and Parallel Comparison | PLANNED | 0/4 | 340 | 8 |
+| phase-116 Commit-Based Stagnation Circuit Breaker | PLANNED | 0/4 | 520 | 10 |
+| phase-117 Cron Session Mutex with Stale Lock Detection | PLANNED | 0/4 | 370 | 10 |
+| phase-118 Memory Consolidation Cycle (AutoDream) | PLANNED | 0/4 | 590 | 10 |
+| phase-119 Preflight Environment Doctor | PLANNED | 0/4 | 500 | 10 |
 
 ## Dependencies
 
@@ -561,6 +565,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-90 | phase-115 | soft | Prompt optimization from phase 90 consumes shadow comparison results |
 | phase-29 | phase-115 | soft | A/B testing analytics from phase 29 can incorporate shadow comparison data |
 | phase-32 | phase-115 | soft | Cost tracking from phase 32 provides the cost data that shadow comparison needs |
+| phase-14 | phase-116 | soft | Health monitor detects stuck workspaces by time; stagnation detector complements by detecting no-progress ticks |
+| phase-70 | phase-116 | soft | Backpressure circuit breakers handle API failures; stagnation circuit breakers handle task-level failures |
+| phase-19 | phase-116 | soft | Self-improvement loop can consume stagnation analytics for strategy optimization |
+| phase-14 | phase-117 | soft | Health monitor checks mutex status as part of system health |
+| phase-51 | phase-117 | soft | Federation lock handles cross-instance locking; cron mutex handles same-instance locking |
+| phase-47 | phase-118 | soft | Knowledge base from phase 47 is the primary data source for consolidation |
+| phase-113 | phase-118 | soft | Consolidation runs after forgetting -- prune first, then merge the survivors |
+| phase-66 | phase-118 | soft | Periodic maintenance framework from phase 66 schedules the consolidation cycle |
+| phase-117 | phase-119 | soft | Preflight runs after mutex acquisition -- no point checking environment if another tick is running |
+| phase-14 | phase-119 | soft | Health monitor reports environment issues; preflight prevents them from blocking a tick |
+| phase-71 | phase-119 | soft | Config validation from phase 71 is a subset of the preflight config check |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -6568,6 +6583,351 @@ Shadow prompting is expensive (N real LLM calls per task). Default to N=2 for ro
 - Parallel execution may hit API rate limits -- respect backpressure from phase 70
 - Quality comparison between variations is subjective -- use deterministic metrics where possible
 - Historical baselines may become stale as models improve -- need periodic baseline refresh
+
+## [ ] phase-116: Commit-Based Stagnation Circuit Breaker (PLANNED)
+
+**Goal:** Detect when an agent fails to make progress across consecutive cron ticks and halt execution to prevent wasting API credits on unsolvable tasks
+
+The "Autonomous Coding Loop Explained" research describes a "circuit breaker to detect stagnation:
+if the agent fails to produce a commit for 3 consecutive ticks, the circuit breaker opens." This is
+a task-level circuit breaker distinct from the API-level circuit breakers in phase 70 (Backpressure).
+Phase 14 (Health Monitor) detects stuck workspaces by time elapsed, but cannot detect the case where
+an agent successfully completes a tick (no crash, no timeout) yet makes zero meaningful progress -- the
+"no-op loop" where the agent reads files, reasons, but fails to commit anything useful. The research
+tracks this via commit SHA stability (HEAD unchanged after tick), unique files changed (detecting
+"hallucination loops" where the agent edits the same file repeatedly without converging), and test
+coverage delta (ensuring the agent is not "fixing" code by deleting tests). This phase implements:
+(1) pre-tick HEAD capture and post-tick comparison, (2) unique files changed tracking across ticks,
+(3) "hallucination loop" detection when the same files are modified repeatedly without new commits,
+(4) configurable thresholds (default: 3 consecutive no-commit ticks triggers circuit breaker),
+(5) automatic escalation to human notification when the breaker opens, (6) optional auto-skip of
+the current task to try the next roadmap item. This prevents the most expensive failure mode: an
+agent burning unlimited tokens on a task it cannot solve.
+
+### Deliverables
+
+- [ ] **Stagnation detector module** -- Track commit SHA stability, file change patterns, and no-op tick counts across consecutive cron ticks
+  - [ ] `p116.d1.t1` Create stagnation_detector.py module (depends: p116.d1.t1)
+    > Create stagnation_detector.py: (1) TickProgress dataclass: tick_id, head_sha_before, head_sha_after,
+    > files_changed (set), has_commit (bool), timestamp, (2) StagnationDetector class: tracks last N ticks
+    > per task/issue, (3) record_tick(issue, head_before, head_after, files_changed): append to history,
+    > (4) is_stagnant(issue) -> bool: return True if consecutive_no_commit_ticks >= threshold (default 3),
+    > (5) is_hallucination_loop(issue) -> bool: return True if same files modified in 3+ consecutive ticks
+    > without new commits, (6) get_progress_report(issue) -> dict: summary of recent tick activity with
+    > recommendations, (7) reset(issue): clear history for an issue (called after task completion or manual
+    > intervention), (8) persist state to ~/.orchestrator/stagnation.json, (9) CLI: python3 stagnation_detector.py
+    > --status ISSUE, --report, --reset ISSUE.
+    _Files: ~/zion/projects/agent-orchestration/stagnation_detector.py_
+  - [ ] Captures git HEAD SHA before and after each tick, detects no-commit ticks
+    _Validation: simulate 3 ticks with no commits, verify circuit opens on 3rd_
+  - [ ] Tracks unique files changed per tick to detect hallucination loops
+    _Validation: simulate 5 ticks editing the same file, verify loop detected_
+- [ ] **Orchestrator integration** -- Integrate stagnation detection into the orchestrator loop to skip or halt stuck tasks
+  - [ ] `p116.d2.t1` Integrate stagnation detection into orchestrator.py (depends: p116.d1.t1)
+    > Modify orchestrator.py run_loop(): (1) after selecting an issue for work, check stagnation_detector.is_stagnant(issue),
+    > (2) if stagnant: log warning, skip issue, optionally notify human (via phase 106 alerting), move to next issue,
+    > (3) after each worker completes, call stagnation_detector.record_tick() with HEAD SHA before/after and
+    > git diff --name-only output, (4) add stagnation section to orchestrator status output: per-issue tick count,
+    > circuit state, (5) add config: stagnation.enabled (bool, default true), stagnation.max_no_commit_ticks (int, default 3),
+    > stagnation.max_loop_ticks (int, default 3), stagnation.auto_skip (bool, default false).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator checks stagnation before spawning worker, skips task if circuit is open
+    _Validation: run orchestrator with simulated stagnant history, verify skip_
+- [ ] **Hallucination loop analytics** -- Track and report patterns where agents edit the same files repeatedly without converging
+  - [ ] `p116.d3.t1` Add hallucination loop reporting to self_improve.py (depends: p116.d1.t1, p19.d1.t1)
+    > Extend self_improve.py: (1) add analyze_stagnation() function that reads stagnation state and identifies
+    > patterns, (2) categorize stagnation causes: no-commit (agent cannot solve), hallucination-loop (agent is stuck
+    > editing same files), slow-progress (agent commits but fails tests), (3) correlate with task metadata (role,
+    > complexity, issue labels) to identify which types of tasks trigger stagnation, (4) produce weekly stagnation
+    > report for the self-improvement loop, (5) recommend task decomposition for chronically stagnant tasks.
+    _Files: ~/zion/projects/agent-orchestration/self_improve.py_
+  - [ ] Produces a report showing which issues triggered hallucination loops and why
+    _Validation: run on synthetic history with known loops, verify report_
+- [ ] **Stagnation detector tests** -- Test stagnation detection, circuit breaking, and hallucination loop identification
+  - [ ] `p116.d4.t1` Create test_stagnation_detector.py (depends: p116.d1.t1)
+    > Create test_stagnation_detector.py: (1) test no-commit detection: 3 ticks with same HEAD, verify circuit opens,
+    > (2) test hallucination loop: 3 ticks editing same files, verify loop detected, (3) test recovery: after reset,
+    > verify detector allows new ticks, (4) test partial progress: 1 commit then 2 no-commit ticks, verify circuit stays
+    > closed, (5) test multi-issue tracking: 3 issues, one stagnant, others fine, verify only stagnant one flagged,
+    > (6) test persistence: write state, reload, verify state preserved, (7) test orchestrator integration with mock
+    > orchestrator loop.
+    _Files: ~/zion/projects/agent-orchestration/test_stagnation_detector.py_
+  - [ ] Tests cover all stagnation detection modes with mocked git state
+    _Validation: python3 -m pytest test_stagnation_detector.py -v_
+
+### Technical Notes
+
+The key distinction from phase 70: backpressure circuit breakers stop calling BROKEN APIs. Stagnation circuit breakers
+stop working on UNSOLVABLE TASKS. Both use the same circuit breaker pattern (threshold -> open -> cooldown -> recover)
+but at different levels. The research specifically calls out the economic motivation: "prevents the system from burning
+API credits on a task that the model is incapable of solving without human intervention." This is the single most
+expensive failure mode in autonomous loops. Git HEAD comparison is the canonical progress signal -- the research calls
+it "the singular metric of progress."
+
+### Risks
+
+- Threshold too low may halt legitimate long-running tasks that take multiple ticks to complete
+- Threshold too high wastes tokens on genuinely stuck tasks
+- File-level hallucination detection may false-positive on legitimate iterative refinement (e.g., TDD red-green-refactor)
+
+## [ ] phase-117: Cron Session Mutex with Stale Lock Detection (PLANNED)
+
+**Goal:** Prevent overlapping cron tick executions from the same orchestrator instance, with automatic stale lock cleanup
+
+The "Autonomous Coding Loop Explained" research describes writing a PID to /tmp/agent_tick.lock
+to prevent concurrent execution: "If a lock file exists but the PID is no longer alive, the harness
+must be capable of cleaning up the stale lock to allow the next tick to proceed. This self-healing
+property is essential for unattended operation." Phase 51 (Federation Lock) handles distributed locking
+across multiple orchestrator instances via GitHub labels, but nothing prevents the SAME instance from
+running two overlapping ticks -- e.g., a 5-minute cron fires while the previous tick is still executing.
+The research warns this causes "session hijacking, where multiple agents attempt to modify the same file"
+and "API rate limiting that halts development entirely." This phase implements: (1) file-based mutex
+using PID files, (2) stale lock detection via /proc/PID existence check, (3) forced cleanup after
+configurable timeout, (4) integration with the orchestrator entry point as a pre-loop guard, (5) lock
+status reporting in the health monitor. This is a fundamental primitive for safe unattended operation.
+
+### Deliverables
+
+- [ ] **Cron mutex module** -- File-based PID lock with stale detection for preventing overlapping cron sessions
+  - [ ] `p117.d1.t1` Create cron_mutex.py module
+    > Create cron_mutex.py: (1) CronMutex class: lock_path (default /tmp/orch_tick.lock), stale_timeout
+    > (default 3600s), (2) acquire() -> bool: try to create lock file with PID, return False if already locked
+    > by live process, auto-clean if stale, (3) release(): remove lock file (only if owned by current PID),
+    > (4) is_locked() -> bool: check if lock exists and holder is alive, (5) get_status() -> dict: locked (bool),
+    > holder_pid (int), holder_alive (bool), lock_age (seconds), stale (bool), (6) stale detection: check
+    > /proc/{pid}/ exists (Linux), or ps -p {pid} (cross-platform), if PID dead and lock_age > stale_timeout,
+    > auto-clean and return True from acquire(), (7) CLI: python3 cron_mutex.py --acquire, --release, --status,
+    > --force-clean. Use fcntl.flock() for atomic file locking where available.
+    _Files: ~/zion/projects/agent-orchestration/cron_mutex.py_
+  - [ ] Acquires lock before tick, releases after tick, prevents overlapping execution
+    _Validation: run two orchestrator instances simultaneously, verify only one proceeds_
+  - [ ] Detects stale lock from dead process and auto-cleans
+    _Validation: write lock file with dead PID, verify next tick cleans and proceeds_
+- [ ] **Orchestrator mutex integration** -- Wrap orchestrator loop with cron mutex to prevent overlapping executions
+  - [ ] `p117.d2.t1` Integrate cron mutex into orchestrator.py (depends: p117.d1.t1)
+    > Modify orchestrator.py: (1) at the start of run_loop(), acquire cron mutex, exit with informative message
+    > if locked, (2) use try/finally to ensure release on any exit (normal, exception, SIGTERM), (3) add
+    > --force flag to override lock (with warning), (4) add mutex status to --status output, (5) add config:
+    > mutex.enabled (bool, default true), mutex.lock_path (string), mutex.stale_timeout (int, seconds).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator exits cleanly with message if another tick is already running
+    _Validation: start orchestrator twice, verify second exits with "already running" message_
+- [ ] **Health monitor mutex reporting** -- Include mutex status in health monitor checks
+  - [ ] `p117.d3.t1` Add mutex status to health_monitor.py (depends: p117.d1.t1, p14.d1.t1)
+    > Extend health_monitor.py: (1) add check_mutex_status() that reads cron_mutex status, (2) report stale
+    > locks as WARNING (process died without cleanup), (3) report active locks as INFO (normal, another tick
+    > is running), (4) include in --report output: mutex section with lock state, holder PID, age.
+    _Files: ~/zion/projects/agent-orchestration/health_monitor.py_
+  - [ ] Health monitor reports stale locks as a warning
+    _Validation: create stale lock, run health check, verify stale lock warning_
+- [ ] **Cron mutex tests** -- Test mutex acquisition, stale detection, and orchestrator integration
+  - [ ] `p117.d4.t1` Create test_cron_mutex.py (depends: p117.d1.t1)
+    > Create test_cron_mutex.py: (1) test acquire/release basic lifecycle, (2) test concurrent acquire:
+    > two threads, verify only one gets lock, (3) test stale detection: write lock with dead PID, verify
+    > auto-cleanup on next acquire, (4) test stale timeout: lock with live PID but old age, verify NOT
+    > cleaned until timeout, (5) test force-clean: verify --force removes lock regardless, (6) test
+    > orchestrator integration: mock orchestrator, verify exits on locked state.
+    _Files: ~/zion/projects/agent-orchestration/test_cron_mutex.py_
+  - [ ] Tests cover mutex lifecycle, stale cleanup, and concurrent access
+    _Validation: python3 -m pytest test_cron_mutex.py -v_
+
+### Technical Notes
+
+This is a "table stakes" primitive for any cron-driven system. The research emphasizes it is "essential for
+unattended operation" and that stale lock cleanup is a "self-healing property." Without it, a crashed tick
+can permanently block all future progress. The fcntl.flock() approach is preferred on Linux for atomicity,
+with a fallback to PID-file checking for cross-platform support. The stale_timeout should be generous (1 hour)
+to avoid killing slow but legitimate ticks.
+
+### Risks
+
+- Stale timeout too short may kill legitimately slow tasks
+- PID recycling (kernel reuses PIDs) could cause false "alive" detection -- check process start time too
+- Lock file in /tmp may be cleaned by OS tmpwatch -- use a more persistent location or recreate on detection
+
+## [ ] phase-118: Memory Consolidation Cycle (AutoDream) (PLANNED)
+
+**Goal:** Implement a periodic memory consolidation cycle that scans accumulated agent knowledge for contradictions, deduplicates entries, and synthesizes durable organized memories
+
+The Anthropic Conway research describes an "AutoDream" system: "When a user is idle or a session ends,
+the agent is directed to perform a dream -- a reflective pass over its memory files to scan transcripts
+for new information, remove contradictions or duplicates, and synthesize recent learnings into durable,
+well-organized memories." Phase 113 (Cognitive Forgetting) addresses the DELETION side of memory management
+-- scoring knowledge by quality and pruning low-value entries. But pruning alone is insufficient. As
+agents accumulate knowledge across hundreds of sessions, the knowledge base naturally accumulates:
+(1) duplicate entries expressing the same insight in different words, (2) contradictory entries where
+later learning supersedes earlier understanding, (3) fragmented entries that should be merged into
+coherent wholes. Phase 113 deletes low-scoring entries but does NOT merge, deduplicate, or resolve
+contradictions among the remaining high-scoring entries. This phase implements: (1) pairwise similarity
+detection across knowledge entries, (2) contradiction detection via semantic analysis, (3) merge
+operations that combine related fragments into consolidated entries, (4) contradiction resolution that
+favors newer, higher-scoring entries, (5) periodic "dream cycle" that runs as a background maintenance
+task (compatible with phase 66 periodic maintenance). This transforms the knowledge base from a growing
+pile of fragments into a consolidated, self-consistent body of durable knowledge.
+
+### Deliverables
+
+- [ ] **Memory consolidation engine** -- Detect duplicates, contradictions, and fragments in the knowledge base and merge them
+  - [ ] `p118.d1.t1` Create memory_consolidator.py module
+    > Create memory_consolidator.py: (1) KnowledgeEntry dataclass: id, content, source, created_at,
+    > updated_at, score, tags, (2) MemoryConsolidator class: (a) find_duplicates(entries, threshold=0.85)
+    > -> list[tuple]: pairwise similarity using keyword overlap + Jaccard similarity (no LLM needed for
+    > dedup), (b) find_contradictions(entries) -> list[tuple]: use keyword-based heuristics ("use X" vs
+    > "don't use X", "always Y" vs "avoid Y"), (c) merge_entries(entries) -> KnowledgeEntry: combine
+    > content, keep highest score, merge tags, use newest timestamp, (d) resolve_contradiction(a, b):
+    > keep entry with higher score or newer timestamp, mark other as superseded, (e) consolidate(knowledge_base)
+    > -> ConsolidationReport: runs full dedup + contradiction + merge cycle, returns summary of operations
+    > performed, (f) CLI: python3 memory_consolidator.py --scan, --consolidate, --report, --dry-run.
+    _Files: ~/zion/projects/agent-orchestration/memory_consolidator.py_
+  - [ ] Detects duplicate knowledge entries expressing the same concept
+    _Validation: insert 3 entries saying the same thing differently, verify 2 flagged for merge_
+  - [ ] Detects contradictory entries and resolves by favoring newer/higher-scored
+    _Validation: insert contradictory entries with timestamps, verify older one flagged_
+- [ ] **Knowledge base integration** -- Run consolidation cycle on the knowledge base from phase 47 and forgetting layer from phase 113
+  - [ ] `p118.d2.t1` Integrate consolidation with knowledge base (depends: p118.d1.t1)
+    > Create integration: (1) add consolidate_knowledge() function that reads knowledge base files (from
+    > phase 47/93 storage format), runs MemoryConsolidator.consolidate(), writes merged results back,
+    > (2) run consolidation AFTER forgetting (phase 113) so it operates on the pruned set, (3) add to
+    > phase 66 periodic maintenance as an optional maintenance task: "knowledge-consolidation" with
+    > configurable frequency (default: weekly), (4) log consolidation results to execution history,
+    > (5) produce summary report: entries_scanned, duplicates_found, contradictions_found, entries_merged,
+    > entries_superseded, net_size_change.
+    _Files: ~/zion/projects/agent-orchestration/memory_consolidator.py_
+  - [ ] Consolidation reads from knowledge base, applies merges, writes back
+    _Validation: run consolidation on test knowledge base with known duplicates, verify merged_
+- [ ] **Contradiction resolution patterns** -- Define common contradiction patterns and resolution rules for agent knowledge
+  - [ ] `p118.d3.t1` Implement contradiction detection heuristics (depends: p118.d1.t1)
+    > Add to memory_consolidator.py: (1) negation detection: "use X" vs "don't use X", "prefer Y" vs
+    > "avoid Y", (2) version conflict: same tool/package mentioned with different versions, (3) temporal
+    > supersession: entry A says "X is the best approach" from 6 months ago, entry B says "Y replaced X"
+    > from last week, (4) context-dependent contradiction: entries that contradict only in specific
+    > contexts (e.g., "use numpy for arrays" vs "use polars for dataframes" -- not contradictory,
+    > complementary), (5) confidence scoring: contradictions resolved by score differential -- if scores
+    > are within 10%, flag for human review instead of auto-resolving, (6) contradiction_pattern_library:
+    > extensible list of patterns with resolution strategies.
+    _Files: ~/zion/projects/agent-orchestration/memory_consolidator.py_
+  - [ ] Handles at least 5 common contradiction patterns with appropriate resolution
+    _Validation: test with known contradictory pairs, verify correct resolution_
+- [ ] **Memory consolidation tests** -- Test dedup, contradiction, merge, and consolidation lifecycle
+  - [ ] `p118.d4.t1` Create test_memory_consolidator.py (depends: p118.d1.t1)
+    > Create test_memory_consolidator.py: (1) test duplicate detection: 5 entries, 2 duplicates, verify
+    > pairs found, (2) test contradiction detection: "always use pytest" vs "migrate to unittest", verify
+    > flagged, (3) test merge: 3 entries about same topic, verify merged into 1 with combined tags,
+    > (4) test contradiction resolution: newer entry wins, higher-scored entry wins, close-scores flagged
+    > for review, (5) test full consolidation: 20 entries with 4 dupes, 2 contradictions, 3 fragments,
+    > verify correct output, (6) test dry-run: verify no changes when --dry-run, (7) test integration
+    > with knowledge base read/write.
+    _Files: ~/zion/projects/agent-orchestration/test_memory_consolidator.py_
+  - [ ] Tests cover all consolidation operations with synthetic knowledge bases
+    _Validation: python3 -m pytest test_memory_consolidator.py -v_
+
+### Technical Notes
+
+The AutoDream concept from Conway is the most sophisticated memory management pattern in the research. The key insight:
+knowledge quality degrades not just from low-quality entries (addressed by phase 113) but from the natural accumulation
+of duplicates and contradictions over time. Dedup uses keyword overlap (fast, no LLM needed). Contradiction detection
+uses pattern matching (fast, no LLM needed for common patterns). Only ambiguous contradictions (close scores,
+context-dependent) are flagged for human review. This keeps consolidation fast enough for weekly runs on
+large knowledge bases without consuming LLM tokens.
+
+### Risks
+
+- Keyword-based dedup may miss semantic duplicates that use completely different terminology
+- Contradiction detection heuristics may produce false positives for context-dependent advice
+- Merge operations could lose nuance -- prefer flagging for review when confidence is low
+- Consolidation is irreversible -- always keep superseded entries in an archive before deletion
+
+## [ ] phase-119: Preflight Environment Doctor (PLANNED)
+
+**Goal:** Validate the orchestrator execution environment before each cron tick, checking required tools, git state, API connectivity, and dependencies
+
+The "Autonomous Coding Loop Explained" research describes "doctor" logic: "Advanced frameworks such as
+bmalph utilize doctor logic to perform these environment validations, ensuring that the specific CLI tools
+required for the task are fully functional before the loop starts." The preflight checks described include:
+lock file validation, API health (with exponential backoff or model fallback), git status cleanliness,
+roadmap validity, and tool availability. Phase 14 (Health Monitor) watches running agents but does not
+validate the environment BEFORE starting. Phase 117 (Cron Mutex) handles lock files but not environment
+health. No phase provides a comprehensive pre-tick environment validation that catches problems before
+they waste a full tick. A tick that starts without gh CLI available, or with a dirty git tree, or with
+unreachable API endpoints will fail after consuming context window tokens -- a complete waste. This phase
+implements: (1) a preflight check suite that runs before each orchestrator loop iteration, (2) checks for
+required CLI tools (gh, git, python3), (3) validates git state (clean working tree, reachable remote),
+(4) tests API connectivity (GitHub API reachable, model API responding), (5) verifies config file validity,
+(6) checks disk space and system resources, (7) produces a health report with actionable fix suggestions,
+(8) integrates with the orchestrator as a mandatory pre-loop gate.
+
+### Deliverables
+
+- [ ] **Preflight doctor module** -- Validate execution environment before each orchestrator tick
+  - [ ] `p119.d1.t1` Create preflight_doctor.py module
+    > Create preflight_doctor.py: (1) PreflightCheck dataclass: name, status (pass/warn/fail), message,
+    > fix_suggestion, (2) PreflightDoctor class: (a) check_tools() -> list[PreflightCheck]: verify gh, git,
+    > python3 exist in PATH and are executable, (b) check_git(project_dir) -> list[PreflightCheck]: verify
+    > clean working tree (git status --porcelain), reachable remote (git ls-remote --exit-code), valid
+    > branch, (c) check_api_connectivity() -> list[PreflightCheck]: test GitHub API (gh api rate_limit),
+    > test model API endpoint if configured, (d) check_config(config_path) -> list[PreflightCheck]: validate
+    > YAML syntax, required fields present, values in valid ranges, (e) check_system() -> list[PreflightCheck]:
+    > disk space (>1GB free), memory (>100MB available), no zombie orchestrator processes, (f) run_all() ->
+    > PreflightReport: execute all checks, aggregate results, determine overall status (pass/warn/fail),
+    > (g) CLI: python3 preflight_doctor.py --run, --tools, --git, --api, --config, --system, --json.
+    _Files: ~/zion/projects/agent-orchestration/preflight_doctor.py_
+  - [ ] Checks required CLI tools (gh, git, python3) and reports missing ones
+    _Validation: remove gh from PATH, run doctor, verify "gh not found" reported_
+  - [ ] Validates git state (clean tree, reachable remote) and API connectivity
+    _Validation: create uncommitted change, run doctor, verify dirty tree reported_
+- [ ] **Orchestrator preflight gate** -- Run preflight checks before each orchestrator tick, skip tick if critical checks fail
+  - [ ] `p119.d2.t1` Integrate preflight into orchestrator.py (depends: p119.d1.t1, p117.d2.t1)
+    > Modify orchestrator.py: (1) at the start of run_loop(), AFTER acquiring cron mutex (phase 117),
+    > run PreflightDoctor.run_all(), (2) if overall status is FAIL: log critical error, release mutex,
+    > exit with error code and diagnostic message (don't waste a tick), (3) if overall status is WARN:
+    > log warnings, proceed with tick (non-critical issues), (4) add --skip-preflight flag for
+    > emergency overrides, (5) add preflight section to --status output, (6) add config: preflight.enabled
+    > (bool, default true), preflight.fail_on (list of check names that cause tick skip), preflight.skip
+    > (list of check names to skip).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator runs preflight before loop and skips tick on critical failures
+    _Validation: make gh unavailable, run orchestrator, verify tick skipped with diagnostic_
+- [ ] **Fix suggestion engine** -- Provide actionable fix suggestions for each preflight failure
+  - [ ] `p119.d3.t1` Add fix suggestions to all preflight checks (depends: p119.d1.t1)
+    > Enhance preflight_doctor.py: (1) tool missing: "Install via: brew install gh / apt install gh",
+    > (2) dirty git tree: "Run: git stash or git commit -am 'WIP' to clean working tree",
+    > (3) unreachable remote: "Check network: git fetch --dry-run, verify SSH keys or auth token",
+    > (4) API unreachable: "Check: gh auth status, verify GITHUB_TOKEN env var, test: gh api rate_limit",
+    > (5) config invalid: "Run: python3 preflight_doctor.py --config --fix to auto-fix common issues",
+    > (6) disk low: "Free space: docker system prune, rm -rf ~/.cache/pip, check /tmp for old files",
+    > (7) --fix flag: auto-fix what can be auto-fixed (git stash, config corrections), report what
+    > requires manual intervention.
+    _Files: ~/zion/projects/agent-orchestration/preflight_doctor.py_
+  - [ ] Each failing check includes a human-readable fix suggestion
+    _Validation: run doctor with intentional failures, verify fix suggestions are actionable_
+- [ ] **Preflight doctor tests** -- Test all preflight checks, fix suggestions, and orchestrator gate integration
+  - [ ] `p119.d4.t1` Create test_preflight_doctor.py (depends: p119.d1.t1)
+    > Create test_preflight_doctor.py: (1) test tool check: mock PATH without gh, verify fail with suggestion,
+    > (2) test git check: create dirty tree, verify warn, (3) test API check: mock unreachable API, verify fail,
+    > (4) test config check: provide invalid YAML, verify fail with suggestion, (5) test system check: mock
+    > low disk space, verify warn, (6) test run_all: mock mix of pass/warn/fail, verify overall status correct,
+    > (7) test --fix: mock dirty git tree, verify git stash suggested/executed, (8) test orchestrator
+    > integration: mock critical failure, verify tick skipped.
+    _Files: ~/zion/projects/agent-orchestration/test_preflight_doctor.py_
+  - [ ] Tests cover all check modes with mocked environment
+    _Validation: python3 -m pytest test_preflight_doctor.py -v_
+
+### Technical Notes
+
+The "doctor" pattern is ubiquitous in developer tools (brew doctor, kubectl doctor, npm doctor) but missing
+from the orchestrator. The research explicitly calls out that preflight checks should validate: (1) lock file,
+(2) API health, (3) git state, (4) roadmap validity, (5) tool availability. This phase implements all five
+plus system resource checks. The key design principle: fail fast. A tick that starts in a broken environment
+will fail anyway, but only AFTER consuming API tokens and context window space. Catching problems before the
+tick starts saves both time and money. The fix suggestions make the system self-diagnosing -- operators
+don't need to debug why the orchestrator isn't running.
+
+### Risks
+
+- Preflight checks add latency to every tick -- keep checks fast (<2s total)
+- API connectivity check may itself fail due to network issues, causing false failures
+- Git state check may conflict with other processes that legitimately modify the working tree
+- Fix suggestions may be wrong for the operator specific environment
 
 ## Global Risks
 
