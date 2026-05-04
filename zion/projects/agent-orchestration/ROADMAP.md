@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/119 phases complete, 0 in progress
+**Progress:** 22/125 phases complete, 0 in progress
 
-**Deliverables:** 86/475 complete
+**Deliverables:** 86/495 complete
 
-**Tasks:** 86/475 complete
+**Tasks:** 86/495 complete
 
 ## Scope Summary
 
@@ -131,6 +131,12 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-117 Cron Session Mutex with Stale Lock Detection | PLANNED | 0/4 | 370 | 10 |
 | phase-118 Memory Consolidation Cycle (AutoDream) | PLANNED | 0/4 | 590 | 10 |
 | phase-119 Preflight Environment Doctor | PLANNED | 0/4 | 500 | 10 |
+| phase-120 Structured Defect Capsule and Agentic RAG for Remediation | PLANNED | 0/4 | - | - |
+| phase-121 Code Manifest and AST-Based Codebase Index | PLANNED | 0/3 | - | - |
+| phase-122 Pre/Post Tool-Use Hooks (Self-Correcting Harness) | PLANNED | 0/3 | - | - |
+| phase-123 Contract-First Pipeline Template Input Validation | PLANNED | 0/3 | - | - |
+| phase-124 Dynamic Secrets Management | PLANNED | 0/3 | - | - |
+| phase-125 Standardized Diagnostic Output and Artifact Repository | PLANNED | 0/4 | 750 | 10 |
 
 ## Dependencies
 
@@ -576,6 +582,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-117 | phase-119 | soft | Preflight runs after mutex acquisition -- no point checking environment if another tick is running |
 | phase-14 | phase-119 | soft | Health monitor reports environment issues; preflight prevents them from blocking a tick |
 | phase-71 | phase-119 | soft | Config validation from phase 71 is a subset of the preflight config check |
+| phase-93 | phase-120 | soft | Long-Term Memory provides the vector search infrastructure that Defect RAG extends for failure remediation |
+| phase-80 | phase-120 | soft | Self-Healing Hints transform error messages; Defect Capsules provide the structured schema these hints should produce |
+| phase-82 | phase-121 | soft | Context Seeding injects past solutions; Code Manifest provides structured codebase index as additional context |
+| phase-12 | phase-121 | soft | Self-Doc generates human documentation; Code Manifest generates machine-readable index -- complementary outputs |
+| phase-65 | phase-122 | soft | Stop Hooks handle session-level loop control; Tool-Use Hooks handle individual tool calls within a session |
+| phase-64 | phase-122 | soft | Workspace Sandboxing restricts filesystem access; Tool-Use Hooks provide finer-grained command-level control |
+| phase-71 | phase-123 | soft | Config Validation validates orchestrator config; Template Contracts validate pipeline template inputs -- complementary validation layers |
+| phase-77 | phase-123 | hard | Pipeline Template Library creates the templates that need input contracts enforced |
+| phase-85 | phase-124 | soft | Audit Trail logs agent actions; Secrets Manager extends audit to credential access |
+| phase-85 | phase-125 | soft | Audit Trail logs agent actions; Artifact Repository stores execution artifacts as structured data |
+| phase-72 | phase-125 | soft | Metrics exposes Prometheus metrics; Artifact Repository stores test results and diagnostic data |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -6929,6 +6946,436 @@ don't need to debug why the orchestrator isn't running.
 - Git state check may conflict with other processes that legitimately modify the working tree
 - Fix suggestions may be wrong for the operator specific environment
 
+## [ ] phase-120: Structured Defect Capsule and Agentic RAG for Remediation (PLANNED)
+
+**Goal:** Transform failure feedback from generic bug reports into prescriptive, machine-readable remediation inputs with vector-search over past resolved failures
+
+The "Multi-Agent Relay for Long-Horizon Tasks" research describes a detailed Defect
+Capsule schema (defect_id, severity, location, type, root_cause_synopsis,
+prescriptive_fix_steps, repro_steps_script, vector_key) that transforms failure
+feedback from generic bug reports into prescriptive, machine-readable remediation
+inputs. It also describes Agentic RAG for remediation: vector-searching past RESOLVED
+failures and injecting relevant fix patterns into agent prompts. Phase 93 (Long-Term
+Memory) performs semantic search over knowledge but NOT specifically for failure
+remediation with resolved-fix filtering. Phase 18 (Trace Formatter) formats
+execution traces but does NOT create a structured defect schema. Phase 80 (Self-Healing
+Hints) transforms error messages but NOT into a structured, queryable defect format.
+Phase 120 closes this gap.
+
+### Deliverables
+
+- [ ] **Defect capsule schema and data model** -- Define the Defect Capsule schema with Pydantic models for structured failure representation
+  - [ ] `p120.d1.t1` Create defect_capsule.py with Pydantic schema
+    > Create defect_capsule.py: (1) DefectSeverity enum: Critical, Major, Minor, Style,
+    > (2) DefectType enum: TestFailure, LintError, LogicDrift, RuntimeError, ImportMissing,
+    > SecurityVulnerability, (3) DefectCapsule dataclass/Pydantic model: defect_id (UUID),
+    > severity, location (file path + line range), defect_type, root_cause_synopsis (str),
+    > prescriptive_fix_steps (list[str]), repro_steps_script (str), vector_key (str,
+    > embedding of defect description), timestamp, task_id, resolved (bool),
+    > resolution_summary (optional str), (4) DefectCapsule.from_trace() classmethod:
+    > extract defect info from execution trace output, (5) DefectCapsule.to_prompt() method:
+    > format as concise remediation prompt for agent, (6) CLI: python3 defect_capsule.py
+    > --example, --validate <file>.
+    _Files: ~/zion/projects/agent-orchestration/defect_capsule.py_
+  - [ ] DefectCapsule Pydantic model with all required fields (defect_id, severity, location, type, root_cause_synopsis, prescriptive_fix_steps, repro_steps_script, vector_key)
+    _Validation: python3 -c "from defect_capsule import DefectCapsule; d = DefectCapsule.example(); print(d.model_dump_json(indent=2))"_
+- [ ] **Defect capsule vector store and RAG search** -- Store resolved defect capsules in a vector index and search for similar past failures when new defects occur
+  - [ ] `p120.d2.t1` Create defect_rag.py for vector search over defect capsules (depends: p120.d1.t1)
+    > Create defect_rag.py: (1) DefectVectorStore class: (a) __init__(self, storage_dir):
+    > initialize storage for defect embeddings, (b) add_defect(self, capsule: DefectCapsule):
+    > generate embedding for vector_key, store capsule + embedding, (c) search_similar(self,
+    > query_capsule: DefectCapsule, top_k=3) -> list[tuple[DefectCapsule, float]]: vector
+    > search for similar resolved defects, (d) resolve_defect(self, defect_id: str,
+    > resolution_summary: str): mark defect as resolved, (e) stats() -> dict: count
+    > total/resolved/unresolved defects, (2) embedding generation: use sentence-transformers
+    > or simple TF-IDF for defect description embedding, (3) CLI: python3 defect_rag.py
+    > --search "<description>", --stats, --export <file>.
+    _Files: ~/zion/projects/agent-orchestration/defect_rag.py_
+  - [ ] Resolved defects are indexed and similar past failures are retrieved on new defect creation
+    _Validation: create two similar defects, resolve one, trigger the other, verify RAG retrieval returns the resolved fix_
+- [ ] **Remediation prompt injection from defect capsules** -- When a defect is detected, automatically search for similar past failures and inject remediation context into agent prompts
+  - [ ] `p120.d3.t1` Integrate defect RAG into agent loop (depends: p120.d2.t1)
+    > Modify orchestrator agent loop: (1) when a task fails (test failure, lint error),
+    > create a DefectCapsule from the failure output, (2) search DefectVectorStore for
+    > similar resolved defects, (3) if similar defects found, inject remediation context
+    > into the retry prompt: "A similar issue was previously resolved by: <steps>", (4)
+    > after successful remediation, resolve the defect capsule with resolution summary,
+    > (5) add config: defect_rag.enabled (bool, default true), defect_rag.top_k (int,
+    > default 3), defect_rag.min_similarity (float, default 0.7).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Agent prompts include relevant past fix patterns when similar defects are found
+    _Validation: create a known defect pattern, verify agent receives remediation context from past resolution_
+- [ ] **Defect capsule tests** -- Test schema validation, vector search, and agent loop integration
+  - [ ] `p120.d4.t1` Create test_defect_capsule.py (depends: p120.d3.t1)
+    > Create test_defect_capsule.py: (1) test schema: create capsule with all fields,
+    > validate JSON serialization, (2) test from_trace: provide mock trace output, verify
+    > capsule extraction, (3) test to_prompt: verify remediation prompt format, (4) test
+    > vector store: add/search/resolve cycle with known-similar defects, (5) test
+    > integration: mock task failure, verify RAG retrieval and prompt injection.
+    _Files: ~/zion/projects/agent-orchestration/test_defect_capsule.py_
+  - [ ] Tests cover all defect capsule operations with mocked data
+    _Validation: python3 -m pytest test_defect_capsule.py -v_
+
+### Technical Notes
+
+The key innovation from the Multi-Agent Relay research is treating failure feedback as
+a first-class, structured data object rather than a raw error string. By creating a
+queryable history of resolved defects with vector similarity search, agents can learn
+from past failures without explicit re-prompting. This transforms the remediation loop
+from "retry with same prompt" to "retry with informed context about how similar issues
+were fixed before." The vector_key field enables semantic similarity matching -- two
+defects with different error messages but the same root cause will still match.
+
+## [ ] phase-121: Code Manifest and AST-Based Codebase Index (PLANNED)
+
+**Goal:** Generate a machine-readable YAML manifest from AST analysis, providing agents with a structured map of function signatures, class hierarchies, and docstrings
+
+The "Self-Correcting Agent Loop" research describes automatically generating a
+machine-readable YAML manifest from AST analysis, providing agents with a structured
+map of function signatures, class hierarchies, and docstrings without processing full
+file contents. This is a form of RAG where the knowledge base is a structured
+representation of the codebase rather than raw code. Phase 12 (Self-Doc) generates
+human-readable documentation, NOT machine-readable structured indexes. Phase 82
+(Context Seeding) injects past solutions but doesn't provide a codebase structural
+index. Phase 121 closes this gap.
+
+### Deliverables
+
+- [ ] **AST-based code manifest generator** -- Generate a YAML manifest from Python AST analysis of the codebase
+  - [ ] `p121.d1.t1` Create code_manifest.py with AST traversal
+    > Create code_manifest.py: (1) CodeManifest class: (a) scan(project_dir: str,
+    > exclude_dirs: list[str] = None): traverse .py files, skip __pycache__, .git,
+    > node_modules, (b) _parse_file(filepath: str) -> FileManifest: use ast.parse(),
+    > visit FunctionDef, ClassDef, AsyncFunctionDef nodes, extract name, signature
+    > (args with types via ast.unparse), docstring, (c) to_yaml(output_path: str):
+    > write structured YAML manifest, (2) FileManifest dataclass: path, module_docstring,
+    > functions (list[FunctionEntry]), classes (list[ClassEntry]), imports, (3)
+    > FunctionEntry: name, signature, docstring, line_start, line_end, decorators, (4)
+    > ClassEntry: name, docstring, bases, methods (list[FunctionEntry]), (5) CLI:
+    > python3 code_manifest.py --scan <dir> --output <file> --exclude "tests,venv",
+    > --json for JSON output, (6) incremental mode: track file mtimes, only re-parse
+    > changed files.
+    _Files: ~/zion/projects/agent-orchestration/code_manifest.py_
+  - [ ] Manifest includes all functions with signatures, classes with methods, and docstrings for all Python files
+    _Validation: run generator on a test project, verify manifest contains expected function signatures and docstrings_
+- [ ] **Manifest-based context injection for agents** -- Use the code manifest to provide agents with relevant codebase structure without loading full file contents
+  - [ ] `p121.d2.t1` Integrate manifest into context seeding system (depends: p121.d1.t1)
+    > Modify context seeding (phase 82): (1) before spawning an agent for a task, check
+    > if a manifest exists for the target project, (2) extract manifest entries relevant
+    > to the task (files mentioned in task description, files imported by those files),
+    > (3) format manifest entries as compact context: "function signature + docstring"
+    > instead of full file content, (4) estimate token savings: manifest entry (~50
+    > tokens) vs full file (~500-5000 tokens), (5) add config: manifest.enabled (bool,
+    > default true), manifest.max_entries (int, default 20), manifest.include_docstrings
+    > (bool, default true).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Agent context includes relevant manifest entries (function signatures, docstrings) for touched files
+    _Validation: trigger agent task, verify manifest entries appear in agent context instead of full file dumps_
+- [ ] **Code manifest tests** -- Test AST parsing, YAML generation, incremental mode, and context injection
+  - [ ] `p121.d3.t1` Create test_code_manifest.py (depends: p121.d2.t1)
+    > Create test_code_manifest.py: (1) test function extraction: parse file with
+    > functions, verify signatures and docstrings captured, (2) test class extraction:
+    > parse file with classes and methods, verify hierarchy, (3) test incremental: modify
+    > one file, verify only that file re-parsed, (4) test YAML output: verify valid YAML
+    > with expected structure, (5) test edge cases: empty files, files with syntax errors
+    > (graceful skip), deeply nested classes, async functions, decorators.
+    _Files: ~/zion/projects/agent-orchestration/test_code_manifest.py_
+  - [ ] Tests cover manifest generation from sample code with edge cases
+    _Validation: python3 -m pytest test_code_manifest.py -v_
+
+### Technical Notes
+
+The Code Manifest is a "structural RAG" approach -- instead of vector-searching raw code
+text, it provides a pre-computed index of function signatures and docstrings that agents
+can query to understand the codebase without reading full files. This dramatically reduces
+context window usage when an agent needs to understand what functions exist and what they
+do, without needing the implementation details. The research uses Python's ast module for
+zero-dependency parsing, which is the right approach for the Hermes ecosystem.
+
+## [ ] phase-122: Pre/Post Tool-Use Hooks (Self-Correcting Harness) (PLANNED)
+
+**Goal:** Intercept agent tool calls in real-time with pre/post hooks for infrastructural policy enforcement invisible to the agent
+
+The "Archon V3: Harnessing AI Workflows" research describes self-correcting hooks that
+intercept agent tool calls in real-time: pre-tool-use hooks can block dangerous commands
+before execution, and post-tool-use hooks can enforce constraints like running security
+audits after file writes. This is INFRASTRUCTURAL enforcement, not prompt-based
+instruction. Phase 65 (Stop Hooks) handles loop control at session TERMINATION, NOT
+tool-call interception during execution. Phase 17 (Structural Invariants) validates code
+AFTER the fact, not DURING tool execution. Phase 64 (Workspace Sandboxing) restricts
+filesystem access but doesn't intercept individual tool calls. Phase 122 closes this gap.
+
+### Deliverables
+
+- [ ] **Tool-use hook registry and execution engine** -- Define a hook registry that intercepts agent tool calls before and after execution
+  - [ ] `p122.d1.t1` Create tool_hooks.py with hook registry
+    > Create tool_hooks.py: (1) HookType enum: PRE_TOOL_USE, POST_TOOL_USE, (2)
+    > HookResult dataclass: allowed (bool), modified_params (optional dict), message
+    > (str), (3) ToolHook protocol: (a) hook_type: HookType, (b) tool_name: str or
+    > pattern, (c) execute(params: dict) -> HookResult, (4) HookRegistry class: (a)
+    > register(hook: ToolHook), (b) run_pre_hooks(tool_name: str, params: dict) ->
+    > HookResult: run all matching pre-hooks, return first denial, (c) run_post_hooks(
+    > tool_name: str, params: dict, result: Any) -> Any: run all post-hooks, allow
+    > result modification, (5) Built-in hooks: (a) BlockDangerousCommandsHook: block
+    > rm -rf, sudo, chmod 777 in shell execution, (b) FileWriteAuditHook: log all file
+    > writes with diff, (c) SecurityScanHook: run security linter after file writes.
+    _Files: ~/zion/projects/agent-orchestration/tool_hooks.py_
+  - [ ] Pre-hook can block a tool call; post-hook can inspect and modify tool output
+    _Validation: register a pre-hook that blocks shell execution of "rm -rf", verify call is rejected_
+- [ ] **Hook integration with agent execution layer** -- Wire tool-use hooks into the agent execution pipeline so every tool call passes through the hook registry
+  - [ ] `p122.d2.t1` Integrate hooks into agent execution layer (depends: p122.d1.t1)
+    > Modify the agent execution layer: (1) before executing any tool call, run
+    > HookRegistry.run_pre_hooks() -- if any hook denies, skip execution and return
+    > denial message to agent, (2) after tool execution, run HookRegistry.run_post_hooks()
+    > -- allow hooks to inspect/modify the result, (3) add hook timing metrics: log
+    > execution time of each hook (must be <10ms per hook to avoid latency), (4) add
+    > config: hooks.enabled (bool, default true), hooks.timeout_ms (int, default 50),
+    > hooks.blocked_tools (list[str]: tools to always block).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Every agent tool call runs through pre-hooks before execution and post-hooks after
+    _Validation: enable a logging hook, run an agent task, verify all tool calls are logged_
+- [ ] **Tool-use hook tests** -- Test hook registration, pre/post execution, denial, and result modification
+  - [ ] `p122.d3.t1` Create test_tool_hooks.py (depends: p122.d2.t1)
+    > Create test_tool_hooks.py: (1) test register and run: register hook, verify it
+    > fires on matching tool calls, (2) test pre-hook denial: hook denies rm -rf,
+    > verify execution blocked, (3) test post-hook modification: hook transforms
+    > output, verify agent receives modified result, (4) test hook ordering: multiple
+    > hooks fire in registration order, (5) test timeout: hook exceeding timeout is
+    > skipped with warning, (6) test built-in hooks: BlockDangerousCommands blocks
+    > dangerous commands, FileWriteAuditHook logs writes.
+    _Files: ~/zion/projects/agent-orchestration/test_tool_hooks.py_
+  - [ ] Tests cover hook lifecycle with various scenarios
+    _Validation: python3 -m pytest test_tool_hooks.py -v_
+
+### Technical Notes
+
+Tool-use hooks are the "inner harness" to complement the "outer harness" (the DAG
+executor). Where the outer harness controls WHAT tasks run, the inner harness controls
+HOW agents execute within a task. This is the "enforce, don't instruct" principle taken
+to its extreme -- constraints are enforced at the infrastructure level, invisible to
+the agent's reasoning. The key design constraint is latency: hooks must complete in
+<10ms to avoid adding perceptible delay to agent execution. Heavyweight operations
+(like security scans) should be async post-hooks.
+
+## [ ] phase-123: Contract-First Pipeline Template Input Validation (PLANNED)
+
+**Goal:** Replace string-variable-based parameter passing with strongly-typed input primitives that enforce schema validation at pipeline entry points
+
+The "Enhancing Task Orchestration Architecture" research describes replacing
+string-variable-based parameter passing with strongly-typed input primitives that
+enforce schema validation at pipeline entry points. This prevents command injection via
+type coercion and YAML parsing ambiguities (e.g., octal misinterpretation of "012345").
+Phase 71 (Config Validation) validates orchestrator configuration YAML, NOT pipeline
+template input contracts. Phase 77 (Template Library) creates reusable templates but
+doesn't enforce input contracts with type safety. Phase 123 closes this gap.
+
+### Deliverables
+
+- [ ] **Template input contract schema system** -- Define typed input contracts for pipeline templates with automatic validation
+  - [ ] `p123.d1.t1` Create template_contracts.py with type-safe input validation
+    > Create template_contracts.py: (1) InputType enum: STRING, INTEGER, FLOAT, BOOLEAN,
+    > ENUM, PATH, URL, GLOB_PATTERN, (2) InputField dataclass: name, type, required
+    > (bool), default (Any), description, enum_values (list[str] for ENUM type),
+    > pattern (regex for STRING validation), min_val/max_val (for numeric), (3)
+    > TemplateContract dataclass: name, version, description, inputs (list[InputField]),
+    > (4) validate_inputs(contract: TemplateContract, raw_inputs: dict) ->
+    > ValidationResult: (a) check all required fields present, (b) type-check each
+    > value (int("abc") raises, int("5.0") coerces), (c) validate enum membership,
+    > (d) validate regex patterns, (e) validate numeric ranges, (f) validate paths
+    > exist (for PATH type), (g) return ValidationResult with errors list and
+    > sanitized values dict, (5) CLI: python3 template_contracts.py --validate
+    > <contract.yaml> --inputs <inputs.yaml>.
+    _Files: ~/zion/projects/agent-orchestration/template_contracts.py_
+  - [ ] Pipeline templates declare input schemas; invalid inputs are rejected with clear error messages before execution
+    _Validation: define a template requiring "repo: str" and "pr: int", pass "pr: abc", verify rejection_
+- [ ] **Contract enforcement in template engine** -- Enforce input contracts when pipeline templates are instantiated from the orchestrator
+  - [ ] `p123.d2.t1` Integrate contracts into template instantiation (depends: p123.d1.t1)
+    > Modify the template engine (phase 77): (1) when instantiating a template, look for
+    > a companion contract YAML file, (2) validate all inputs against the contract before
+    > any execution, (3) if validation fails: log error with field-level detail (which
+    > field, expected type, received value), abort instantiation, (4) if validation
+    > passes: use sanitized/coerced values for template rendering, (5) support contract
+    > versioning: if template version doesn't match contract version, warn, (6) add
+    > config: contracts.strict_mode (bool, default true): in strict mode, reject invalid
+    > inputs; in lenient mode, coerce and warn.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Template instantiation fails fast with clear error if inputs don't match the contract schema
+    _Validation: attempt to instantiate a template with wrong types, verify error before any execution occurs_
+- [ ] **Template contract tests** -- Test type validation, coercion, enum checking, path validation, and error reporting
+  - [ ] `p123.d3.t1` Create test_template_contracts.py (depends: p123.d2.t1)
+    > Create test_template_contracts.py: (1) test type validation: string, int, float,
+    > bool pass; wrong types rejected, (2) test coercion: "5" coerced to int, "true"
+    > coerced to bool, (3) test enum: value in allowed list passes, invalid value
+    > rejected, (4) test path: existing path passes, non-existent path rejected, (5) test
+    > regex: matching pattern passes, non-matching rejected, (6) test required: missing
+    > required field rejected, optional field defaults used, (7) test error messages:
+    > verify error messages include field name, expected type, received value.
+    _Files: ~/zion/projects/agent-orchestration/test_template_contracts.py_
+  - [ ] Tests cover all input types and validation failure modes
+    _Validation: python3 -m pytest test_template_contracts.py -v_
+
+### Technical Notes
+
+The primary security motivation is preventing command injection via type coercion. YAML
+parsing has well-known ambiguity issues (e.g., "012345" parsed as octal 5349 instead of
+string). By enforcing explicit type contracts at pipeline entry points, the orchestrator
+catches these issues before they reach shell execution. The "contract-first" approach
+means templates declare what inputs they expect, and the system validates BEFORE running,
+not after.
+
+## [ ] phase-124: Dynamic Secrets Management (PLANNED)
+
+**Goal:** Replace static environment variables with scoped, time-bound credentials retrieved from centralized secrets stores via workload identity
+
+The "Enhancing Task Orchestration Architecture" research describes workload identity
+(JWT/OIDC) for dynamic, time-bound secret retrieval from centralized secrets stores,
+replacing static environment variables with scoped, revocable credentials tied to
+execution context. No existing phase covers secrets management at all -- agents currently
+access credentials via environment variables with no rotation, scoping, or audit trail.
+Phase 124 closes this gap.
+
+### Deliverables
+
+- [ ] **Secrets provider abstraction layer** -- Abstract secrets retrieval behind a provider interface supporting file-based and Vault backends
+  - [ ] `p124.d1.t1` Create secrets_manager.py with provider abstraction
+    > Create secrets_manager.py: (1) SecretsProvider protocol: (a) get(key: str) ->
+    > str, (b) set(key: str, value: str, ttl: int = None), (c) delete(key: str), (d)
+    > list_keys() -> list[str], (2) FileSecretsProvider: store secrets in
+    > ~/.hermes/secrets/ as encrypted YAML files, (a) encryption: use Fernet (from
+    > cryptography package) with a master key derived from machine-id, (b) each secret
+    > file: key, value (encrypted), created_at, expires_at, accessed_at, access_count,
+    > (3) VaultSecretsProvider: (a) connect to HashiCorp Vault via hvac library, (b)
+    > authenticate via JWT/OIDC workload identity or AppRole, (c) retrieve secrets with
+    > automatic lease renewal, (4) SecretsManager class: (a) __init__(provider:
+    > SecretsProvider), (b) get_secret(key: str, context: dict = None) -> str: check
+    > TTL, audit access, return value, (c) scoped_secret(key: str, scope: str) -> str:
+    > key with scope prefix (e.g., "github:repo-X:token"), (5) CLI: python3
+    > secrets_manager.py --get <key>, --set <key>=<value>, --list, --provider file|vault.
+    _Files: ~/zion/projects/agent-orchestration/secrets_manager.py_
+  - [ ] Secrets can be retrieved from file-based backend (default) with optional HashiCorp Vault backend
+    _Validation: store a secret in file backend, retrieve it, verify value matches_
+- [ ] **Agent credential scoping and audit trail** -- Scope credentials to specific tasks/repos and log all secret access for audit
+  - [ ] `p124.d2.t1` Integrate secrets scoping into agent execution (depends: p124.d1.t1)
+    > Modify orchestrator agent execution: (1) define credential scopes per task type:
+    > github_issue_task needs github_token, deploy_task needs deploy_key, (2) before
+    > spawning agent, retrieve scoped secrets via SecretsManager.scoped_secret(), (3)
+    > inject secrets as environment variables with task-scoped names, (4) after task
+    > completion, log secret access: task_id, secret_key, scope, timestamp, (5) rotate
+    > secrets after N accesses or TTL expiry, (6) add config: secrets.provider (str,
+    > default "file"), secrets.auto_rotate (bool, default true), secrets.max_access_count
+    > (int, default 100).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Each agent task receives only the credentials it needs, and all access is logged
+    _Validation: run two tasks for different repos, verify each receives only its scoped credentials, check audit log_
+- [ ] **Secrets manager tests** -- Test file-based and Vault providers, scoping, TTL, rotation, and audit logging
+  - [ ] `p124.d3.t1` Create test_secrets_manager.py (depends: p124.d2.t1)
+    > Create test_secrets_manager.py: (1) test file provider: set/get/delete secret,
+    > verify persistence, (2) test encryption: verify secrets stored encrypted on disk,
+    > (3) test TTL: set secret with 1s TTL, wait, verify expiry, (4) test scoping:
+    > scoped_secret("token", "repo-X") returns "repo-X:token" key, (5) test audit:
+    > access secret, verify audit entry logged, (6) test rotation: access secret
+    > max_access_count times, verify rotation triggered, (7) test Vault provider:
+    > mock hvac client, verify auth and retrieval.
+    _Files: ~/zion/projects/agent-orchestration/test_secrets_manager.py_
+  - [ ] Tests cover secret CRUD, TTL expiry, scoping, and audit trail
+    _Validation: python3 -m pytest test_secrets_manager.py -v_
+
+### Technical Notes
+
+The file-based backend is the default because it has zero external dependencies. The
+Vault backend is optional for teams with existing Vault infrastructure. The key security
+properties: (1) secrets are encrypted at rest using Fernet, (2) credentials are scoped
+per task so an agent working on repo-X cannot access repo-Y's token, (3) all secret
+access is audited, (4) automatic rotation prevents long-lived credential exposure.
+The workload identity (JWT/OIDC) pattern from the research is aspirational for now --
+the initial implementation uses machine-id-based encryption as a simpler alternative.
+
+## [ ] phase-125: Standardized Diagnostic Output and Artifact Repository (PLANNED)
+
+**Goal:** Mandate JUnit XML for test results and structured JSON for all diagnostic data, with a consolidated artifact repository for reproducibility
+
+The "Enhancing Task Orchestration Architecture" research mandates JUnit XML for test
+results and structured JSON for all diagnostic data, with a consolidated artifact
+repository for reproducibility and traceability. Phase 85 (Audit Trail) logs agent
+actions but doesn't standardize diagnostic output formats. Phase 72 (Metrics) exposes
+Prometheus metrics but doesn't mandate test output formats. Phase 125 closes this gap.
+
+### Deliverables
+
+- [ ] **JUnit XML test result formatter** -- Standardize all test execution output as JUnit XML for universal consumption by CI tools
+  - [ ] `p125.d1.t1` Create junit_formatter.py for standardized test output
+    > Create junit_formatter.py: (1) JUnitTestCase dataclass: name, classname,
+    > time_seconds, status (passed/failed/skipped/error), message, stdout, stderr,
+    > (2) JUnitTestSuite dataclass: name, tests (list[JUnitTestCase]), time_seconds,
+    > failures, errors, skipped, (3) format_junit_xml(suite: JUnitTestSuite) -> str:
+    > produce JUnit XML string, (4) parse_test_output(test_runner: str, raw_output: str)
+    > -> JUnitTestSuite: parse pytest/unittest output into JUnit format, (5) CLI:
+    > python3 junit_formatter.py --parse-pytest <output.xml>, --parse-raw <file>,
+    > --merge <files...> --output <merged.xml>, (6) integration: modify test execution
+    > to always produce JUnit XML alongside human-readable output.
+    _Files: ~/zion/projects/agent-orchestration/junit_formatter.py_
+  - [ ] Test execution produces JUnit XML output compatible with GitHub Actions, GitLab CI, and Jenkins
+    _Validation: run tests, verify JUnit XML output is valid and parseable_
+- [ ] **Artifact repository with retention policies** -- Consolidate all execution artifacts (test results, logs, traces, manifests) into a structured repository with retention policies
+  - [ ] `p125.d2.t1` Create artifact_repository.py for consolidated storage (depends: p125.d1.t1)
+    > Create artifact_repository.py: (1) ArtifactType enum: TEST_RESULTS, EXECUTION_LOG,
+    > TRACE_OUTPUT, CODE_MANIFEST, DEFECT_CAPSULE, METRICS_SNAPSHOT, (2) Artifact
+    > dataclass: type, task_id, agent_id, timestamp, file_path, size_bytes, metadata
+    > (dict), checksum_sha256, (3) ArtifactRepository class: (a) __init__(base_dir:
+    > str, retention_days: int = 30): initialize repository with structured layout,
+    > (b) store(artifact_type: ArtifactType, task_id: str, source_path: str, metadata:
+    > dict = None) -> Artifact: copy artifact to repository, compute checksum, record
+    > metadata, (c) query(task_id: str = None, artifact_type: ArtifactType = None,
+    > since: datetime = None) -> list[Artifact]: search artifacts, (d) cleanup():
+    > remove artifacts older than retention_days, log what was removed, (e) stats() ->
+    > dict: total count, size per type, oldest/newest artifact, (4) directory layout:
+    > artifacts/{year}/{month}/{day}/{artifact_type}/{task_id}_{timestamp}.{ext}, (5)
+    > manifest.json: index of all artifacts with metadata for fast querying.
+    _Files: ~/zion/projects/agent-orchestration/artifact_repository.py_
+  - [ ] All agent execution artifacts are stored in a structured directory with metadata and automatic cleanup
+    _Validation: run agent tasks, verify artifacts stored in repository, trigger cleanup, verify old artifacts removed_
+- [ ] **Diagnostic output standardization in agent loop** -- Ensure all agent execution produces standardized diagnostic artifacts stored in the repository
+  - [ ] `p125.d3.t1` Integrate artifact repository into agent execution (depends: p125.d2.t1)
+    > Modify orchestrator: (1) after each agent task execution, store test results as
+    > JUnit XML in artifact repository, (2) store execution logs as structured JSON, (3)
+    > store defect capsules (from phase 120) in repository, (4) store code manifests
+    > (from phase 121) in repository, (5) add cleanup cron: run ArtifactRepository.cleanup()
+    > periodically to enforce retention, (6) add config: artifacts.enabled (bool, default
+    > true), artifacts.base_dir (str, default "~/.hermes/artifacts"),
+    > artifacts.retention_days (int, default 30), artifacts.types (list of enabled
+    > artifact types).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Every agent task execution produces JUnit XML test results and JSON diagnostic logs in the artifact repository
+    _Validation: run agent task, check artifact repository for test results and diagnostic JSON_
+- [ ] **Artifact repository tests** -- Test artifact storage, querying, cleanup, and JUnit XML formatting
+  - [ ] `p125.d4.t1` Create test_artifact_repository.py (depends: p125.d3.t1)
+    > Create test_artifact_repository.py: (1) test store: store artifact, verify file
+    > exists in correct directory layout, (2) test query: store multiple artifacts,
+    > query by task_id/type/date, verify correct results, (3) test cleanup: store
+    > artifact with old timestamp, run cleanup, verify removed, (4) test JUnit
+    > formatter: parse test output, verify valid XML, (5) test manifest.json: store
+    > artifacts, verify manifest index is correct, (6) test checksum: verify SHA256
+    > checksums match file contents.
+    _Files: ~/zion/projects/agent-orchestration/test_artifact_repository.py_
+  - [ ] Tests cover artifact lifecycle and retention cleanup
+    _Validation: python3 -m pytest test_artifact_repository.py -v_
+
+### Technical Notes
+
+JUnit XML is the de facto standard for test results in CI/CD systems. By mandating this
+format, the orchestrator's test output becomes consumable by GitHub Actions, GitLab CI,
+Jenkins, and any other CI platform without custom parsing. The artifact repository
+provides reproducibility: any past execution can be reconstructed from its stored
+artifacts (test results, logs, code at that point). The retention policy prevents
+unbounded disk growth -- the research explicitly warns about database growth from
+heartbeat logs, and the same applies to artifact storage.
+
+### Risks
+
+- JUnit XML parsing may fail on unusual test output -- graceful fallback to raw output
+- Artifact repository could consume significant disk space -- implement retention policies
+- Retention cleanup could remove artifacts still needed for active investigations -- implement keep-until-reviewed flag
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -7032,6 +7479,12 @@ don't need to debug why the orchestrator isn't running.
 - Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks
 - Speculative ticket filing (phase 103) could create too many low-quality issues -- require dry-run review first
 - Governance reports (phase 104) aggregate from many data sources -- a bug in one source could corrupt the entire report
+- Defect capsule vector search (phase 120) adds indexing overhead on every failure -- keep embedding generation async
+- Code manifest (phase 121) may become stale if not regenerated after edits -- trigger regeneration on file change events
+- Tool-use hooks (phase 122) intercepting every tool call adds latency -- make hooks optional and fast (<10ms)
+- Template input validation (phase 123) could reject valid inputs if schema is too strict -- allow schema overrides
+- Dynamic secrets (phase 124) adds Vault/secret store as a runtime dependency -- make file-based backend the default
+- Artifact repository (phase 125) could consume significant disk space -- implement retention policies
 
 ## Conventions
 
