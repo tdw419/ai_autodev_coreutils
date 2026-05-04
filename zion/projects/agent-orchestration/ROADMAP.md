@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 22/125 phases complete, 0 in progress
+**Progress:** 22/128 phases complete, 0 in progress
 
-**Deliverables:** 90/495 complete
+**Deliverables:** 90/507 complete
 
-**Tasks:** 90/495 complete
+**Tasks:** 90/507 complete
 
 ## Scope Summary
 
@@ -137,6 +137,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-123 Contract-First Pipeline Template Input Validation | PLANNED | 0/3 | - | - |
 | phase-124 Dynamic Secrets Management | PLANNED | 0/3 | - | - |
 | phase-125 Standardized Diagnostic Output and Artifact Repository | PLANNED | 0/4 | 750 | 10 |
+| phase-126 Secret/Credential Leak Detection in Agent Output | PLANNED | 0/4 | 490 | 10 |
+| phase-127 Prompt Compiler Integration for Orchestrator AI Nodes | PLANNED | 0/4 | 570 | 10 |
+| phase-128 Spec-Driven Development Workflow (OpenSpec Pattern) | PLANNED | 0/4 | 610 | 10 |
 
 ## Dependencies
 
@@ -593,6 +596,15 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-85 | phase-124 | soft | Audit Trail logs agent actions; Secrets Manager extends audit to credential access |
 | phase-85 | phase-125 | soft | Audit Trail logs agent actions; Artifact Repository stores execution artifacts as structured data |
 | phase-72 | phase-125 | soft | Metrics exposes Prometheus metrics; Artifact Repository stores test results and diagnostic data |
+| phase-85 | phase-126 | soft | Audit Trail provides the logging infrastructure; Secret Scanner extends it to credential-specific detection |
+| phase-124 | phase-126 | soft | Dynamic Secrets manages credential storage; Secret Scanner detects when credentials escape storage |
+| phase-13 | phase-126 | soft | PR Automation creates PRs; Secret Scanner adds credential safety checks to PR creation |
+| phase-20 | phase-127 | soft | Context Budget handles token budget calculation; Prompt Compiler integration provides the recipe-driven pipeline that uses budgets |
+| phase-82 | phase-127 | soft | Context Seeding handles context injection; Prompt Compiler provides the multi-modal extraction pipeline |
+| phase-5 | phase-127 | soft | DAG executor is the execution environment where compiled prompts are consumed |
+| phase-5 | phase-128 | soft | DAG executor provides the execution engine; SPEC nodes extend the node type registry |
+| phase-26 | phase-128 | soft | Work Decomposition breaks issues into sub-issues; Spec-Driven Workflow provides a more formal alternative with structured artifacts |
+| phase-45 | phase-128 | soft | WORKFLOW.md Engine loads runtime policies; Spec artifacts define task-level policies as structured data |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -7376,6 +7388,322 @@ heartbeat logs, and the same applies to artifact storage.
 - Artifact repository could consume significant disk space -- implement retention policies
 - Retention cleanup could remove artifacts still needed for active investigations -- implement keep-until-reviewed flag
 
+## [ ] phase-126: Secret/Credential Leak Detection in Agent Output (PLANNED)
+
+**Goal:** Scan agent output (commits, PRs, generated code) for accidentally leaked credentials and block them before they reach the repository
+
+The "AI Command Centers Beyond Terminals" research describes Mission Control's
+"Secret Detection" feature that monitors agent messages and logs for credential
+leaks. The "Prompt Compiler AI Agent Guide" research identifies credential
+leakage as a significant threat where agents inadvertently pull hardcoded secrets
+from config files and include them in their output. Phase 85 (Audit Trail) logs
+agent actions. Phase 124 (Dynamic Secrets) manages credential storage. But NO
+phase scans agent OUTPUT for accidentally leaked credentials. In dark factory
+mode (phase 35) where 0% human review occurs, an agent that accidentally includes
+a hardcoded secret in a commit could expose it permanently. Phase 126 closes this
+gap with a pre-commit scanner, PR-level detection, and configurable alerting.
+
+### Deliverables
+
+- [ ] **Credential leak scanner** -- Regex-based scanner for common secret patterns (API keys, tokens, passwords, private keys, connection strings)
+  - [ ] `p126.d1.t1` Create secret_scanner.py with pattern matching engine
+    > Create secret_scanner.py: (1) SecretPattern dataclass: name, regex (compiled),
+    > severity (HIGH/MEDIUM/LOW), description, example, (2) BUILTIN_PATTERNS list:
+    > AWS Access Key (AKIA...), AWS Secret Key (40-char base64), GitHub Token
+    > (ghp_/gho_/ghu_/ghs_), Generic API Key (api_key=, apiKey:), JWT
+    > (eyJ[A-Za-z0-9-_]+\.eyJ), Private Key (-----BEGIN.*PRIVATE KEY-----),
+    > Database URL (postgres://, mysql://, mongodb:// with password), Slack
+    > Webhook (https://hooks.slack.com/), Google API Key (AIza...), SendGrid
+    > Key (SG\.), Stripe Key (sk_live_, pk_live_), Twilio Key (SK[0-9a-f]),
+    > Generic Password (password=, passwd=, PWD=), Generic Secret
+    > (secret=, token=, auth=), Heroku API Key, Mailgun Key, (3) scan_file(path:
+    > str, allow_patterns: list[str] = None) -> list[SecretMatch]: (a) read file
+    > content, (b) skip binary files, (c) apply all patterns, (d) filter
+    > allow-listed matches, (e) return matches with line number, column, context
+    > (surrounding 2 lines), (4) scan_diff(diff_text: str) -> list[SecretMatch]:
+    > parse unified diff, scan only added lines (+), (5) scan_commit(repo: str,
+    > sha: str) -> list[SecretMatch]: run git diff-tree for commit, scan diff,
+    > (6) CLI: python3 secret_scanner.py --scan <file|dir|repo:sha> --allowlist
+    > <file> --json.
+    _Files: ~/zion/projects/agent-orchestration/secret_scanner.py_
+  - [ ] Scanner detects at least 15 common secret patterns (AWS keys, GitHub tokens, JWTs, private keys, database URLs, etc.)
+    _Validation: run scanner against test fixtures with known secrets, verify all detected_
+  - [ ] Scanner has configurable allow-list for known non-secret patterns (test fixtures, example keys)
+    _Validation: configure allow-list, verify false positives suppressed_
+  _~200 LOC_
+- [ ] **Pre-commit hook integration** -- Install as a git pre-commit hook that blocks commits containing detected secrets
+  - [ ] `p126.d2.t1` Create pre-commit hook script (depends: p126.d1.t1)
+    > Create hooks/pre-commit-secret-scan: (1) shell script that runs
+    > secret_scanner.py against staged files, (2) extract staged file list via
+    > git diff --cached --name-only, (3) scan each staged file, (4) if secrets
+    > found: print match details (file, line, pattern name, context), exit 1 to
+    > block commit, (5) if no secrets found: exit 0 silently, (6) support
+    > SKIP_SECRET_SCAN=1 env var to bypass (for emergencies), (7) integrate
+    > with workspace_manager.py to auto-install hook in new workspaces.
+    _Files: ~/zion/projects/agent-orchestration/hooks/pre-commit-secret-scan_
+  - [ ] Pre-commit hook blocks commits with detected secrets and shows which patterns matched
+    _Validation: create test file with fake secret, attempt commit, verify blocked with clear error_
+  _~80 LOC_
+- [ ] **PR-level secret detection** -- Scan PR diffs for secrets before PR creation, adding automated comments for any findings
+  - [ ] `p126.d3.t1` Integrate secret scanner into PR automation (depends: p126.d1.t1, p13.d1.t1)
+    > Modify pr_automation.py: (1) after generating diff but before creating PR,
+    > run secret_scanner.scan_diff() on the diff, (2) if secrets found: (a) log
+    > to execution history (phase 8), (b) post warning comment on PR if created,
+    > (c) add label "potential-secret-leak", (d) if config secrets.block_pr=true
+    > (default false), refuse to create PR, (3) add config: secrets.scan_pr
+    > (bool, default true), secrets.block_pr (bool, default false),
+    > secrets.comment_on_detect (bool, default true).
+    _Files: ~/zion/projects/agent-orchestration/pr_automation.py_
+  - [ ] PR creation (phase 13) runs secret scan on the diff and warns if secrets detected
+    _Validation: create PR with test secret, verify warning comment appears_
+  _~60 LOC_
+- [ ] **Secret scanner tests** -- Test pattern detection, allow-listing, diff scanning, and pre-commit integration
+  - [ ] `p126.d4.t1` Create test_secret_scanner.py (depends: p126.d2.t1)
+    > Create test_secret_scanner.py: (1) test each builtin pattern: create test
+    > string with known secret, verify detection, (2) test allow-list: configure
+    > allow pattern, verify match suppressed, (3) test scan_file: create temp file
+    > with secret, verify detection with correct line/column, (4) test scan_diff:
+    > create diff with added secret line, verify detection, removed lines not
+    > scanned, (5) test false positives: common non-secret strings (uuids, hashes)
+    > should not trigger, (6) test multiline patterns: private keys spanning
+    > multiple lines detected, (7) test binary file skipping: create temp binary
+    > file, verify not scanned.
+    _Files: ~/zion/projects/agent-orchestration/test_secret_scanner.py_
+  - [ ] Tests cover all 15+ secret patterns, allow-listing, and edge cases (encoded secrets, multiline keys)
+    _Validation: python3 -m pytest test_secret_scanner.py -v_
+  _~150 LOC_
+
+### Technical Notes
+
+Secret detection is fundamentally a regex problem, not an ML problem. The patterns
+are well-defined (AWS keys start with AKIA, GitHub tokens with ghp_, etc.). The
+challenge is false positives -- UUIDs, hashes, and test fixtures can look like
+secrets. The allow-list mechanism handles this. For dark factory mode (phase 35),
+this is a CRITICAL safety gate: without human review, the pre-commit hook is the
+only line of defense against credential exposure. The scanner should be fast
+(<100ms per file) to avoid adding perceptible latency to the commit workflow.
+
+### Risks
+
+- False positives could block legitimate commits -- allow-list and SKIP env var mitigate this
+- New secret formats may emerge -- pattern list needs periodic updates
+- Encoded secrets (base64) may evade regex detection -- document limitation, consider entropy-based detection as enhancement
+
+## [ ] phase-127: Prompt Compiler Integration for Orchestrator AI Nodes (PLANNED)
+
+**Goal:** Replace ad-hoc prompt construction in the DAG executor with the recipe-driven Prompt Compiler pipeline for consistent, high-quality agent context
+
+The "Prompt Compiler AI Agent Guide" research describes a 9-step pipeline (load
+recipe, resolve templates, checksum, cache, extract, construct, transform,
+assemble, persist) for context assembly that is significantly more sophisticated
+than the orchestrator's current ad-hoc prompt construction. Key capabilities:
+(1) recipe-driven templates defining which extractors to use and what token
+budgets to enforce, (2) strategy escalation on failure (FIXER -> SCOUT -> REFACTOR
+as retry attempts increase), (3) checksummed caching to avoid re-compiling
+identical prompts, (4) multi-modal extraction from 6 sources (codebase
+skeletonization, RAG, skill matching, git diff, git context, session history),
+(5) outcome tracking correlating recipes with success rates. Phase 20 (Context
+Budget) handles budget calculation. Phase 82 (Context Seeding) handles context
+injection. But neither provides the recipe-driven compilation pipeline. The
+Prompt Compiler already exists at ~/zion/tools/prompt-compiler/ and can be
+integrated into the DAG executor's AI node execution.
+
+### Deliverables
+
+- [ ] **Orchestrator-Prompt Compiler bridge** -- Adapter that invokes the Prompt Compiler for AI node execution in the DAG executor
+  - [ ] `p127.d1.t1` Create prompt_bridge.py connecting orchestrator to Prompt Compiler
+    > Create prompt_bridge.py: (1) compile_prompt(task: str, recipe: str, workdir:
+    > str, context: dict = None) -> str: (a) resolve recipe path from
+    > ~/zion/tools/prompt-compiler/recipes/, (b) prepare task template variables,
+    > (c) invoke prompt-compile CLI via subprocess, (d) read compiled prompt from
+    > store/ directory, (e) return prompt text, (2) get_strategy(task: str) ->
+    > str: analyze task keywords to select strategy mode (FIXER, BUILDER, SCOUT,
+    > REFACTOR, SURGEON), (3) escalate_strategy(current_strategy: str, attempt:
+    > int) -> str: FIXER -> SCOUT (attempt 2+), SCOUT -> REFACTOR (attempt 3+),
+    > (4) compile_with_retry(task, recipe, workdir, max_attempts=3) -> tuple[str,
+    > str]: compile prompt, if agent fails, escalate strategy and recompile, return
+    > (prompt, strategy), (5) cache_key(task: str, recipe: str, workdir: str) ->
+    > str: SHA256 of inputs for cache lookup, (6) CLI: python3 prompt_bridge.py
+    > --compile --task <desc> --recipe <name> --workdir <path>.
+    _Files: ~/zion/projects/agent-orchestration/prompt_bridge.py_
+  - [ ] DAG executor AI nodes can use Prompt Compiler recipes for context assembly
+    _Validation: configure a pipeline YAML with recipe="implement-feature", execute, verify compiled prompt used_
+  _~200 LOC_
+- [ ] **Strategy escalation in DAG executor** -- Automatically escalate agent strategy on loop retry (FIXER -> SCOUT -> REFACTOR)
+  - [ ] `p127.d2.t1` Integrate strategy escalation into DAG executor loop nodes (depends: p127.d1.t1, p5.d2.t1)
+    > Modify executor.py: (1) when executing AI nodes within Loop nodes, pass
+    > attempt number to prompt_bridge.compile_with_retry(), (2) store strategy
+    > escalation history in execution context, (3) log strategy changes to
+    > execution history (phase 8), (4) add config: prompts.default_recipe (str,
+    > default "implement-feature"), prompts.enable_escalation (bool, default
+    > true), prompts.max_escalation_attempts (int, default 3), (5) update
+    > standard-pipeline.yaml and team-pipeline.yaml to use recipe-based prompt
+    > construction instead of inline prompts.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Loop nodes in DAG executor escalate strategy on each retry iteration
+    _Validation: run pipeline with failing task, verify strategy changes from BUILDER to SCOUT to REFACTOR_
+  _~100 LOC_
+- [ ] **Recipe success rate tracking** -- Track which recipes and strategies produce successful outcomes for continuous optimization
+  - [ ] `p127.d3.t1` Create recipe_analytics.py for recipe outcome tracking (depends: p127.d1.t1)
+    > Create recipe_analytics.py: (1) record_outcome(prompt_id: str, recipe: str,
+    > strategy: str, task_type: str, success: bool, duration: float, tokens_used:
+    > int): store in recipe_outcomes.db (SQLite), (2) get_recipe_stats(recipe:
+    > str, window_days: int = 30) -> dict: success rate, avg duration, avg tokens,
+    > sample count, (3) recommend_recipe(task_type: str) -> str: select recipe
+    > with highest success rate for given task type, (4) detect_degradation():
+    > compare recent success rate vs historical, alert if significant drop, (5)
+    > CLI: python3 recipe_analytics.py --stats --recipe <name> --recommend
+    > --task <type>.
+    _Files: ~/zion/projects/agent-orchestration/recipe_analytics.py_
+  - [ ] Recipe usage and outcomes are recorded and queryable
+    _Validation: execute several tasks with different recipes, query success rates, verify accuracy_
+  _~120 LOC_
+- [ ] **Prompt bridge tests** -- Test prompt compilation, strategy escalation, caching, and recipe analytics
+  - [ ] `p127.d4.t1` Create test_prompt_bridge.py (depends: p127.d3.t1)
+    > Create test_prompt_bridge.py: (1) test compile_prompt: mock prompt-compile
+    > CLI, verify correct invocation, (2) test get_strategy: verify keyword
+    > matching for all 5 strategies, (3) test escalate_strategy: verify FIXER ->
+    > SCOUT -> REFACTOR progression, verify max_attempts respected, (4) test
+    > cache_key: deterministic for same inputs, different for different inputs,
+    > (5) test recipe_analytics: record outcomes, query stats, verify accuracy,
+    > test degradation detection, (6) test integration with executor: mock DAG
+    > execution with loop, verify strategy escalation occurs.
+    _Files: ~/zion/projects/agent-orchestration/test_prompt_bridge.py_
+  - [ ] Tests cover compilation, escalation logic, cache hits/misses, and analytics queries
+    _Validation: python3 -m pytest test_prompt_bridge.py -v_
+  _~150 LOC_
+
+### Technical Notes
+
+The Prompt Compiler at ~/zion/tools/prompt-compiler/ already implements most of
+the needed functionality. This phase creates a bridge layer that adapts the
+existing tool for orchestrator use, not a reimplementation. The key innovation
+is strategy escalation: when an agent fails, the system automatically shifts
+from BUILDER (feature implementation) to SCOUT (investigation) to REFACTOR
+(structural change), preventing the agent from repeating the same failed approach.
+This is the "attempt-based escalation" pattern from the Prompt Compiler research.
+The recipe analytics provide the feedback signal for the self-improvement loop
+(phase 19) to optimize recipe selection over time.
+
+### Risks
+
+- Prompt Compiler dependency adds coupling to ~/zion/tools/prompt-compiler/ -- document as optional, fall back to inline prompts if unavailable
+- Strategy escalation may not help for all failure types -- some failures are environmental, not strategic
+- Recipe analytics require sufficient data (20+ outcomes per recipe) for meaningful recommendations
+
+## [ ] phase-128: Spec-Driven Development Workflow (OpenSpec Pattern) (PLANNED)
+
+**Goal:** Add a formal pre-execution specification lifecycle (proposal, requirements, design, tasks) to the DAG executor for structured, testable agent workflows
+
+The "AI Development Workflow: Spec to Autonomy" research describes OpenSpec's
+formal specification lifecycle: proposal.md (problem statement, success criteria,
+risks) -> requirements.md (RFC 2119 keywords, Given/When/Then scenarios) ->
+design.md (architecture, component breakdown, migration path) -> tasks.md (2-5
+minute TDD tasks). This creates a "contract of intent" between human and agent
+that prevents "context rot" and "vibe coding." Phase 5 (DAG Executor) defines
+execution pipelines. Phase 26 (Work Decomposition) breaks issues into sub-issues.
+Phase 45 (WORKFLOW.md Engine) loads runtime policies. But NONE provides the
+formal pre-execution specification lifecycle with structured artifacts. The DAG
+executor jumps straight to plan/implement without a formal proposal or
+requirements phase. Phase 128 closes this gap by adding a SPEC node type to
+the DAG executor and a spec-driven pipeline template.
+
+### Deliverables
+
+- [ ] **SPEC node type for DAG executor** -- New node type that generates formal specification artifacts before implementation begins
+  - [ ] `p128.d1.t1` Add SPEC node type to dag.py and executor.py (depends: p5.d1.t1, p5.d2.t1)
+    > Modify dag.py and executor.py: (1) add SpecNode dataclass to dag.py: type
+    > "spec", sections (list[str]: proposal, requirements, design, tasks --
+    > controls which artifacts to generate), review_required (bool), (2) in
+    > executor.py, SPEC node execution: (a) read issue description and codebase
+    > context, (b) for each enabled section, call delegate_task with section-
+    > specific prompt template, (c) proposal prompt: "Given this issue, write a
+    > proposal.md with: Why (problem statement), What's Changing (bullet points),
+    > Success Criteria (measurable outcomes), Risks (failure modes)", (d)
+    > requirements prompt: "Given this proposal, write requirements.md using
+    > RFC 2119 keywords (MUST, SHALL, SHOULD, MAY). Each requirement has a
+    > Given/When/Then scenario and acceptance criteria.", (e) design prompt:
+    > "Given these requirements, write design.md with: Architecture Overview,
+    > Component Breakdown, File Structure, Migration Path from current state",
+    > (f) tasks prompt: "Given this design, write tasks.md with 2-5 minute TDD
+    > tasks. Each task: file references, failing test first, minimal
+    > implementation, conventional commit message.", (g) write artifacts to
+    > workspace/specs/ directory, (h) if review_required=true, pause for human
+    > review before proceeding.
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] DAG executor supports SPEC nodes that produce proposal.md, requirements.md, design.md, and tasks.md
+    _Validation: define a pipeline with SPEC node, execute, verify all 4 spec artifacts generated_
+  _~200 LOC_
+- [ ] **Spec-driven pipeline template** -- DAG pipeline template that uses SPEC node before implementation
+  - [ ] `p128.d2.t1` Create spec-driven-pipeline.yaml (depends: p128.d1.t1, p5.d3.t1)
+    > Create pipelines/spec-driven-pipeline.yaml: (1) SPEC(proposal, requirements,
+    > design, tasks, review_required=true) -> AI(plan, context=requirements+design)
+    > -> AI(implement, context=tasks) -> Bash(test) -> Loop(fix-on-failure,
+    > max=3) -> AI(review, context=requirements) -> Bash(commit), (2) the plan
+    > node receives requirements.md and design.md as context, (3) the implement
+    > node receives tasks.md as context, (4) the review node checks against
+    > requirements.md acceptance criteria, (5) add a "task_pass_rate" metric:
+    > count tasks marked pass vs total in tasks.md, report in execution history.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/spec-driven-pipeline.yaml_
+  - [ ] Pipeline template YAML defines spec -> plan -> implement -> test -> review -> commit flow
+    _Validation: read pipeline YAML, trace through nodes_
+  _~80 LOC_
+- [ ] **Spec quality validation** -- Validate that generated specs meet quality standards before proceeding to implementation
+  - [ ] `p128.d3.t1` Create spec_validator.py (depends: p128.d1.t1)
+    > Create spec_validator.py: (1) validate_proposal(proposal_path: str) ->
+    > ValidationResult: check for "Why" section, "Success Criteria" with
+    > measurable outcomes (numbers, percentages), "Risks" section, (2)
+    > validate_requirements(req_path: str) -> ValidationResult: check each
+    > requirement has RFC 2119 keyword (MUST, SHALL, SHOULD, MAY), at least one
+    > Given/When/Then scenario per requirement, acceptance criteria checklist,
+    > (3) validate_design(design_path: str) -> ValidationResult: check for
+    > architecture overview, component breakdown, file structure listing, migration
+    > path, (4) validate_tasks(tasks_path: str) -> ValidationResult: check each
+    > task has file references, TDD steps (write test, verify fail, implement,
+    > verify pass), commit message, (5) validate_all(spec_dir: str) ->
+    > dict[str, ValidationResult]: validate all specs in directory, return
+    > per-artifact results, (6) spec_quality_score(results: dict) -> float:
+    > weighted score (requirements weight 0.4, tasks 0.3, design 0.2, proposal
+    > 0.1).
+    _Files: ~/zion/projects/agent-orchestration/spec_validator.py_
+  - [ ] Spec validation checks that requirements have RFC 2119 keywords, scenarios have Given/When/Then, tasks have TDD steps
+    _Validation: generate a spec with missing elements, verify validation catches them_
+  _~180 LOC_
+- [ ] **Spec workflow tests** -- Test SPEC node execution, spec validation, and the spec-driven pipeline template
+  - [ ] `p128.d4.t1` Create test_spec_workflow.py (depends: p128.d3.t1)
+    > Create test_spec_workflow.py: (1) test SPEC node parsing: parse YAML with
+    > SPEC node, verify sections and review_required attributes, (2) test spec
+    > validation: create test specs with missing elements, verify each validation
+    > rule catches its target, (3) test spec quality score: complete spec scores
+    > high, incomplete spec scores low, (4) test pipeline template: parse
+    > spec-driven-pipeline.yaml, verify node order and context passing, (5) test
+    > integration: mock SPEC node execution, verify artifacts written to
+    > workspace/specs/.
+    _Files: ~/zion/projects/agent-orchestration/test_spec_workflow.py_
+  - [ ] Tests cover SPEC node type, validation rules, and end-to-end spec-driven pipeline
+    _Validation: python3 -m pytest test_spec_workflow.py -v_
+  _~150 LOC_
+
+### Technical Notes
+
+The OpenSpec pattern addresses "context rot" -- the degradation of agent
+performance as chat history accumulates irrelevant context. By creating
+structured artifacts (proposal, requirements, design, tasks) BEFORE execution
+begins, the agent always has fresh, focused context. The RFC 2119 keywords
+(MUST, SHALL, SHOULD, MAY) remove ambiguity from requirements. The Given/When/Then
+scenarios make requirements machine-verifiable. The 2-5 minute task granularity
+keeps the agent's context window focused on a single problem. The "task pass rate"
+metric (from the research) measures spec quality: a high pass rate means the
+spec was well-defined, a low rate means requirements were too vague. This metric
+feeds into the self-improvement loop (phase 19).
+
+### Risks
+
+- Spec generation adds latency before implementation starts -- the research targets <30 minutes for spec phase
+- Spec quality depends on the LLM generating coherent requirements -- spec_validator catches structural issues but not semantic ones
+- Over-specification can reduce agent flexibility for novel problems -- support skipping spec phase via pipeline config
+- RFC 2119 keyword compliance may be too rigid for some task types -- SHOULD and MAY provide flexibility
+
 ## Global Risks
 
 - Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
@@ -7485,6 +7813,9 @@ heartbeat logs, and the same applies to artifact storage.
 - Template input validation (phase 123) could reject valid inputs if schema is too strict -- allow schema overrides
 - Dynamic secrets (phase 124) adds Vault/secret store as a runtime dependency -- make file-based backend the default
 - Artifact repository (phase 125) could consume significant disk space -- implement retention policies
+- Secret scanner (phase 126) false positives could block legitimate commits -- allow-list and SKIP env var mitigate this
+- Prompt Compiler integration (phase 127) adds coupling to external tool -- document as optional, fall back to inline prompts if unavailable
+- Spec-driven workflow (phase 128) adds latency before implementation -- support skipping spec phase for simple tasks
 
 ## Conventions
 
