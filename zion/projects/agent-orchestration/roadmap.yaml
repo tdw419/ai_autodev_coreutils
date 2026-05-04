@@ -2166,7 +2166,7 @@ phases:
   test_target: 5
 - id: 'phase-23'
   title: 'End-to-End Integration and Real-World Validation'
-  status: done
+  status: complete
   goal: 'Validate the complete orchestrator system works end-to-end on a real project, measure throughput, and fix integration issues'
   description: 'Phases 1-22 build individual components (poller, spawner, executor, DAG, roles, logging, health, PR creation, etc.) but none validates the full lifecycle: issue filed -> polled -> workspace
     created -> pipeline executed -> tests pass -> PR created -> issue linked -> workspace archived. This phase runs the full system against a real GitHub repo, measures the time from issue to PR, identifies
