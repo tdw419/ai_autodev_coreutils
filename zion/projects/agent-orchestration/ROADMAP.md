@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/128 phases complete, 0 in progress
+**Progress:** 23/133 phases complete, 0 in progress
 
-**Deliverables:** 90/507 complete
+**Deliverables:** 90/527 complete
 
-**Tasks:** 90/507 complete
+**Tasks:** 90/527 complete
 
 ## Scope Summary
 
@@ -140,6 +140,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-126 Secret/Credential Leak Detection in Agent Output | PLANNED | 0/4 | 490 | 10 |
 | phase-127 Prompt Compiler Integration for Orchestrator AI Nodes | PLANNED | 0/4 | 570 | 10 |
 | phase-128 Spec-Driven Development Workflow (OpenSpec Pattern) | PLANNED | 0/4 | 610 | 10 |
+| phase-129 Git Worktree-Based Task Isolation | PLANNED | 0/4 | 580 | 10 |
+| phase-130 Context Cache Warmth and Prompt Prefix Optimization | PLANNED | 0/4 | 580 | 10 |
+| phase-131 Attempt Pattern with Failure History Learning | PLANNED | 0/4 | 630 | 10 |
+| phase-132 Ambiguity Score Gate for Task Readiness | PLANNED | 0/4 | 620 | 10 |
+| phase-133 Plateau Breaker and Experiment Tree Navigation | PLANNED | 0/4 | 740 | 10 |
 
 ## Dependencies
 
@@ -605,6 +610,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-5 | phase-128 | soft | DAG executor provides the execution engine; SPEC nodes extend the node type registry |
 | phase-26 | phase-128 | soft | Work Decomposition breaks issues into sub-issues; Spec-Driven Workflow provides a more formal alternative with structured artifacts |
 | phase-45 | phase-128 | soft | WORKFLOW.md Engine loads runtime policies; Spec artifacts define task-level policies as structured data |
+| phase-11 | phase-129 | soft | Workspace lifecycle management from phase 11 provides the foundation; worktrees replace directory-based isolation |
+| phase-10 | phase-129 | soft | Garbage collection from phase 10 provides the cleanup framework for stale worktrees |
+| phase-20 | phase-130 | soft | Context budget system from phase 20 is the natural integration point for cache warmth optimization |
+| phase-32 | phase-130 | soft | Cost tracking from phase 32 provides the financial context for cache optimization value |
+| phase-4 | phase-131 | soft | Orchestrator main loop from phase 4 is where task failures are detected and retries are scheduled |
+| phase-19 | phase-131 | soft | Self-improvement loop from phase 19 consumes attempt analytics for strategy tuning |
+| phase-28 | phase-131 | informs | Speculative execution (phase 28) explores in parallel; attempt pattern (phase 131) iterates sequentially with learning |
+| phase-4 | phase-132 | soft | Poller from phase 4 is the integration point where issues are filtered before assignment |
+| phase-41 | phase-132 | soft | Intelligent scheduling from phase 41 prioritizes by urgency; ambiguity gate filters by clarity -- complementary |
+| phase-131 | phase-133 | soft | Attempt tracker from phase 131 provides the failure history that plateau breaker analyzes |
+| phase-116 | phase-133 | soft | Stagnation circuit breaker from phase 116 detects commit stalls; plateau breaker extends this with strategy reset |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -7703,6 +7719,527 @@ feeds into the self-improvement loop (phase 19).
 - Spec quality depends on the LLM generating coherent requirements -- spec_validator catches structural issues but not semantic ones
 - Over-specification can reduce agent flexibility for novel problems -- support skipping spec phase via pipeline config
 - RFC 2119 keyword compliance may be too rigid for some task types -- SHOULD and MAY provide flexibility
+
+## [ ] phase-129: Git Worktree-Based Task Isolation (PLANNED)
+
+**Goal:** Replace directory-based workspace isolation with git worktrees, enabling parallel agents to work on different branches of the same repository without file system conflicts
+
+The "AI Command Centers Beyond Terminals" research describes Vibe Kanban's use of git worktrees
+as the primary isolation mechanism: "a separate Git worktree -- a linked copy of the repository
+that shares the .git directory but possesses its own isolated checkout -- for every task assigned
+to an agent." This ensures "Agent A can work on a feature-authentication branch while Agent B
+addresses a bug-fix in the documentation, without any risk of stepping on each other's toes."
+Phase 11 (Workspace Lifecycle) creates isolated directories. Phase 64 (Sandboxing) provides
+OS-level isolation. But neither creates git-native worktrees that share commit history and
+enable intentional merge points. This phase adds: (1) worktree creation per task with automatic
+branch naming, (2) worktree cleanup after task completion or failure, (3) worktree status
+tracking so the orchestrator knows which worktrees exist, (4) conflict detection at merge time
+leveraging git's native merge machinery, (5) worktree pool management to prevent resource
+exhaustion. Git worktrees are lighter than full clones, share object storage, and integrate
+naturally with the existing git-based workflow.
+
+### Deliverables
+
+- [ ] **Worktree manager module** -- Create worktree_manager.py that handles worktree lifecycle (create, list, cleanup, status)
+  - [ ] `p129.d1.t1` Create worktree_manager.py
+    > Create worktree_manager.py: (1) create_worktree(repo_path, issue_number, branch_prefix="orch")
+    > -> str: run "git worktree add <path> -b <branch>", return worktree path, (2) list_worktrees(repo_path)
+    > -> list[dict]: run "git worktree list", parse output, include branch name, age, and
+    > associated issue number (stored in metadata file), (3) cleanup_worktree(repo_path, issue_number):
+    > run "git worktree remove <path>", prune branch if merged, remove metadata, (4)
+    > worktree_status(repo_path) -> dict: count active worktrees, total disk usage, oldest
+    > worktree age, (5) store metadata (issue_number, created_at, status) in .orch-worktree
+    > file inside each worktree for correlation, (6) handle edge cases: worktree already exists,
+    > branch name collision, repo not a git repository, worktree locked by another process.
+    _Files: ~/zion/projects/agent-orchestration/worktree_manager.py_
+  - [ ] Can create a worktree for a given task, checkout a branch, and return the path
+    _Validation: python3 worktree_manager.py create --issue 123 --repo ~/zion/projects/target_
+  - [ ] Can list all active worktrees with their branches and ages
+    _Validation: python3 worktree_manager.py list_
+  - [ ] Can clean up a worktree after task completion, removing the directory and pruning the branch
+    _Validation: python3 worktree_manager.py cleanup --issue 123_
+  _~180 LOC_
+- [ ] **Worktree integration with spawner** -- Integrate worktree_manager into the worker spawner so agents automatically get worktree-isolated workspaces
+  - [ ] `p129.d2.t1` Integrate worktree_manager into spawner.py (depends: p129.d1.t1)
+    > Update spawner.py: (1) import worktree_manager, (2) in spawn_worker(), try
+    > create_worktree() first, fall back to existing directory-based isolation if it fails
+    > (not a git repo, worktree limit reached), (3) pass worktree path as working directory
+    > to delegate_task, (4) on task completion (success or failure), call cleanup_worktree(),
+    > (5) add worktree_status() to the status command output so operators can see active
+    > worktrees.
+    _Files: ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] Spawner uses worktree_manager instead of plain directory creation when available
+    _Validation: check spawner.py imports and calls worktree_manager_
+  - [ ] Falls back to plain directory if worktree creation fails
+    _Validation: test with non-git directory, verify fallback_
+  _~100 LOC_
+- [ ] **Worktree pool limits and aging** -- Add configurable limits on maximum concurrent worktrees and automatic cleanup of stale worktrees
+  - [ ] `p129.d3.t1` Add worktree pool management (depends: p129.d1.t1, p10.d1.t1)
+    > Extend worktree_manager.py: (1) add max_worktrees config (default 10), enforced in
+    > create_worktree(), (2) add stale_threshold_hours config (default 24), (3) scan_stale_worktrees():
+    > list worktrees older than threshold, return candidates for cleanup, (4) add to garbage
+    > collector (garbage_collector.py) so stale worktrees are cleaned up during GC runs, (5)
+    > add worktree count to health monitor output.
+    _Files: ~/zion/projects/agent-orchestration/worktree_manager.py, ~/zion/projects/agent-orchestration/garbage_collector.py_
+  - [ ] Configurable max_worktrees limit prevents resource exhaustion
+    _Validation: set max_worktrees=3, create 4 worktrees, verify 4th is rejected_
+  - [ ] Stale worktrees (no activity for N hours) are automatically flagged for cleanup
+    _Validation: create worktree, wait (mock time), verify flagged_
+  _~120 LOC_
+- [ ] **Worktree manager tests** -- Test worktree creation, listing, cleanup, pool limits, and spawner integration
+  - [ ] `p129.d4.t1` Create test_worktree_manager.py (depends: p129.d3.t1)
+    > Create test_worktree_manager.py: (1) test_create_worktree: create worktree in temp
+    > git repo, verify directory exists and branch is checked out, (2) test_create_already_exists:
+    > create worktree twice for same issue, verify graceful handling, (3) test_list_worktrees:
+    > create 3 worktrees, verify list returns all 3 with correct metadata, (4) test_cleanup:
+    > create and cleanup worktree, verify directory removed and branch pruned, (5)
+    > test_max_worktrees: set limit to 2, create 3, verify 3rd fails, (6) test_stale_detection:
+    > create worktree with old timestamp, verify flagged as stale, (7) test_fallback: create
+    > worktree in non-git directory, verify fallback to plain directory, (8) test_spawner_integration:
+    > mock spawner with worktree_manager, verify worktree path used.
+    _Files: ~/zion/projects/agent-orchestration/test_worktree_manager.py_
+  - [ ] Tests cover worktree lifecycle, edge cases, and integration with spawner
+    _Validation: python3 -m pytest test_worktree_manager.py -v_
+  _~180 LOC_
+
+### Technical Notes
+
+Git worktrees are the "gold standard" for parallel agent isolation because they share .git
+objects (efficient storage) while providing fully isolated working directories. The key
+difference from phase 11's directory isolation: worktrees are git-aware, so agents can
+commit, branch, and merge naturally. Directory isolation requires manual git management.
+The research emphasizes that "Git worktrees to achieve total task isolation" is the "most
+significant architectural innovation" of Vibe Kanban. Keep the implementation simple:
+shell out to git commands, don't try to use gitpython. The worktree limit prevents disk
+exhaustion when many tasks queue up.
+
+### Risks
+
+- Git worktrees require the repo to be a non-bare git repository -- fall back to directory isolation for non-git projects
+- Worktree cleanup during active agent work could lose uncommitted changes -- check for uncommitted files before removing
+- Worktree branch naming collisions could occur with manual branches -- use a unique prefix (orch/issue-N)
+- Disk usage grows with worktree count -- the pool limit and GC cleanup mitigate this
+
+## [ ] phase-130: Context Cache Warmth and Prompt Prefix Optimization (PLANNED)
+
+**Goal:** Track and optimize prompt cache hit rates to reduce token costs by up to 5x through prefix stability management
+
+The "Claude Token Hacks Explained" research reveals that prompt caching (KV-cache persistence
+in GPU VRAM) can reduce costs by up to 5x when cache hit rates reach 90%: "In a deep coding
+session that would otherwise cost $100 in raw input tokens, a 90% cache hit rate reduces the
+expenditure to approximately $19." However, this requires strict prefix stability: "Any
+modification to the early parts of the prompt -- such as changing the model, adding an MCP
+server, or editing the CLAUDE.md file -- invalidates the entire cache, forcing a new cold
+start write." The research also describes a 5-minute inactivity TTL where caches "evaporate"
+if not actively hit. Phase 20 (Context Budget) manages context window SIZE but does NOT track
+or optimize cache behavior. Phase 32 (Cost Tracking) tracks costs but not cache hit rates.
+Phase 127 (Prompt Compiler) optimizes prompts but not for cache efficiency. This phase adds:
+(1) prompt prefix fingerprinting to detect cache-invalidating changes, (2) cache warmth
+scoring across sessions, (3) prefix stability recommendations, (4) heartbeat warming to
+prevent TTL expiry during long manual work.
+
+### Deliverables
+
+- [ ] **Cache warmth tracker module** -- Create cache_tracker.py that monitors prompt prefix stability and estimates cache hit rates
+  - [ ] `p130.d1.t1` Create cache_tracker.py
+    > Create cache_tracker.py: (1) compute_prefix_fingerprint(workspace_path, context_files:
+    > list[str]) -> str: SHA-256 hash of the concatenated content of all context files
+    > (system prompt, agent.md, WORKFLOW.md, role profile) in deterministic order, sorted by
+    > filename, (2) compare_fingerprints(fp1: str, fp2: str) -> PrefixDiff: identify which
+    > files changed between two fingerprints by computing per-file hashes and comparing, (3)
+    > estimate_cache_hit_rate(session_history: list[dict]) -> float: analyze session message
+    > sequence to estimate what fraction of prompts shared a common prefix (heuristic: count
+    > consecutive prompts with same system prompt hash), (4) cache_warmth_score(sessions:
+    > list[dict]) -> dict: per-workspace cache warmth metrics including avg hit rate,
+    > prefix stability score (1.0 = never changed, 0.0 = changed every session), and
+    > estimated cost savings, (5) recommend_prefix_stabilization(changes: list[PrefixDiff])
+    > -> list[str]: suggest which files should be moved to the END of the prompt (after the
+    > variable section) to maximize prefix stability.
+    _Files: ~/zion/projects/agent-orchestration/cache_tracker.py_
+  - [ ] Can compute a prefix fingerprint from the system prompt and context files
+    _Validation: python3 cache_tracker.py fingerprint --workspace ws-123_
+  - [ ] Can compare fingerprints across sessions and detect cache-invalidating changes
+    _Validation: compare two sessions, identify which files changed the prefix_
+  _~200 LOC_
+- [ ] **Prefix stability integration with context budget** -- Integrate cache warmth awareness into the context budget system so prompt construction maximizes cache hits
+  - [ ] `p130.d2.t1` Integrate cache warmth into context_budget.py (depends: p130.d1.t1, p20.d1.t1)
+    > Update context_budget.py: (1) import cache_tracker, (2) when constructing prompts, sort
+    > context sections into two groups: STABLE (system prompt, core rules, role profile -- rarely
+    > change) and VARIABLE (issue body, task description, execution history -- change every
+    > session), (3) place STABLE sections first in the prompt to maximize prefix reuse, (4)
+    > add a cache_warmth field to the context budget report showing estimated cache hit rate
+    > and potential cost savings, (5) log prefix fingerprint to execution history so
+    > cache_tracker can analyze trends across sessions.
+    _Files: ~/zion/projects/agent-orchestration/context_budget.py_
+  - [ ] Context budget module orders prompt sections to maximize prefix stability
+    _Validation: check context_budget.py imports and uses cache_tracker_
+  _~120 LOC_
+- [ ] **Cache warmth reporting and alerts** -- Add cache warmth metrics to the cost tracking and alerting systems
+  - [ ] `p130.d3.t1` Add cache warmth to cost reports (depends: p130.d1.t1, p32.d1.t1)
+    > Update cost_tracker.py and metrics.py: (1) add cache_warmth_score to the per-run cost
+    > record, (2) add aggregate cache warmth trend to the cost report (daily avg cache hit
+    > rate), (3) add an alert when cache hit rate drops below 50% for 3+ consecutive sessions
+    > (indicates prefix instability), (4) add cache_warmth to the health scorecard (phase 44
+    > integration point).
+    _Files: ~/zion/projects/agent-orchestration/cost_tracker.py, ~/zion/projects/agent-orchestration/metrics.py_
+  - [ ] Cost tracker reports include cache hit rate estimates
+    _Validation: python3 cost_tracker.py report --last 7d, verify cache section_
+  _~100 LOC_
+- [ ] **Cache tracker tests** -- Test fingerprinting, prefix diff detection, cache hit estimation, and integration
+  - [ ] `p130.d4.t1` Create test_cache_tracker.py (depends: p130.d3.t1)
+    > Create test_cache_tracker.py: (1) test_fingerprint_deterministic: same files produce
+    > same fingerprint, (2) test_fingerprint_order_independent: file order doesn't matter
+    > (sorted before hashing), (3) test_fingerprint_change_detection: modifying a context
+    > file changes the fingerprint, (4) test_prefix_diff: change 2 of 5 files, verify diff
+    > identifies exactly those 2, (5) test_cache_hit_estimation: mock session history with
+    > varying system prompts, verify estimation, (6) test_warmth_score: sessions with stable
+    > prefix score high, sessions with changing prefix score low, (7) test_stabilization_recommendation:
+    > suggest moving variable files to end of prompt.
+    _Files: ~/zion/projects/agent-orchestration/test_cache_tracker.py_
+  - [ ] Tests cover all cache_tracker functions and context_budget integration
+    _Validation: python3 -m pytest test_cache_tracker.py -v_
+  _~160 LOC_
+
+### Technical Notes
+
+The research's key insight is that cache warmth is a pure cost lever with no quality trade-off.
+A 90% cache hit rate literally means 5x cheaper sessions with identical output quality.
+The implementation is heuristic (we can't see the actual KV-cache from outside the API), but
+prefix fingerprinting is a reliable proxy: if the prefix hash matches the previous session,
+the cache is likely warm. The 5-minute TTL means that for long-running orchestrator loops,
+the cache stays warm naturally. The risk is during gaps (manual work, CI delays) where the
+cache evaporates. The prefix ordering optimization (stable sections first, variable sections
+last) is the single highest-impact change -- it maximizes the prefix that gets cached.
+
+### Risks
+
+- Cache hit estimation is heuristic -- actual cache behavior depends on API implementation details we cannot observe
+- Over-optimizing prefix stability could reduce prompt quality if variable context is forced to the end
+- Different LLM providers have different caching behavior -- Claude and GPT have different TTLs and prefix requirements
+- Context file sorting must be deterministic across sessions -- use filename sort, not content-dependent order
+
+## [ ] phase-131: Attempt Pattern with Failure History Learning (PLANNED)
+
+**Goal:** Enable iterative improvement on rejected tasks by preserving failure history and allowing re-attempts with different strategies
+
+The Vibe Kanban research describes an "Attempt" pattern: "If an agent's output is unsatisfactory,
+the manager can reject the work and initiate a new attempt with a different model or a refined
+prompt, preserving the history of previous failures as training signals." This enables "massive
+parallelism" through iterative improvement. Phase 28 (Speculative Execution) runs parallel
+explorations where each is independent -- there is no learning from failures. Phase 19
+(Self-Improvement) improves strategies globally but not per-task. The Attempt pattern is
+fundamentally different: it tracks failures FOR A SPECIFIC TASK and uses them to improve
+subsequent attempts on that same task. This phase adds: (1) attempt tracking per issue (attempt
+number, model used, failure reason, prompt modifications), (2) automatic strategy escalation
+(try different model, add constraints, change role), (3) failure history injection into
+subsequent attempt prompts, (4) attempt limits to prevent infinite retry loops, (5) attempt
+success rate analytics.
+
+### Deliverables
+
+- [ ] **Attempt tracker module** -- Create attempt_tracker.py that tracks re-attempts on rejected tasks with failure history
+  - [ ] `p131.d1.t1` Create attempt_tracker.py
+    > Create attempt_tracker.py: (1) record_attempt(issue_number, attempt_number, model,
+    > role, prompt_summary, outcome, failure_reason, files_modified) -> None: store in
+    > attempts/ directory as JSON, (2) get_history(issue_number) -> list[AttemptRecord]:
+    > load all attempts for an issue, sorted by attempt_number, (3) build_context_from_failures(
+    > history: list[AttemptRecord]) -> str: generate a "Previous Attempts" section that
+    > summarizes what was tried, what failed, and why, formatted as instructions for the
+    > next attempt (e.g., "Previous attempt 1 used claude/implementer and failed because
+    > tests were missing. DO NOT repeat this approach. Consider writing tests first."),
+    > (4) should_retry(history: list[AttemptRecord], max_attempts=3) -> bool: check if
+    > another attempt is warranted (not exceeded max, failure reasons are different --
+    > don't retry if same failure), (5) suggest_strategy_change(history) -> dict: analyze
+    > failure patterns and suggest changes (different model, different role, additional
+    > constraints, decompose into smaller tasks).
+    _Files: ~/zion/projects/agent-orchestration/attempt_tracker.py_
+  - [ ] Can record an attempt with model, prompt, outcome, and failure reason
+    _Validation: python3 attempt_tracker.py record --issue 123 --attempt 1 --model claude --outcome rejected --reason "missing tests"_
+  - [ ] Can retrieve failure history for a task to inject into the next attempt prompt
+    _Validation: python3 attempt_tracker.py history --issue 123, verify structured output_
+  _~200 LOC_
+- [ ] **Attempt integration with orchestrator loop** -- Integrate attempt tracking into the orchestrator so rejected tasks can be re-attempted with learned context
+  - [ ] `p131.d2.t1` Integrate attempt_tracker into orchestrator.py (depends: p131.d1.t1, p4.d1.t1)
+    > Update orchestrator.py: (1) after a worker completes with failure (review rejection,
+    > test failure, quality gate fail), call record_attempt() with failure details, (2)
+    > check should_retry() before scheduling a retry, (3) when retrying, call
+    > build_context_from_failures() and prepend to the task prompt, (4) use
+    > suggest_strategy_change() to modify the retry configuration (different model, role,
+    > or additional constraints), (5) add attempt count to the issue status tracking
+    > (displayed in --status output), (6) after max_attempts reached, mark the task as
+    > "blocked" with a summary of all attempts and reasons.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] When a task fails review or quality checks, the orchestrator records the attempt and schedules a retry
+    _Validation: simulate failed task, verify attempt recorded and retry scheduled_
+  - [ ] Retry prompts include failure history context
+    _Validation: check retry prompt contains "Previous Attempts" section_
+  _~150 LOC_
+- [ ] **Attempt analytics and learning** -- Analyze attempt patterns across all tasks to identify systematic failure modes and improve agent strategies
+  - [ ] `p131.d3.t1` Add attempt analytics (depends: p131.d1.t1)
+    > Extend attempt_tracker.py: (1) analytics(period_days=30) -> dict: aggregate attempt
+    > data showing success rate by model, role, failure type, and task type, (2)
+    > common_failure_patterns() -> list[dict]: identify the top 5 failure reasons across
+    > all tasks, (3) model_effectiveness() -> dict: compare success rates between models
+    > for similar task types, (4) retry_roi() -> float: estimate the value of retrying
+    > (tasks that succeeded on attempt 2+ vs. tasks that never succeeded), (5) feed
+    > analytics into the self-improvement loop (phase 19) as a signal for strategy tuning.
+    _Files: ~/zion/projects/agent-orchestration/attempt_tracker.py_
+  - [ ] Can generate attempt analytics showing success rates by model, role, and failure type
+    _Validation: python3 attempt_tracker.py analytics --last 30d_
+  _~120 LOC_
+- [ ] **Attempt tracker tests** -- Test attempt recording, history retrieval, context generation, retry logic, and analytics
+  - [ ] `p131.d4.t1` Create test_attempt_tracker.py (depends: p131.d3.t1)
+    > Create test_attempt_tracker.py: (1) test_record_and_retrieve: record 2 attempts for
+    > an issue, verify both returned in order, (2) test_build_failure_context: record a
+    > failed attempt, verify context string contains failure reason and "DO NOT repeat"
+    > instruction, (3) test_should_retry: verify returns true below max, false at max,
+    > (4) test_same_failure_no_retry: record 2 attempts with identical failure reason,
+    > verify should_retry returns false, (5) test_strategy_suggestion: record test failure,
+    > verify suggestion includes "write tests first", (6) test_analytics: record multiple
+    > attempts across issues, verify aggregation, (7) test_orchestrator_retry_flow:
+    > simulate orchestrator detecting failure, recording attempt, and retrying with context.
+    _Files: ~/zion/projects/agent-orchestration/test_attempt_tracker.py_
+  - [ ] Tests cover full attempt lifecycle and edge cases
+    _Validation: python3 -m pytest test_attempt_tracker.py -v_
+  _~160 LOC_
+
+### Technical Notes
+
+The Attempt pattern is the "Vibe Kanban" answer to the question "what happens when an agent
+fails?" Instead of just logging the failure, it preserves the failure as a training signal
+and uses it to make the next attempt smarter. This is fundamentally different from phase 28
+(Speculative Execution) which runs independent explorations. The Attempt pattern is sequential
+learning: attempt 1 fails -> learn why -> attempt 2 is smarter. The key implementation detail
+is the failure context injection: the next attempt's prompt MUST include a clear summary of
+what failed and why, formatted as a negative constraint ("DO NOT do X because it caused Y").
+The max_attempts limit (default 3) prevents infinite retry loops. The strategy suggestion
+system is simple heuristics initially: if tests failed, suggest writing tests first; if
+review failed, suggest a different approach; if same failure twice, suggest different model.
+
+### Risks
+
+- Retry attempts consume additional tokens -- max_attempts limit and same-failure detection prevent waste
+- Failure context injection adds tokens to the prompt -- keep summaries concise (<200 words per failed attempt)
+- Strategy suggestions may not always help -- some failures are environmental, not strategic
+- Attempt history files could accumulate -- add retention policy (keep last 10 attempts per issue)
+
+## [ ] phase-132: Ambiguity Score Gate for Task Readiness (PLANNED)
+
+**Goal:** Evaluate task clarity before assignment to prevent agents from wasting tokens on poorly-defined work
+
+The Ouroboros research describes an Ambiguity Score: "a weighted mathematical gate" that
+evaluates task clarity across multiple dimensions (Goal Clarity, Constraint Clarity, Success
+Criteria, Context Clarity) with different weights for greenfield vs. brownfield projects. The
+system "prohibits the generation of a Seed -- an immutable specification -- until the Ambiguity
+Score hits a threshold." This prevents agents from working on vague tasks that produce
+low-quality output and waste tokens. Phase 41 (Intelligent Scheduling) prioritizes tasks by
+urgency and complexity but does NOT evaluate whether a task is sufficiently well-defined.
+Phase 26 (Work Decomposition) breaks work into sub-tasks but doesn't evaluate their clarity.
+This phase adds: (1) an ambiguity scorer that evaluates issue descriptions across multiple
+clarity dimensions, (2) configurable thresholds for greenfield vs. brownfield tasks, (3) a
+gate that blocks unclear tasks from assignment until they are refined, (4) clarity improvement
+suggestions for tasks that fail the gate, (5) ambiguity trend tracking to identify systemic
+issue quality problems.
+
+### Deliverables
+
+- [ ] **Ambiguity scorer module** -- Create ambiguity_scorer.py that evaluates task clarity across multiple dimensions
+  - [ ] `p132.d1.t1` Create ambiguity_scorer.py
+    > Create ambiguity_scorer.py: (1) score_issue(issue_body: str, issue_title: str,
+    > labels: list[str], is_greenfield: bool = False) -> AmbiguityResult: evaluate clarity
+    > across 4 dimensions using heuristic rules (NOT LLM -- keep it fast and deterministic),
+    > (2) dimension scoring: Goal Clarity (0-1): check for explicit goal statement, action
+    > verbs, measurable outcome; Constraint Clarity (0-1): check for tech constraints,
+    > file references, API mentions; Success Criteria (0-1): check for "should", "must",
+    > acceptance criteria, test expectations; Context Clarity (0-1): check for code
+    > references, error messages, stack traces, reproduction steps (weighted 0.0 for
+    > greenfield, 0.15 for brownfield), (3) weighted sum with greenfield weights [0.40,
+    > 0.30, 0.30, 0.00] and brownfield weights [0.35, 0.25, 0.25, 0.15], (4) threshold
+    > gate: score >= 0.6 = READY, 0.4-0.6 = NEEDS_REFINEMENT, < 0.4 = BLOCKED, (5)
+    > suggest_improvements(result: AmbiguityResult) -> list[str]: for each low-scoring
+    > dimension, suggest specific additions (e.g., "Add explicit success criteria: what
+    > should be true after this change?"), (6) classify_greenfield(labels, title, body)
+    > -> bool: heuristic detection of greenfield vs. brownfield tasks based on labels
+    > (feature, enhancement) vs. (bug, fix, refactor).
+    _Files: ~/zion/projects/agent-orchestration/ambiguity_scorer.py_
+  - [ ] Can score an issue description across clarity dimensions with weighted sum
+    _Validation: python3 ambiguity_scorer.py score --issue-body "Fix the bug" --type brownfield_
+  - [ ] Produces actionable suggestions for improving unclear tasks
+    _Validation: score a vague issue, verify suggestions include "add success criteria"_
+  _~220 LOC_
+- [ ] **Ambiguity gate integration with poller** -- Filter out unclear tasks during polling so agents only receive well-defined work
+  - [ ] `p132.d2.t1` Integrate ambiguity gate into poller (depends: p132.d1.t1, p4.d1.t1)
+    > Update poller.py: (1) import ambiguity_scorer, (2) after fetching issues, score each
+    > one using score_issue(), (3) filter out issues with score < 0.4 (BLOCKED), (4) for
+    > issues with score 0.4-0.6 (NEEDS_REFINEMENT), add a comment with improvement
+    > suggestions using gh issue comment, (5) add the score to the issue metadata returned
+    > by poll_issues() so downstream components can use it, (6) add --skip-ambiguity-check
+    > flag to bypass the gate when operator wants to force-assign a task.
+    _Files: ~/zion/projects/agent-orchestration/poller.py_
+  - [ ] Poller scores each issue and only returns tasks that pass the ambiguity gate
+    _Validation: poll issues with mixed clarity, verify only clear ones returned_
+  - [ ] Blocked issues are labeled with needs-refinement and suggestions are posted as comments
+    _Validation: check that vague issues get labeled and commented_
+  _~120 LOC_
+- [ ] **Ambiguity trend tracking** -- Track ambiguity scores over time to identify systemic issue quality trends
+  - [ ] `p132.d3.t1` Add ambiguity trend reporting (depends: p132.d1.t1)
+    > Extend ambiguity_scorer.py: (1) record_score(issue_number, score, dimensions,
+    > timestamp) -> None: append to data/ambiguity_scores.jsonl, (2) trends(period_days=30)
+    > -> dict: aggregate showing score distribution (ready/needs_refinement/blocked counts),
+    > average score per week, dimension-level breakdown (which dimensions score lowest on
+    > average), (3) label_correlation() -> dict: which issue labels correlate with high/low
+    > clarity scores, (4) add ambiguity_trend to the health scorecard (phase 44
+    > integration point): if average score is declining, flag as a system health concern
+    > (issue quality is degrading).
+    _Files: ~/zion/projects/agent-orchestration/ambiguity_scorer.py_
+  - [ ] Can generate a report showing ambiguity score distribution and trends
+    _Validation: python3 ambiguity_scorer.py trends --last 30d_
+  _~120 LOC_
+- [ ] **Ambiguity scorer tests** -- Test scoring logic, gate behavior, poller integration, and trend reporting
+  - [ ] `p132.d4.t1` Create test_ambiguity_scorer.py (depends: p132.d3.t1)
+    > Create test_ambiguity_scorer.py: (1) test_clear_issue_scores_high: well-defined bug
+    > report with reproduction steps and error message scores > 0.7, (2) test_vague_issue_scores_low:
+    > "Fix stuff" with no details scores < 0.4, (3) test_greenfield_vs_brownfield_weights:
+    > same issue with different classification produces different scores (context clarity
+    > weighted differently), (4) test_suggestions: vague issue produces actionable
+    > suggestions, (5) test_threshold_gate: verify READY/NEEDS_REFINEMENT/BLOCKED
+    > classification, (6) test_dimension_scoring: issue with success criteria scores high
+    > on that dimension, low on others, (7) test_trends: record scores over time, verify
+    > trend aggregation.
+    _Files: ~/zion/projects/agent-orchestration/test_ambiguity_scorer.py_
+  - [ ] Tests cover scoring, threshold gates, and improvement suggestions
+    _Validation: python3 -m pytest test_ambiguity_scorer.py -v_
+  _~160 LOC_
+
+### Technical Notes
+
+The Ambiguity Score is deterministic (heuristic-based, not LLM-based) to keep it fast and
+consistent. The scoring uses simple pattern matching: presence of action verbs, measurable
+outcomes, code references, etc. This is intentionally lightweight -- it runs on every polled
+issue so it must be fast (<100ms per issue). The gate prevents the most expensive failure
+mode: an agent spending thousands of tokens on a task that was never well-defined enough to
+succeed. The improvement suggestions are posted as GitHub comments so the issue filer can
+refine the task. The greenfield/brownfield distinction matters because greenfield tasks
+inherently have less context (no existing code to reference), so the Context Clarity
+dimension is weighted to zero.
+
+### Risks
+
+- Heuristic scoring may produce false positives (blocking clear tasks) or false negatives (passing vague tasks) -- make thresholds configurable
+- Posting improvement suggestions as comments could be noisy -- only post for NEEDS_REFINEMENT, not BLOCKED (those need human intervention)
+- The --skip-ambiguity-check flag could be overused, defeating the gate -- log skips for audit
+- Scoring does not capture semantic clarity (e.g., a well-written but technically infeasible task scores high) -- this is acceptable; feasibility is a different concern
+
+## [ ] phase-133: Plateau Breaker and Experiment Tree Navigation (PLANNED)
+
+**Goal:** Detect consecutive failed attempts at the same goal and force strategy reset, with experiment tree tracking for branch navigation
+
+The Ouroboros research describes two related concepts for managing long-running autonomous
+improvement: (1) a "Plateau Breaker" that "triggers if five consecutive attempts fail to
+improve the target metric. In such cases, the agent throws away the current approach and
+drafts a fresh strategy based on a comprehensive failure analysis," and (2) an "Experiment
+Tree" (tree.yaml) that "tracks branching logic, allowing the agent to jump between successful
+states." Phase 116 (Stagnation Circuit Breaker) detects commit stalls (no new commits for N
+ticks) but does NOT force a strategy reset or track experiment branches. Phase 131 (Attempt
+Pattern) tracks per-task attempts but doesn't implement the Plateau Breaker's forced strategy
+reset or the Experiment Tree's branch navigation. This phase adds: (1) a plateau detector
+that monitors consecutive failed attempts or stalled metrics, (2) a strategy reset mechanism
+that discards the current approach and generates a fundamentally different strategy, (3) an
+experiment tree data structure that tracks branches (successful and failed) for navigation,
+(4) branch jumping to revert to a known-good state and try a different direction.
+
+### Deliverables
+
+- [ ] **Plateau breaker module** -- Create plateau_breaker.py that detects consecutive failures and triggers strategy reset
+  - [ ] `p133.d1.t1` Create plateau_breaker.py
+    > Create plateau_breaker.py: (1) check_plateau(task_id: str, metric_history: list[float],
+    > max_stalled=5) -> PlateauResult: analyze metric history, return STALLED if last N
+    > values show no improvement (all <= previous best), (2) check_consecutive_failures(
+    > task_id: str, attempt_history: list[AttemptRecord], max_failures=5) -> PlateauResult:
+    > count consecutive failed attempts, return PLATEAUED if >= max, (3) generate_reset_strategy(
+    > task_id: str, failure_history: list[AttemptRecord], current_approach: str) -> dict:
+    > analyze failure patterns and generate a NEW approach that differs fundamentally from
+    > the current one (different algorithm, different architecture, different decomposition),
+    > (4) the reset strategy includes: a summary of WHY the current approach failed, a
+    > description of the NEW approach with justification, a list of assumptions to question,
+    > (5) store experiment state in experiments/<task_id>/tree.yaml: branching structure
+    > tracking each attempt as a node with parent, approach description, metric outcome,
+    > and children.
+    _Files: ~/zion/projects/agent-orchestration/plateau_breaker.py_
+  - [ ] Can detect when N consecutive attempts fail to improve and trigger a reset
+    _Validation: simulate 5 consecutive failures, verify reset triggered_
+  - [ ] Reset generates a fundamentally different strategy, not just a tweak
+    _Validation: compare pre-reset and post-reset strategies, verify they differ in approach_
+  _~220 LOC_
+- [ ] **Experiment tree navigation** -- Track experiment branches and enable jumping between successful states
+  - [ ] `p133.d2.t1` Create experiment_tree.py (depends: p133.d1.t1)
+    > Create experiment_tree.py: (1) ExperimentTree class with YAML-backed persistence in
+    > experiments/<task_id>/tree.yaml, (2) add_branch(parent_id, approach, git_commit_sha,
+    > metric_value) -> str: create a new branch node, return branch_id, (3) get_branch(
+    > branch_id) -> ExperimentBranch: retrieve branch details, (4) get_best_branch() ->
+    > ExperimentBranch: return the branch with the highest metric value, (5) navigate_to(
+    > branch_id) -> NavigationResult: return git commit SHA and workspace state for the
+    > branch (used by spawner to set up the workspace), (6) get_failure_analysis() -> str:
+    > analyze all failed branches and produce a summary of what doesn't work, (7)
+    > tree_summary() -> str: produce a human-readable summary of the experiment tree
+    > showing the branching structure, outcomes, and current best branch, (8) prune_dead_branches():
+    > remove branches that are strictly worse than their parent (no improvement on any
+    > metric).
+    _Files: ~/zion/projects/agent-orchestration/experiment_tree.py_
+  - [ ] Can record experiment branches and navigate to a specific branch point
+    _Validation: record 3 branches, navigate to branch 2, verify correct state_
+  _~200 LOC_
+- [ ] **Plateau breaker integration with attempt tracker** -- Integrate plateau detection into the attempt tracking system so strategy resets happen automatically
+  - [ ] `p133.d3.t1` Integrate plateau breaker into attempt tracking and orchestrator (depends: p133.d2.t1, p131.d1.t1)
+    > Update attempt_tracker.py and orchestrator.py: (1) after recording a failed attempt,
+    > check_consecutive_failures(), (2) if PLATEAUED, call generate_reset_strategy() and
+    > create a new branch in the experiment tree, (3) inject the reset strategy into the
+    > next attempt prompt as a "STRATEGY RESET" section: "Previous approaches have all
+    > failed. NEW APPROACH: <description>. Key differences from previous: <list>.", (4)
+    > log plateau events to execution history for observability, (5) add experiment tree
+    > summary to the --status output.
+    _Files: ~/zion/projects/agent-orchestration/attempt_tracker.py, ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] After N consecutive failures, the orchestrator automatically triggers a strategy reset
+    _Validation: simulate 5 failed attempts, verify reset strategy generated and new attempt started_
+  _~140 LOC_
+- [ ] **Plateau breaker and experiment tree tests** -- Test plateau detection, strategy reset, tree navigation, and orchestrator integration
+  - [ ] `p133.d4.t1` Create test_plateau_breaker.py (depends: p133.d3.t1)
+    > Create test_plateau_breaker.py: (1) test_plateau_detection: 5 flat metric values
+    > trigger PLATEAUED, 4 do not, (2) test_consecutive_failure_detection: 5 failed
+    > attempts trigger PLATEAUED, (3) test_strategy_reset: verify reset strategy differs
+    > from current approach (different keywords, different approach description), (4)
+    > test_experiment_tree: add 3 branches, verify tree structure in YAML, (5) test_best_branch:
+    > add branches with different metrics, verify best_branch returns highest, (6)
+    > test_navigation: navigate to a branch, verify correct commit SHA returned, (7)
+    > test_pruning: add branches where child is worse than parent, verify pruned, (8)
+    > test_integration: simulate 5 failed attempts through orchestrator, verify plateau
+    > detected, reset generated, new attempt started with reset context.
+    _Files: ~/zion/projects/agent-orchestration/test_plateau_breaker.py_
+  - [ ] Tests cover plateau detection, reset generation, tree operations, and integration
+    _Validation: python3 -m pytest test_plateau_breaker.py -v_
+  _~180 LOC_
+
+### Technical Notes
+
+The Plateau Breaker is the "nuclear option" for stuck tasks. While the Attempt Pattern (phase
+131) iteratively improves, the Plateau Breaker recognizes when iteration is futile and forces
+a fundamentally different approach. The key distinction: Attempt Pattern tweaks (different
+model, add constraints), Plateau Breaker pivots (different algorithm, different architecture,
+question assumptions). The Experiment Tree provides the "save points" that make pivoting safe
+-- the agent can always jump back to a known-good state. The tree.yaml format is inspired by
+the Ouroboros research's tree.yaml that "tracks branching logic, allowing the agent to jump
+between successful states." The reset strategy generation is the most novel part -- it needs
+to produce a genuinely different approach, not just a rephrased version of the same idea. The
+simplest heuristic: if the current approach is "bottom-up implementation," suggest "top-down
+decomposition" or vice versa.
+
+### Risks
+
+- Strategy reset generation may not always produce a better approach -- the reset is a bet, not a guarantee
+- Experiment tree files could grow large for long-running tasks -- prune dead branches periodically
+- Git commit SHA references in the experiment tree may become invalid if branches are force-pushed -- use absolute SHAs
+- Plateau detection threshold (default 5) may be too aggressive or too conservative -- make configurable per task type
+- Strategy reset adds significant prompt overhead -- keep reset context concise
 
 ## Global Risks
 
