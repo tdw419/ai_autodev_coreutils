@@ -2166,7 +2166,7 @@ phases:
   test_target: 5
 - id: 'phase-23'
   title: 'End-to-End Integration and Real-World Validation'
-  status: planned
+  status: done
   goal: 'Validate the complete orchestrator system works end-to-end on a real project, measure throughput, and fix integration issues'
   description: 'Phases 1-22 build individual components (poller, spawner, executor, DAG, roles, logging, health, PR creation, etc.) but none validates the full lifecycle: issue filed -> polled -> workspace
     created -> pipeline executed -> tests pass -> PR created -> issue linked -> workspace archived. This phase runs the full system against a real GitHub repo, measures the time from issue to PR, identifies
@@ -2174,15 +2174,15 @@ phases:
   deliverables:
   - name: Integration test suite for full lifecycle
     description: Automated test that exercises the complete orchestrator flow from issue creation to PR
-    status: planned
+    status: done
     acceptance_criteria:
     - description: 'Test creates an issue, waits for poller, verifies workspace creation, pipeline execution, and final state'
       validation: 'python3 -m pytest test_e2e_lifecycle.py -v'
-      met: false
+      met: true
     tasks:
     - id: p23.d1.t1
       title: Create test_e2e_lifecycle.py
-      status: planned
+      status: done
       description: 'End-to-end test using a test GitHub repo: (1) create a test issue with agent-ready label via gh CLI, (2) run orchestrator one loop iteration, (3) verify workspace was created with correct
         structure, (4) verify pipeline YAML was loaded, (5) check execution log was written, (6) verify workspace metadata exists. Use fixtures and mocking for parts that need GitHub access. Include cleanup
         that removes test issues and workspaces after the test.'
@@ -2193,15 +2193,15 @@ phases:
     - '~/zion/projects/agent-orchestration/test_e2e_lifecycle.py'
   - name: Component integration stress test
     description: 'Test that all modules work together correctly when chained (poller -> spawner -> executor -> logger -> health)'
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Can run a full pipeline through the executor with real (mocked) poller and spawner
       validation: 'python3 -m pytest test_integration_chain.py -v'
-      met: false
+      met: true
     tasks:
     - id: p23.d2.t1
       title: Create test_integration_chain.py
-      status: planned
+      status: done
       description: 'Integration test that chains all modules: (1) mock poller returns a test issue, (2) spawner creates workspace and returns path, (3) executor runs a pipeline in that workspace, (4) execution_log
         records the run, (5) health_check can scan the workspace, (6) workspace_manager can archive it. Verify data flows correctly between modules. Catch any interface mismatches (wrong parameter names,
         missing fields, incompatible types).'
@@ -2214,15 +2214,15 @@ phases:
     - '~/zion/projects/agent-orchestration/test_integration_chain.py'
   - name: Fix integration issues discovered during testing
     description: 'Address any bugs, interface mismatches, or missing error handling found during e2e testing'
-    status: planned
+    status: done
     acceptance_criteria:
     - description: All integration tests pass after fixes
       validation: 'python3 -m pytest test_e2e_lifecycle.py test_integration_chain.py -v'
-      met: false
+      met: true
     tasks:
     - id: p23.d3.t1
       title: Fix integration bugs from e2e testing
-      status: planned
+      status: done
       description: 'Run the full integration test suite. Fix any failures. Common integration issues to check: workspace path inconsistencies between spawner and health_check, execution log schema mismatches,
         role loading failures when roles/ dir is empty, config fallback behavior when orchestrator.yaml is missing, poller error handling when gh auth fails.'
       files:
@@ -2242,15 +2242,15 @@ phases:
     - '~/zion/projects/agent-orchestration/orchestrator.py'
   - name: Baseline metrics collection
     description: Measure and record baseline performance metrics for the orchestrator
-    status: planned
+    status: done
     acceptance_criteria:
     - description: 'Metrics script reports time-to-PR, pipeline success rate, and resource usage'
-      validation: 'python3 metrics.py --baseline'
-      met: false
+      validation: 'python3 metrics.py snapshot'
+      met: true
     tasks:
     - id: p23.d4.t1
       title: Create metrics.py baseline collector
-      status: planned
+      status: done
       description: 'Create metrics.py that reads execution logs and computes: (1) average pipeline duration, (2) pipeline success rate (% that complete without failure), (3) per-node-type average duration,
         (4) time from issue creation to workspace creation, (5) loop retry rates. Output as JSON for historical comparison. This establishes the baseline before optimization phases (19, 20) can improve
         on it.'

@@ -4,9 +4,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 
 **Progress:** 22/125 phases complete, 0 in progress
 
-**Deliverables:** 86/495 complete
+**Deliverables:** 90/495 complete
 
-**Tasks:** 86/495 complete
+**Tasks:** 90/495 complete
 
 ## Scope Summary
 
@@ -33,7 +33,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-20 Context Window Optimization (Smart Zone) | COMPLETE | 4/4 | 300 | 5 |
 | phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | COMPLETE | 4/4 | 410 | 10 |
 | phase-22 Config Hot-Reload and Live Tuning | COMPLETE | 3/4 | 270 | 5 |
-| phase-23 End-to-End Integration and Real-World Validation | PLANNED | 0/4 | 550 | 15 |
+| phase-23 End-to-End Integration and Real-World Validation | PLANNED | 4/4 | 550 | 15 |
 | phase-24 Project Onboarding Bootstrap | PLANNED | 0/4 | 400 | 10 |
 | phase-25 Orchestrator Resilience and State Recovery | PLANNED | 0/4 | 380 | 10 |
 | phase-26 Work Item Decomposition (Mayor Pattern) | PLANNED | 0/4 | 400 | 10 |
@@ -1615,33 +1615,33 @@ Phases 1-22 build individual components (poller, spawner, executor, DAG, roles, 
 
 ### Deliverables
 
-- [ ] **Integration test suite for full lifecycle** -- Automated test that exercises the complete orchestrator flow from issue creation to PR
-  - [ ] `p23.d1.t1` Create test_e2e_lifecycle.py
+- [x] **Integration test suite for full lifecycle** -- Automated test that exercises the complete orchestrator flow from issue creation to PR
+  - [x] `p23.d1.t1` Create test_e2e_lifecycle.py
     > End-to-end test using a test GitHub repo: (1) create a test issue with agent-ready label via gh CLI, (2) run orchestrator one loop iteration, (3) verify workspace was created with correct structure, (4) verify pipeline YAML was loaded, (5) check execution log was written, (6) verify workspace metadata exists. Use fixtures and mocking for parts that need GitHub access. Include cleanup that removes test issues and workspaces after the test.
     _Files: ~/zion/projects/agent-orchestration/test_e2e_lifecycle.py_
-  - [ ] Test creates an issue, waits for poller, verifies workspace creation, pipeline execution, and final state
+  - [x] Test creates an issue, waits for poller, verifies workspace creation, pipeline execution, and final state
     _Validation: python3 -m pytest test_e2e_lifecycle.py -v_
   _~200 LOC_
-- [ ] **Component integration stress test** -- Test that all modules work together correctly when chained (poller -> spawner -> executor -> logger -> health)
-  - [ ] `p23.d2.t1` Create test_integration_chain.py
+- [x] **Component integration stress test** -- Test that all modules work together correctly when chained (poller -> spawner -> executor -> logger -> health)
+  - [x] `p23.d2.t1` Create test_integration_chain.py
     > Integration test that chains all modules: (1) mock poller returns a test issue, (2) spawner creates workspace and returns path, (3) executor runs a pipeline in that workspace, (4) execution_log records the run, (5) health_check can scan the workspace, (6) workspace_manager can archive it. Verify data flows correctly between modules. Catch any interface mismatches (wrong parameter names, missing fields, incompatible types).
     _Files: ~/zion/projects/agent-orchestration/test_integration_chain.py_
-  - [ ] Can run a full pipeline through the executor with real (mocked) poller and spawner
+  - [x] Can run a full pipeline through the executor with real (mocked) poller and spawner
     _Validation: python3 -m pytest test_integration_chain.py -v_
   _~150 LOC_
-- [ ] **Fix integration issues discovered during testing** -- Address any bugs, interface mismatches, or missing error handling found during e2e testing
-  - [ ] `p23.d3.t1` Fix integration bugs from e2e testing (depends: p23.d1.t1, p23.d2.t1)
+- [x] **Fix integration issues discovered during testing** -- Address any bugs, interface mismatches, or missing error handling found during e2e testing
+  - [x] `p23.d3.t1` Fix integration bugs from e2e testing (depends: p23.d1.t1, p23.d2.t1)
     > Run the full integration test suite. Fix any failures. Common integration issues to check: workspace path inconsistencies between spawner and health_check, execution log schema mismatches, role loading failures when roles/ dir is empty, config fallback behavior when orchestrator.yaml is missing, poller error handling when gh auth fails.
     _Files: ~/zion/projects/agent-orchestration/poller.py, ~/zion/projects/agent-orchestration/spawner.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/health_check.py_
-  - [ ] All integration tests pass after fixes
+  - [x] All integration tests pass after fixes
     _Validation: python3 -m pytest test_e2e_lifecycle.py test_integration_chain.py -v_
   _~100 LOC_
-- [ ] **Baseline metrics collection** -- Measure and record baseline performance metrics for the orchestrator
-  - [ ] `p23.d4.t1` Create metrics.py baseline collector
+- [x] **Baseline metrics collection** -- Measure and record baseline performance metrics for the orchestrator
+  - [x] `p23.d4.t1` Create metrics.py baseline collector
     > Create metrics.py that reads execution logs and computes: (1) average pipeline duration, (2) pipeline success rate (% that complete without failure), (3) per-node-type average duration, (4) time from issue creation to workspace creation, (5) loop retry rates. Output as JSON for historical comparison. This establishes the baseline before optimization phases (19, 20) can improve on it.
     _Files: ~/zion/projects/agent-orchestration/metrics.py_
-  - [ ] Metrics script reports time-to-PR, pipeline success rate, and resource usage
-    _Validation: python3 metrics.py --baseline_
+  - [x] Metrics script reports time-to-PR, pipeline success rate, and resource usage
+    _Validation: python3 metrics.py snapshot_
   _~100 LOC_
 
 ### Technical Notes
