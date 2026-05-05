@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/170 phases complete, 0 in progress
+**Progress:** 23/175 phases complete, 0 in progress
 
-**Deliverables:** 90/625 complete
+**Deliverables:** 90/645 complete
 
-**Tasks:** 90/649 complete
+**Tasks:** 90/669 complete
 
 ## Scope Summary
 
@@ -182,6 +182,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-168 CRDT-Based Eventually-Consistent Shared State | PLANNED | 0/2 | 240 | 12 |
 | phase-169 Mode-Based Tool Access Enforcement | PLANNED | 0/2 | 200 | 12 |
 | phase-170 Persistent Warm Server and Headless Execution API | PLANNED | 0/3 | 300 | 12 |
+| phase-171 Agent Project Readiness Verification | PLANNED | 0/4 | 340 | 12 |
+| phase-172 Application Runtime Self-Observation | PLANNED | 0/4 | 320 | 10 |
+| phase-173 Disposable Experiment Arena | PLANNED | 0/4 | 400 | 12 |
+| phase-174 Non-Functional Requirements Verification | PLANNED | 0/4 | 330 | 11 |
+| phase-175 Orchestrator Maturity Model and Capability Assessment | PLANNED | 0/4 | 360 | 12 |
 
 ## Dependencies
 
@@ -762,6 +767,28 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-63 | phase-170 | soft | REST API provides the HTTP interface that warm server extends with persistent connections |
 | phase-79 | phase-170 | soft | Backend abstraction provides the LLM interface that warm server maintains warm connections to |
 | phase-99 | phase-170 | soft | Unified CLI provides the command interface that headless mode extends with structured output |
+| phase-24 | phase-171 | soft | Project onboarding from phase 24 generates the config that readiness verification validates |
+| phase-119 | phase-171 | soft | Preflight doctor from phase 119 provides environment-level checks that complement project-level readiness |
+| phase-11 | phase-171 | soft | Workspace lifecycle from phase 11 manages the workspaces where readiness results are cached |
+| phase-4 | phase-171 | soft | Orchestrator from phase 4 is where the readiness gate is enforced |
+| phase-42 | phase-172 | soft | External observability from phase 42 provides the monitoring infrastructure; this phase extends it with agent-facing feedback |
+| phase-8 | phase-172 | soft | Execution history from phase 8 provides the logging infrastructure for observation events |
+| phase-20 | phase-172 | soft | Context budgeting from phase 20 ensures observation data fits in agent prompts |
+| phase-5 | phase-172 | soft | OBSERVE node type extends the DAG executor from phase 5 |
+| phase-28 | phase-173 | soft | Speculative execution from phase 28 provides the basic parallel strategy concept; arena extends it with proper lifecycle management |
+| phase-11 | phase-173 | soft | Workspace lifecycle from phase 11 manages the experiment workspaces |
+| phase-9 | phase-173 | soft | Review sensor from phase 9 provides the review quality scoring dimension |
+| phase-17 | phase-173 | soft | Invariant checker from phase 17 provides the invariant compliance scoring dimension |
+| phase-33 | phase-173 | soft | Legibility toolkit from phase 33 provides the code quality scoring dimension |
+| phase-8 | phase-173 | soft | Execution history from phase 8 stores arena learnings for future retrieval |
+| phase-17 | phase-174 | soft | Structural invariants from phase 17 check code-level rules; NFRs check behavioral properties -- complementary |
+| phase-46 | phase-174 | soft | Golden principles from phase 46 define qualitative goals; NFRs make them measurable and verifiable |
+| phase-5 | phase-174 | soft | VERIFY_NFR node type extends the DAG executor from phase 5 |
+| phase-31 | phase-174 | soft | Self-verification toolkit from phase 31 provides the verification framework that NFR extends |
+| phase-44 | phase-175 | soft | Health scorecard from phase 44 provides the metrics infrastructure that maturity assessment extends |
+| phase-8 | phase-175 | soft | Execution history from phase 8 stores maturity assessment results over time |
+| phase-66 | phase-175 | soft | Maintenance automation from phase 66 runs the weekly maturity assessment |
+| phase-27 | phase-175 | soft | Dashboard from phase 27 provides the visualization surface for maturity data |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -10599,3 +10626,294 @@ The persistent warm server eliminates the 3-5 second cold-start latency that occ
 - Warm connections consume resources (memory, API rate limits) when idle -- implement auto-scaling pool size based on request rate
 - Persistent server adds operational complexity (monitoring, restart) -- integrate with health monitor (phase 14)
 - LLM API connections may have idle timeouts -- health checker must respect API-specific timeout values
+
+## [ ] phase-171: Agent Project Readiness Verification (PLANNED)
+
+**Goal:** Create a post-onboarding validation suite that verifies an agent can actually work with a project — build, test, lint, navigate, and understand the codebase
+
+Phase 24 generates orchestrator config and agent.md for new projects, and Phase 119 provides a preflight environment doctor.
+But neither validates that the agent can actually USE the project — that it can build successfully, run tests, understand the
+architecture, and navigate to relevant files. This phase creates a "readiness gate" that runs after onboarding to prove the
+agent is productive before allowing orchestrator tasks. The research describes application legibility as making software
+"directly understandable and verifiable by the agent" — this is the verification that legibility has been achieved.
+
+
+### Deliverables
+
+- [ ] **Readiness check module** -- Python module that runs a series of agent-capability checks against a project workspace
+  - [ ] `p171.d1.t1` Create readiness_check.py module (depends: p24.d1.t1, p119.d1.t1)
+    > Python module: (1) ReadinessChecker class with check(name, fn) method, (2) BuildCheck: runs build command from agent.md/AI_GUIDE.md, captures output and exit code, (3) TestCheck: runs test command, parses pass/fail counts, allows known-failure whitelist, (4) LintCheck: runs lint command, counts warnings/errors, (5) GuideCheck: validates agent.md/AI_GUIDE.md exists and contains required sections (tech stack, commands, boundaries), (6) NavigationCheck: verifies agent can identify main entry points, module structure, and key files using AST/grep heuristics, (7) PermissionCheck: verifies workspace is writable, git is configured, required tools are on PATH, (8) readiness_score = weighted sum of checks, threshold for "ready" vs "needs work", (9) remediation suggestions per failed check, (10) CLI: python3 readiness_check.py --workspace <path> --config <orch_config> --json/--text, exit 0=ready, 1=not ready, 2=error.
+    _Files: ~/zion/projects/agent-orchestration/readiness_check.py_
+  - [ ] Module checks: (1) project builds without errors, (2) tests pass (or known failures documented), (3) linter runs cleanly, (4) agent.md/AI_GUIDE.md exists and is parseable, (5) critical entry points are identifiable, (6) workspace permissions are correct
+    _Validation: run readiness check on a known project_
+  - [ ] Each check returns pass/fail/warn with actionable remediation message
+    _Validation: inspect output format_
+  _~120 LOC_
+- [ ] **Readiness gate in orchestrator** -- Block orchestrator from assigning tasks to a project that hasnt passed readiness checks
+  - [ ] `p171.d2.t1` Add readiness gate to orchestrator (depends: p171.d1.t1, p4.d3.t1)
+    > Modify orchestrator.py to: (1) before spawning a worker for a project, check workspace metadata for readiness result, (2) if no result or result older than 7 days, run readiness_check.py, (3) if readiness fails, skip the project and log warning, (4) add --force flag to override readiness gate, (5) add readiness status to status.sh output, (6) cache readiness result in workspace_manager.py metadata.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py, ~/zion/projects/agent-orchestration/workspace_manager.py_
+  - [ ] Orchestrator skips projects with failed readiness or stale readiness (>7 days old)
+    _Validation: test with stale readiness_
+  - [ ] Readiness results cached in workspace metadata, refreshed on demand
+    _Validation: check workspace state_
+  _~60 LOC_
+- [ ] **Agent-driven readiness self-repair** -- When readiness fails, automatically spawn a repair agent to fix common issues (missing deps, broken config, stale lock files)
+  - [ ] `p171.d3.t1` Add self-repair to readiness check (depends: p171.d1.t1, p24.d2.t1)
+    > Extend readiness_check.py: (1) AutoRepair class that takes failed checks and generates remediation tasks, (2) Common repairs: missing build deps (run install command), stale lock files (delete and reinstall), missing agent.md (run generator from phase 24), broken git config (reconfigure), (3) Repair attempt creates a workspace, runs delegate_task with remediation prompt, then re-runs readiness check, (4) Rate limiting: max 3 repair attempts per project per 24h, tracked in workspace metadata, (5) Repair log stored in execution history (phase 8).
+    _Files: ~/zion/projects/agent-orchestration/readiness_check.py_
+  - [ ] Repair agent attempts to fix at least 3 common readiness failures
+    _Validation: test with broken project_
+  - [ ] Repair attempts are logged and rate-limited (max 3 repair attempts per project per day)
+    _Validation: check rate limiting_
+  _~80 LOC_
+- [ ] **Readiness verification tests** -- Test readiness check module, orchestrator gate, and self-repair
+  - [ ] `p171.d4.t1` Create test_readiness.py (depends: p171.d1.t1, p171.d2.t1, p171.d3.t1)
+    > Test cases: (1) BuildCheck passes on valid project, fails on broken build, (2) TestCheck counts pass/fail, handles known-failure whitelist, (3) LintCheck parses lint output correctly, (4) GuideCheck validates required sections, (5) NavigationCheck identifies entry points via AST, (6) PermissionCheck detects unwritable workspace, (7) Readiness score calculation with configurable weights, (8) Orchestrator gate skips unready projects, (9) Orchestrator gate allows --force override, (10) AutoRepair generates correct remediation for missing deps, (11) Rate limiting blocks excessive repair attempts, (12) Stale readiness (>7 days) triggers re-check.
+    _Files: ~/zion/projects/agent-orchestration/test_readiness.py_
+  - [ ] Test file covers all 6 check types, orchestrator gate logic, and repair flow
+    _Validation: python3 -m pytest test_readiness.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+This is the "can the agent actually do its job" check. It is distinct from the preflight doctor (phase 119) which checks the environment, and from onboarding validation (phase 24) which checks that config was generated. Readiness verification confirms the generated config actually works with the agent. Think of it as the integration test for onboarding.
+
+### Risks
+
+- Build/test commands vary wildly between projects -- need good heuristics for command discovery
+- Self-repair could make things worse if remediation is wrong -- limit scope to safe operations
+- Flaky tests could cause false readiness failures -- implement retry and known-failure whitelisting
+
+## [ ] phase-172: Application Runtime Self-Observation (PLANNED)
+
+**Goal:** Enable agents to observe their own code running by injecting application logs, traces, and errors into agent context
+
+The Harness Engineering research emphasizes "Integrated Observability: Providing agents with local access to logs,
+metrics, and traces so they can reason about the behavior of the code they have just written." Phase 42 adds external
+observability integration but focuses on instrumenting the orchestrator itself. This phase goes further: it reads the
+TARGET APPLICATIONS runtime output and feeds it back to the agent as context, enabling the "self-observe" pattern where
+an agent can see what its code actually does when executed. This closes the feedback loop from code change to behavioral
+verification.
+
+
+### Deliverables
+
+- [ ] **Runtime output collector** -- Module that captures application logs, traces, and error output from running applications
+  - [ ] `p172.d1.t1` Create runtime_collector.py module (depends: p8.d1.t1)
+    > Python module: (1) RuntimeCollector class with collect(source_config, duration, filters), (2) LogFileSource: tail N lines from log file path, support glob patterns for log rotation, (3) ProcessSource: capture stdout/stderr from a running process (by PID or command), (4) HttpSource: poll HTTP endpoint (health, metrics, custom) at configurable interval, (5) StderrSource: capture recent error output from process, (6) normalize() method: convert raw output to structured format [{timestamp, level, source, message, metadata}], (7) filter() method: by level (error/warn/info), by time range, by keyword/pattern, (8) summarize() method: produce compact summary <1000 tokens suitable for agent prompt injection, (9) Config in runtime_sources.yaml: list of sources per project with type, path/URL, format, filters.
+    _Files: ~/zion/projects/agent-orchestration/runtime_collector.py_
+  - [ ] Collector supports: (1) local log file tailing, (2) process stdout/stderr capture, (3) HTTP endpoint polling (health/metrics), (4) structured log parsing (JSON, key=value)
+    _Validation: test each collection method_
+  - [ ] Output is normalized into a structured format suitable for injection into agent prompts
+    _Validation: inspect output format_
+  _~120 LOC_
+- [ ] **Agent context injection for runtime data** -- Inject collected runtime observations into agent prompts during pipeline execution
+  - [ ] `p172.d2.t1` Add runtime observation to DAG executor (depends: p172.d1.t1, p5.d2.t1, p20.d1.t1)
+    > Modify executor.py: (1) Add OBSERVE node type that runs runtime_collector against configured sources, (2) After Bash nodes that start applications, automatically collect runtime output if sources are configured, (3) Inject collected output as "## Runtime Observation" section in next AI node prompt, (4) Respect context_budget.py limits -- if observation exceeds budget, use summarize() instead of full output, (5) Add runtime_sources.yaml as optional pipeline config, (6) Log what was collected and injected for traceability.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/runtime_collector.py_
+  - [ ] After a Bash node runs an application, relevant runtime output is available to the next AI node
+    _Validation: test pipeline with observation injection_
+  - [ ] Injection respects context budget limits from phase 20
+    _Validation: verify budget not exceeded_
+  _~60 LOC_
+- [ ] **Self-observation pipeline template** -- Pipeline template that demonstrates the full observe-diagnose-fix cycle
+  - [ ] `p172.d3.t1` Create observe-pipeline.yaml (depends: p172.d2.t1)
+    > Create pipelines/observe-pipeline.yaml: (1) Bash(start_app) -- launch the application, (2) OBSERVE(collect_runtime) -- collect logs/traces/errors from running app, (3) AI(diagnose, role=reviewer) -- analyze runtime output for issues, anomalies, performance problems, (4) AI(fix, role=implementer) -- implement fixes based on diagnosis, (5) Bash(test) -- run tests, (6) OBSERVE(verify_runtime) -- re-collect runtime output to verify fixes, (7) AI(review, role=reviewer) -- confirm issues are resolved. Include runtime_sources.yaml example config.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/observe-pipeline.yaml_
+  - [ ] Pipeline YAML includes: run app, observe output, AI diagnoses issues, AI fixes, re-observe
+    _Validation: read pipeline YAML_
+  _~60 LOC_
+- [ ] **Runtime observation tests** -- Test collector, injection, and pipeline integration
+  - [ ] `p172.d4.t1` Create test_runtime_observation.py (depends: p172.d1.t1, p172.d2.t1)
+    > Test cases: (1) LogFileSource reads and parses log files, (2) ProcessSource captures stdout/stderr from subprocess, (3) HttpSource polls endpoint and parses response, (4) normalize() converts raw output to structured format, (5) filter() by level, time range, keyword, (6) summarize() produces output under 1000 tokens, (7) OBSERVE node type executes collector in DAG, (8) Runtime output injected into AI node prompt, (9) Injection respects context budget (summarizes when needed), (10) Pipeline executes full observe-diagnose-fix cycle.
+    _Files: ~/zion/projects/agent-orchestration/test_runtime_observation.py_
+  - [ ] Test file covers collector sources, normalization, context injection, and budget respect
+    _Validation: python3 -m pytest test_runtime_observation.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The key distinction from phase 42: phase 42 monitors the ORCHESTRATOR (agent health, system metrics). This phase monitors the TARGET APPLICATION (the code the agent wrote). This is the "agent reads its own output" pattern from Harness Engineering. The summarize() method is critical — raw application logs can be enormous and must be compressed to fit in context windows.
+
+### Risks
+
+- Application logs may contain sensitive data (PII, secrets) -- implement sanitization before injection
+- Observation adds latency to pipeline execution -- make it optional and configurable
+- Structured log formats vary widely -- support common formats (JSON, key=value, unstructured with heuristics)
+
+## [ ] phase-173: Disposable Experiment Arena (PLANNED)
+
+**Goal:** Create a dedicated workspace pattern for rapid parallel prototyping with automatic winner selection, cleanup, and learnings extraction
+
+The research describes the Dark Factory model where "a team can run a hundred parallel Ralph Wiggum loops to explore
+different architectural approaches to a problem, only keeping the one that passes the most rigorous set of automated
+quality gates." Phase 28 implements speculative execution for comparing strategies on the same task, but it lacks the
+full "arena" concept: a dedicated disposable workspace lifecycle, automatic winner selection based on multi-dimensional
+scoring, automatic cleanup of losing experiments, and extraction of learnings from failed experiments. This phase
+operationalizes the "code as disposable artifact" principle.
+
+
+### Deliverables
+
+- [ ] **Experiment arena manager** -- Module that manages parallel experiment workspaces with full lifecycle (create, score, select, cleanup)
+  - [ ] `p173.d1.t1` Create experiment_arena.py module (depends: p28.d1.t1, p11.d1.t1)
+    > Python module: (1) ExperimentArena class with create_arena(task_spec, strategies, scoring_config), (2) Experiment record: id, task_spec, strategy, workspace_path, status (pending/running/complete/failed), result, scores, created_at, completed_at, (3) launch() -- create N workspaces (one per strategy), spawn workers via spawner.py with strategy-specific config, (4) score(experiment) -- run scoring pipeline: test pass rate (from test runner), lint score (from linter), review score (from review_sensor.py if available), invariant compliance (from invariant_checker.py), legibility score (from legibility.py), (5) composite_score() -- weighted combination of all scoring dimensions, (6) select_winner() -- pick experiment with highest composite_score above threshold, (7) cleanup(experiment) -- remove workspace, archive scores, (8) cleanup_losers() -- remove all non-winning experiments, (9) extract_learnings() -- compare winner vs losers, identify what differentiated them, produce learnings summary, (10) arena_config.yaml: scoring weights, thresholds, max_parallel, cleanup_policy (immediate/delayed/never).
+    _Files: ~/zion/projects/agent-orchestration/experiment_arena.py_
+  - [ ] Arena manages N parallel experiment workspaces from a single task specification
+    _Validation: test with 3 parallel experiments_
+  - [ ] Each experiment has: isolated workspace, unique strategy/config, execution result, quality score
+    _Validation: inspect experiment metadata_
+  _~140 LOC_
+- [ ] **Multi-dimensional scoring engine** -- Score experiments across multiple quality dimensions with configurable weights
+  - [ ] `p173.d2.t1` Create scoring engine in experiment_arena.py (depends: p173.d1.t1, p17.d1.t1, p9.d1.t1, p33.d1.t1)
+    > Extend experiment_arena.py: (1) ScoringDimension class: name, weight (0-1), scorer_fn, normalize_fn, (2) Built-in scorers: TestScorer (pass_rate = passed/total), LintScorer (1 - error_count/max_errors), InvariantScorer (compliant_checks/total_checks from invariant_checker.py), ReviewScorer (review_score from review_sensor.py), LegibilityScorer (legibility_score from legibility.py), (3) normalize() -- min-max normalization across all experiments for each dimension, (4) composite_score() -- weighted sum with configurable weights from arena_config.yaml, (5) threshold_check() -- reject experiments below minimum composite score, (6) tiebreaker() -- when scores are equal, prefer: fewer lines changed, faster execution, fewer dependencies added.
+    _Files: ~/zion/projects/agent-orchestration/experiment_arena.py_
+  - [ ] Scoring covers at least 5 dimensions: test pass rate, lint compliance, invariant adherence, review quality, code legibility
+    _Validation: test scoring with sample results_
+  - [ ] Scores are normalized (0-100) and weights are configurable per project
+    _Validation: test weight configuration_
+  _~100 LOC_
+- [ ] **Learnings extraction and archival** -- Extract and archive insights from failed experiments for future reference
+  - [ ] `p173.d3.t1` Add learnings extraction to experiment_arena.py (depends: p173.d2.t1, p8.d1.t1)
+    > Extend experiment_arena.py: (1) extract_learnings(arena) -- compare winner vs all losers, (2) For each loser: identify failure point (which scoring dimension was weakest), capture error messages and trace context, note what the winner did differently at that step, (3) Generate learnings report: markdown with per-experiment analysis, comparison table, recommended patterns, anti-patterns to avoid, (4) Store in execution history (phase 8) with type="arena_learnings", (5) Make learnings queryable: python3 experiment_arena.py --learnings --task-type <type> retrieves relevant past learnings for similar tasks, (6) Inject relevant learnings into future arena executions as "prior art" context.
+    _Files: ~/zion/projects/agent-orchestration/experiment_arena.py_
+  - [ ] Learnings include: what strategies failed and why, what the winner did differently, patterns to avoid
+    _Validation: inspect learnings output_
+  - [ ] Learnings are stored in execution history and queryable by future agents
+    _Validation: query learnings from history_
+  _~80 LOC_
+- [ ] **Arena integration tests** -- Test arena lifecycle, scoring, winner selection, and learnings extraction
+  - [ ] `p173.d4.t1` Create test_experiment_arena.py (depends: p173.d1.t1, p173.d2.t1, p173.d3.t1)
+    > Test cases: (1) Arena creates N workspaces for N strategies, (2) Experiment metadata is correctly initialized, (3) Scoring normalizes across dimensions, (4) Composite score uses configured weights, (5) Winner selection picks highest-scoring experiment above threshold, (6) Tiebreaker resolves equal scores, (7) cleanup_losers removes non-winning workspaces, (8) Learnings extraction produces structured comparison, (9) Learnings are stored in execution history, (10) Past learnings are retrieved and injected into new arena runs, (11) Arena respects max_parallel limit, (12) Failed experiments are handled gracefully (scored as 0).
+    _Files: ~/zion/projects/agent-orchestration/test_experiment_arena.py_
+  - [ ] Test file covers full arena lifecycle with mocked workers and scorers
+    _Validation: python3 -m pytest test_experiment_arena.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The arena pattern is the operationalization of "code as disposable artifact." Where speculative execution (phase 28) compares strategies for a single task, the arena manages the full lifecycle: provision, execute, score, compare, select, cleanup, learn. The key innovation is the learnings extraction -- failed experiments arent just deleted, their failure modes are archived so future experiments can avoid the same mistakes. This is the "analyze the environment, not the prompt" principle from Harness Engineering applied to experimentation.
+
+### Risks
+
+- Parallel experiments multiply costs -- enforce budget limits from phase 32
+- Scoring dimensions may conflict (fast code vs readable code) -- make weights configurable
+- Learnings extraction quality depends on LLM analysis -- may produce noise
+- Workspace cleanup is irreversible -- implement archive-before-delete policy
+
+## [ ] phase-174: Non-Functional Requirements Verification (PLANNED)
+
+**Goal:** Implement behavioral NFR specs (latency, security, accessibility) as first-class artifacts that agents verify through actual testing
+
+Phase 17 covers structural invariants (code-level architectural rules verified by static analysis). Phase 46 covers
+golden principles (qualitative goals like readability and testability). But the research describes "taste invariants" as
+encompassing security, performance, and user experience -- behavioral properties that require runtime verification, not
+just static analysis. This phase creates NFR specifications as YAML documents that define behavioral requirements, and
+provides verification tooling that agents use to prove their code meets these requirements through actual testing
+(load tests, security scans, accessibility audits) rather than just code inspection.
+
+
+### Deliverables
+
+- [ ] **NFR specification schema and loader** -- YAML schema for defining non-functional requirements with verification methods
+  - [ ] `p174.d1.t1` Create nfr_schema.py and nfr.yaml (depends: p17.d1.t1)
+    > Python module: (1) NFRSpec class: id, name, category (performance|security|accessibility|reliability|compatibility), metric (e.g., "p99_latency_ms", "throughput_rps", "security_score"), threshold (value, operator: lt|lte|gt|gte|eq), verification_method (command, tool, audit), command (shell command to run for verification), severity (blocker|warning|info), description, (2) parse_nfr_file(path) -- load and validate NFR YAML, (3) NFRFile: list of NFRSpecs, project metadata, (4) validate() -- check schema correctness, warn on missing verification commands, (5) Default nfr.yaml template covering common categories. Example: {category: performance, metric: api_response_time_p99, threshold: {value: 200, operator: lte}, verification_method: command, command: "python3 bench.py --percentile 99", severity: blocker}.
+    _Files: ~/zion/projects/agent-orchestration/nfr_schema.py_
+  - [ ] Schema supports: latency budgets, throughput requirements, security requirements, accessibility criteria, reliability targets
+    _Validation: parse example NFR YAML_
+  - [ ] Each NFR has: category, metric, threshold, verification_method (test/tool/audit), severity (blocker/warning/info)
+    _Validation: inspect schema fields_
+  _~100 LOC_
+- [ ] **NFR verification runner** -- Execute NFR verification commands and collect results
+  - [ ] `p174.d2.t1` Create nfr_runner.py module (depends: p174.d1.t1, p5.d2.t1)
+    > Python module: (1) NFRunner class with verify(nfr_file_path, workspace), (2) For each NFRSpec: run verification command in workspace, capture stdout/stderr/exit code, parse output for metric value (configurable extraction regex), compare against threshold, (3) NFRResult: spec_id, status (pass|fail|warn|error|skipped), actual_value, threshold, details, (4) ResultParser: extract metric value from command output using regex or JSON path, (5) NFRReport: list of results, summary stats (total, passed, failed, warned), blocker_failures, (6) Add VERIFY_NFR node type to DAG executor: runs nfr_runner against configured nfr.yaml, fails pipeline if any blocker NFR fails, (7) CLI: python3 nfr_runner.py --spec nfr.yaml --workspace <path> --json/--text.
+    _Files: ~/zion/projects/agent-orchestration/nfr_runner.py_
+  - [ ] Runner executes verification commands, parses results, and produces pass/fail/warn per NFR
+    _Validation: test with example NFRs_
+  - [ ] Runner integrates with DAG executor as a VERIFY_NFR node type
+    _Validation: test pipeline with NFR verification_
+  _~100 LOC_
+- [ ] **NFR-aware pipeline template** -- Pipeline template that includes NFR verification as a gate before PR submission
+  - [ ] `p174.d3.t1` Create nfr-pipeline.yaml (depends: p174.d2.t1)
+    > Create pipelines/nfr-pipeline.yaml: (1) AI(implement, role=implementer), (2) Bash(test), (3) VERIFY_NFR(check nfr.yaml), (4) Loop(fix_nfr_failures, max=3, includes NFR failure details in context), (5) AI(review, role=reviewer), (6) Bash(commit). NFR failures at blocker severity block the pipeline. Warnings are logged but dont block. Include example nfr.yaml with: p99 latency, throughput, security scan (bandit), accessibility audit (if applicable).
+    _Files: ~/zion/projects/agent-orchestration/pipelines/nfr-pipeline.yaml_
+  - [ ] Pipeline includes NFR verification step after tests, before review
+    _Validation: read pipeline YAML_
+  _~50 LOC_
+- [ ] **NFR tests** -- Test NFR schema, runner, and pipeline integration
+  - [ ] `p174.d4.t1` Create test_nfr.py (depends: p174.d1.t1, p174.d2.t1)
+    > Test cases: (1) NFRSpec parses correctly from YAML, (2) Invalid NFR YAML raises validation error, (3) Runner executes verification command and captures output, (4) ResultParser extracts metric value using regex, (5) ResultParser extracts metric value from JSON output, (6) Threshold comparison works for all operators (lt, lte, gt, gte, eq), (7) Blocker failure blocks pipeline execution, (8) Warning failure logs but doesnt block, (9) Skipped NFR (missing tool) is handled gracefully, (10) NFRReport produces correct summary, (11) VERIFY_NFR node type integrates with DAG executor.
+    _Files: ~/zion/projects/agent-orchestration/test_nfr.py_
+  - [ ] Test file covers schema parsing, verification execution, result parsing, and pipeline gate
+    _Validation: python3 -m pytest test_nfr.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The key distinction from structural invariants (phase 17): invariants check CODE (imports, layering, naming). NFRs check BEHAVIOR (latency, throughput, security posture). Invariants are verified by static analysis. NFRs are verified by running the code. This is the "taste invariants" concept from the research made concrete -- security, performance, and UX goals that persist across refactors and are verified through testing, not just code review.
+
+### Risks
+
+- NFR verification commands may be slow (load tests, security scans) -- run in parallel where possible
+- NFR thresholds may be too strict or too lenient -- provide sensible defaults and easy tuning
+- Some NFRs require external infrastructure (databases, network) -- mark as skippable when infrastructure unavailable
+
+## [ ] phase-175: Orchestrator Maturity Model and Capability Assessment (PLANNED)
+
+**Goal:** Create a self-assessment framework that scores the orchestrator against Symphony/Gas Town/Harness Engineering maturity levels
+
+The roadmap has 170+ phases covering patterns from the research, but there is no systematic way to assess which
+capabilities are actually implemented, tested, and production-ready vs. just planned. This phase creates a maturity
+model with defined levels (from basic automation to full dark factory) and a capability assessment tool that scores
+the current orchestrator against each level. This provides a clear roadmap for what remains to reach "production dark
+factory" status and enables tracking progress over time. Inspired by the researchs description of the journey from
+"human-as-bottleneck" to "autonomous factory."
+
+
+### Deliverables
+
+- [ ] **Maturity model definition** -- Define maturity levels and capability categories with clear criteria for each level
+  - [ ] `p175.d1.t1` Create maturity_model.py and maturity.yaml
+    > Python module: (1) MaturityLevel enum: L0_MANUAL (no automation), L1_ASSISTED (human-driven with agent help), L2_AUTOMATED (autonomous single-agent tasks), L3_ORCHESTRATED (multi-agent coordination), L4_INDUSTRIAL (dark factory with 0% human review), (2) CapabilityCategory: orchestration (polling, spawning, scheduling), quality (invariants, review, testing), safety (approval, sandboxing, audit), observability (logging, metrics, tracing), resilience (recovery, checkpointing, health), intelligence (context optimization, learning, adaptation), (3) Capability: id, name, category, description, required_for_levels (list of MaturityLevel), assessment_method (file_exists, test_passes, config_present, api_callable), assessment_params (file path, test command, config key), (4) maturity.yaml: full capability registry with all orchestrator features mapped to levels.
+    _Files: ~/zion/projects/agent-orchestration/maturity_model.py_
+  - [ ] At least 4 maturity levels defined with specific criteria
+    _Validation: read maturity model_
+  - [ ] Capability categories cover all major orchestrator subsystems
+    _Validation: check category coverage_
+  _~120 LOC_
+- [ ] **Capability assessment tool** -- Automated tool that checks which capabilities are present and scores overall maturity
+  - [ ] `p175.d2.t1` Create assessment tool in maturity_model.py (depends: p175.d1.t1)
+    > Extend maturity_model.py: (1) CapabilityAssessor class with assess(orchestrator_dir), (2) Assessment methods: file_exists(path) -- check if module/script exists, test_passes(command) -- run test and check exit code, config_present(yaml_path, key) -- check config value exists, function_callable(module, fn) -- import and call function, (3) assess_all() -- run all capability checks, produce CapabilityResult per capability (present: bool, level: pass|partial|fail, evidence: str), (4) MaturityScorecard: per-category scores (weighted average of capabilities), overall maturity level (lowest category level), gaps_to_next_level (list of missing capabilities), recommendations (prioritized by impact and effort), (5) trend tracking: store historical scores, show improvement over time, (6) CLI: python3 maturity_model.py --assess --dir <orch_dir> --json/--text/--markdown, (7) Generate maturity report: markdown with radar chart data, gap analysis, improvement roadmap.
+    _Files: ~/zion/projects/agent-orchestration/maturity_model.py_
+  - [ ] Tool checks each capability and produces a scorecard
+    _Validation: run assessment tool_
+  - [ ] Scorecard shows: per-category scores, overall level, gaps to next level, prioritized recommendations
+    _Validation: inspect scorecard output_
+  _~100 LOC_
+- [ ] **Maturity tracking integration** -- Track maturity score over time and include in orchestrator status
+  - [ ] `p175.d3.t1` Add maturity tracking to orchestrator (depends: p175.d2.t1, p8.d1.t1, p66.d1.t1)
+    > Integrate maturity assessment: (1) Run maturity assessment weekly (via maintenance cron from phase 66), (2) Store results in execution history (phase 8) with type="maturity_assessment", (3) Add maturity section to status.sh: current level, per-category scores, key gaps, (4) Add maturity panel to dashboard.py (phase 27) if available: radar chart of capabilities, trend line, (5) When a phase is completed, automatically re-assess affected capabilities, (6) Maturity gate: optionally block phase completion if it would regress maturity score (safety check).
+    _Files: ~/zion/projects/agent-orchestration/maturity_model.py_
+  - [ ] Maturity score is tracked in execution history over time
+    _Validation: query historical maturity scores_
+  - [ ] Status dashboard shows current maturity level and progress toward next level
+    _Validation: check status output_
+  _~60 LOC_
+- [ ] **Maturity assessment tests** -- Test maturity model, assessment tool, and tracking integration
+  - [ ] `p175.d4.t1` Create test_maturity.py (depends: p175.d1.t1, p175.d2.t1, p175.d3.t1)
+    > Test cases: (1) MaturityLevel enum has correct hierarchy, (2) CapabilityCategory covers all subsystems, (3) file_exists assessment works for existing and missing files, (4) test_passes assessment runs command and checks result, (5) config_present assessment checks YAML values, (6) assess_all produces correct CapabilityResults, (7) Scorecard calculates per-category scores correctly, (8) Overall maturity level is lowest category level, (9) Gaps to next level lists correct missing capabilities, (10) Recommendations are prioritized by impact, (11) CLI produces valid JSON and text output, (12) Trend tracking stores and retrieves historical scores.
+    _Files: ~/zion/projects/agent-orchestration/test_maturity.py_
+  - [ ] Test file covers model definition, assessment methods, scorecard generation, and tracking
+    _Validation: python3 -m pytest test_maturity.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+This is the meta-phase: it does not build new orchestrator capabilities, it measures which capabilities exist and how mature they are. The maturity model maps directly to the researchs progression: L0 (traditional dev), L1 (AI-assisted), L2 (single-agent autonomous), L3 (multi-agent orchestrated -- Symphony level), L4 (dark factory -- full Harness Engineering). The assessment is automated: it checks for the existence of files, the passing of tests, and the presence of configuration to determine which capabilities are genuinely operational, not just planned.
+
+### Risks
+
+- Assessment methods may produce false positives (file exists but feature is broken) -- use test_passes where possible
+- Maturity levels are subjective -- base them on concrete, measurable criteria from the research
+- Assessment may be slow if it runs many checks -- cache results and run incrementally
