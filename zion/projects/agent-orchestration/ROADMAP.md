@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/163 phases complete, 0 in progress
+**Progress:** 23/170 phases complete, 0 in progress
 
-**Deliverables:** 90/609 complete
+**Deliverables:** 90/625 complete
 
-**Tasks:** 90/628 complete
+**Tasks:** 90/649 complete
 
 ## Scope Summary
 
@@ -175,6 +175,13 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-161 CRANE Constrained Decoding for AI Node Output Validation | PLANNED | 0/2 | 200 | 8 |
 | phase-162 Runtime Application Vulnerability Monitoring (AVM) | PLANNED | 0/2 | 240 | 9 |
 | phase-163 Unified Agent Memory Architecture | PLANNED | 0/2 | 260 | 10 |
+| phase-164 Structured Task Object (STO) with Execution Contract and Goal Ancestry | PLANNED | 0/2 | 260 | 12 |
+| phase-165 Frustration Signals and Cognitive Damping for Adaptive Task Switching | PLANNED | 0/2 | 200 | 12 |
+| phase-166 Stage Manager / Actor Pattern with Structured Progress Artifacts | PLANNED | 0/3 | 320 | 10 |
+| phase-167 Merkle Tree Tamper-Evident Audit Trail | PLANNED | 0/2 | 200 | 12 |
+| phase-168 CRDT-Based Eventually-Consistent Shared State | PLANNED | 0/2 | 240 | 12 |
+| phase-169 Mode-Based Tool Access Enforcement | PLANNED | 0/2 | 200 | 12 |
+| phase-170 Persistent Warm Server and Headless Execution API | PLANNED | 0/3 | 300 | 12 |
 
 ## Dependencies
 
@@ -734,6 +741,27 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-93 | phase-163 | soft | Long-term memory provides semantic retrieval that the unified manager extends across tiers |
 | phase-97 | phase-163 | soft | Session chaining provides cross-session state transfer that the unified memory architecture formalizes |
 | phase-118 | phase-163 | soft | Memory consolidation provides deduplication that the unified manager schedules via promotion policies |
+| phase-5 | phase-164 | soft | Task contracts wrap DAG node execution with constraints |
+| phase-15 | phase-164 | soft | Safety policies provide the high-risk action gating that task contracts extend with per-task tool restrictions |
+| phase-20 | phase-164 | soft | Context budget manages context size while task contracts manage execution time bounds |
+| phase-82 | phase-164 | soft | Context seeding injects past solutions while task contracts inject goal ancestry |
+| phase-160 | phase-164 | soft | Executable spec schema provides the planning-stage definition that task contracts wrap with execution constraints |
+| phase-5 | phase-165 | soft | Frustration tracking wraps DAG node execution to monitor tool call success/failure |
+| phase-116 | phase-165 | soft | Commit stagnation detects task-level stalls while frustration detects tool-level patterns |
+| phase-133 | phase-165 | soft | Plateau breaker handles task-level strategy reset while frustration handles intra-task switching |
+| phase-97 | phase-166 | soft | Session chaining provides the cross-session context transfer that progress artifacts enhance |
+| phase-128 | phase-166 | soft | Spec-driven workflow provides the task definitions that Stage Manager converts to progress artifacts |
+| phase-163 | phase-166 | soft | Unified memory provides the tiered storage that progress artifacts use as a persistence layer |
+| phase-8 | phase-167 | soft | Execution history provides the log infrastructure that Merkle audit extends with cryptographic verification |
+| phase-85 | phase-167 | soft | Audit trail provides the append-only logging that Merkle tree makes tamper-evident |
+| phase-30 | phase-168 | soft | Inter-agent communication provides the shared state that CRDTs make lock-free and conflict-free |
+| phase-51 | phase-168 | soft | Federation locking provides the distributed coordination that CRDTs replace with lock-free convergence |
+| phase-6 | phase-169 | soft | Role specialization assigns roles while mode enforcement restricts tool access per mode |
+| phase-15 | phase-169 | soft | Safety policies gate high-risk actions while mode enforcement provides per-mode restrictions |
+| phase-164 | phase-169 | soft | Task contracts restrict tools per task while mode enforcement restricts tools per operational mode |
+| phase-63 | phase-170 | soft | REST API provides the HTTP interface that warm server extends with persistent connections |
+| phase-79 | phase-170 | soft | Backend abstraction provides the LLM interface that warm server maintains warm connections to |
+| phase-99 | phase-170 | soft | Unified CLI provides the command interface that headless mode extends with structured output |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -10193,10 +10221,381 @@ The key architectural insight from the research is that memory tiers should have
 - Cross-tier consistency checks may be expensive at scale -- run them periodically, not on every operation
 - Existing memory modules have different data formats -- the unified manager must handle format translation
 
-## Conventions
+## [ ] phase-164: Structured Task Object (STO) with Execution Contract and Goal Ancestry (PLANNED)
 
-- Python scripts use python3 (no bare python command on this system)
-- GitHub API via gh CLI, not raw curl
-- All new code goes to ~/zion/projects/agent-orchestration/
-- Skills go to ~/.hermes/skills/ following existing category structure
-- Wiki pages follow SCHEMA.md conventions (frontmatter, wikilinks, tag taxonomy)
+**Goal:** Create JSON Schema-validated task contracts that constrain agent execution behavior and propagate goal ancestry for context-aware decision-making
+
+The VISTA research describes a Structured Task Object (STO) that serves as the
+contractual input for agent execution, validated by JSON Schema before processing
+begins. The STO includes: allowed_tools (restricting tool access per task),
+duration_minutes (time-bounded execution), constraints, success_metrics,
+output_contract (format + required fields), references for RAG context, and
+verification_hints. The Paperclip research adds goal ancestry tracking: every
+task linked to its full chain (task -> objective -> strategic goal -> mission).
+
+Phase 160 (Executable Spec Schema) defines planning-stage specs. Phase 15 (Safety
+Policies) gates high-risk actions. Phase 82 (Context Seeding) injects past
+solutions. But no phase creates an execution-time task contract that constrains
+agent behavior AND propagates goal ancestry. Phase 164 closes both gaps with a
+unified TaskContract that wraps the spec-derived task definition with execution
+constraints and goal context.
+
+
+### Deliverables
+
+- [ ] **Task contract schema and validator** -- JSON Schema for execution-time task contracts with allowed_tools, duration_minutes, output_contract, and goal ancestry chain
+  - [ ] `p164.d1.t1` Create task_contract.py module (depends: p160.d1.t1)
+    > Create task_contract.py: (1) TaskContract dataclass with fields: id, title, description, allowed_tools (list of tool names), duration_minutes (min/max), constraints (list of strings), success_metrics (list of {name, target, unit}), output_contract ({format, required_fields}), references (list of file paths), verification_hints (list of strings), goal_ancestry ([{level, id, title, description}]), created_at, assigned_to, (2) task_contract_schema.json defining the JSON Schema, (3) validate_task_contract(contract_dict) function that returns ValidationResult with is_valid, errors, warnings, (4) build_contract_from_spec(spec, goal_chain) function that converts an executable spec (phase 160) into a TaskContract with execution constraints, (5) enforce_tool_access(contract, requested_tool) function that returns True/False based on allowed_tools, (6) check_duration_budget(contract, elapsed_minutes) function that returns remaining budget and warnings, (7) CLI: python3 task_contract.py --validate <file> --build-from-spec <spec_file> --ancestry <chain_file>.
+    _Files: ~/zion/projects/agent-orchestration/task_contract.py, ~/zion/projects/agent-orchestration/task_contract_schema.json_
+  - [ ] `p164.d1.t2` Integrate task contracts into DAG executor (depends: p164.d1.t1)
+    > Modify executor.py to: (1) Load task contract at node execution start, (2) Enforce allowed_tools before each tool call, (3) Check duration budget between nodes, (4) Propagate goal_ancestry into AI node prompts as context, (5) Validate output against output_contract after node completion, (6) Log contract compliance to execution history.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] JSON Schema validates all required fields: allowed_tools, duration_minutes, constraints, success_metrics, output_contract, references, verification_hints, goal_ancestry
+    _Validation: test schema validation_
+  - [ ] Goal ancestry chain includes: task_id, objective_id, strategic_goal_id, mission_id with titles
+    _Validation: test ancestry chain structure_
+  _~160 LOC_
+- [ ] **Task contract tests** -- Test contract validation, tool enforcement, duration budgeting, and goal ancestry propagation
+  - [ ] `p164.d2.t1` Write task contract tests (depends: p164.d1.t1, p164.d1.t2)
+    > Test cases: (1) Valid contract passes schema validation, (2) Missing allowed_tools fails validation, (3) Invalid duration range fails validation, (4) Goal ancestry chain with all 4 levels passes, (5) enforce_tool_access blocks unauthorized tools, (6) enforce_tool_access allows authorized tools, (7) check_duration_budget returns remaining time, (8) check_duration_budget triggers warning at 80%, (9) build_contract_from_spec produces valid contract, (10) Goal ancestry is injected into AI node prompts, (11) Output validation against output_contract, (12) Duration timeout triggers node failure.
+    _Files: ~/zion/projects/agent-orchestration/test_task_contract.py_
+  - [ ] Valid contracts pass validation, invalid contracts fail with specific errors
+    _Validation: run tests_
+  - [ ] Tool access enforcement blocks unauthorized tools
+    _Validation: test tool restriction_
+  _~100 LOC_
+
+### Technical Notes
+
+The STO concept bridges the gap between planning (what to build) and execution (how the agent behaves). The key innovation is that allowed_tools and duration_minutes are MACHINE-ENFORCED constraints, not prompt instructions that agents may ignore. Goal ancestry provides the "why" context that enables goal-aware decision-making when agents encounter obstacles -- instead of asking for clarification, the agent can consult the ancestry chain to make informed trade-offs.
+
+### Risks
+
+- Overly restrictive allowed_tools may prevent agents from solving problems that require unexpected tools -- support tool expansion requests
+- Duration budgets may be too tight for complex tasks -- support budget extension with justification
+- Goal ancestry chains may become stale if strategic goals change -- support ancestry refresh on goal updates
+
+## [ ] phase-165: Frustration Signals and Cognitive Damping for Adaptive Task Switching (PLANNED)
+
+**Goal:** Track success/failure ratio across tool calls within tasks and force strategy switching when frustration exceeds threshold
+
+The ACE Framework research describes a "frustration signal" that tracks the
+ratio of successes to failures during task execution. When frustration exceeds a
+threshold, "cognitive damping" progressively reduces persistence, forcing the
+agent to switch strategies or re-evaluate its plan. This prevents agents from
+burning tokens on unproductive loops.
+
+Phase 116 (Commit Stagnation Circuit Breaker) detects commit stalls via git SHA
+tracking. Phase 133 (Plateau Breaker) triggers strategy reset after N consecutive
+task-level failures. But neither tracks frustration at the TOOL CALL level within
+a task, nor implements the progressive damping mechanism. An agent may succeed at
+the task level (producing commits) while burning excessive tokens on failed tool
+calls within each attempt. Phase 165 closes this gap.
+
+
+### Deliverables
+
+- [ ] **Frustration tracking module** -- Track success/failure ratio per tool call within tasks, compute frustration signal, and trigger adaptive switching
+  - [ ] `p165.d1.t1` Create frustration.py module
+    > Create frustration.py: (1) ToolCallResult dataclass: tool_name, success, duration_ms, error_type, error_message, timestamp, (2) FrustrationTracker class with: record_result(result) that updates signal, get_frustration() returns current signal (0.0-1.0), get_tool_failure_counts() returns per-tool failure map, get_cognitive_damping() returns damping factor (1.0 at low frustration, 0.0 at max), (3) FrustrationSignal computed as: exponential moving average of recent failures with decay factor, weighted by tool importance, (4) CognitiveDamping function: when frustration > threshold_low, reduce max_turns by damping%; when frustration > threshold_high, force strategy_switch; when frustration > threshold_critical, halt task and escalate, (5) StrategySwitchRecommendation with: reason, suggested_alternatives (from past solutions in memory), frustration_history, (6) Integration points: record_result called by executor after each tool call, frustration checked between DAG nodes, (7) CLI: python3 frustration.py --signal --history --reset.
+    _Files: ~/zion/projects/agent-orchestration/frustration.py_
+  - [ ] `p165.d1.t2` Integrate frustration tracking into DAG executor (depends: p165.d1.t1)
+    > Modify executor.py to: (1) Record tool call results to FrustrationTracker, (2) Check frustration signal between DAG nodes, (3) Apply cognitive damping to max_turns, (4) Trigger strategy switch on high frustration, (5) Halt and escalate on critical frustration, (6) Log frustration events to execution history with signal value, damping factor, and action taken.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Frustration signal increases on tool call failures and decreases on successes
+    _Validation: test signal computation_
+  - [ ] Cognitive damping triggers strategy switch when frustration exceeds configurable threshold
+    _Validation: test damping trigger_
+  _~120 LOC_
+- [ ] **Frustration tracking tests** -- Test signal computation, cognitive damping thresholds, and strategy switching
+  - [ ] `p165.d2.t1` Write frustration tracking tests (depends: p165.d1.t1, p165.d1.t2)
+    > Test cases: (1) Initial frustration is 0.0, (2) Single failure increases signal, (3) Single success decreases signal, (4) Consecutive failures push signal toward 1.0, (5) Signal decay over time without new events, (6) Cognitive damping at low threshold reduces max_turns, (7) Strategy switch triggered at high threshold, (8) Halt and escalate at critical threshold, (9) Per-tool failure counts are accurate, (10) Frustration history is correctly logged, (11) Executor integration records tool call results, (12) Executor integration checks frustration between nodes.
+    _Files: ~/zion/projects/agent-orchestration/test_frustration.py_
+  - [ ] Signal increases on failures, decreases on successes, with configurable decay
+    _Validation: test signal dynamics_
+  - [ ] Damping triggers at correct thresholds with correct actions
+    _Validation: test threshold triggers_
+  _~80 LOC_
+
+### Technical Notes
+
+The key distinction from existing phases is granularity. Phase 116 operates at the git commit level (task boundary). Phase 133 operates at the task attempt level. Frustration tracking operates at the INDIVIDUAL TOOL CALL level, providing much finer-grained feedback. An agent may produce a valid commit (satisfying phase 116) while making 15 failed tool calls within that attempt (wasting tokens). The cognitive damping mechanism is also novel: rather than a binary halt/continue decision, it progressively reduces the agent's persistence, giving it a chance to self-correct before being force-stopped.
+
+### Risks
+
+- Frustration thresholds may be too aggressive for complex tasks that legitimately require many attempts -- calibrate based on task type
+- Strategy switch recommendations may not be relevant -- use historical success patterns from memory
+- Signal decay rate may cause oscillation between frustrated and calm states -- tune decay factor carefully
+
+## [ ] phase-166: Stage Manager / Actor Pattern with Structured Progress Artifacts (PLANNED)
+
+**Goal:** Implement two-phase execution where a Stage Manager bootstraps structured progress artifacts before the Actor agent begins implementation
+
+The Domain Memory Architecture research describes a two-agent pattern: (1) a
+"Stage Manager" (Initializer) that bootstraps structured state artifacts --
+tests.json with pass/fail status per feature, progress.md with session summaries,
+and rules of engagement -- and (2) an "Actor" (Coding Agent) that reads these
+artifacts at session start, executes one atomic unit of work, runs verification,
+and updates the artifacts. This separates environment preparation from execution
+and provides agents with a deterministic project state interface.
+
+Phase 128 (Spec-Driven Workflow) creates specs but not structured progress
+tracking artifacts. Phase 19 (Self-Improvement) improves strategies but not
+progress files. Phase 163 (Unified Memory) provides tiered storage but not
+task-level progress artifacts. Phase 166 closes this gap with a Stage Manager
+that generates structured project state files and an Actor protocol that reads
+and updates them.
+
+
+### Deliverables
+
+- [ ] **Stage Manager and progress artifact generator** -- Generate structured progress artifacts (tests.json, progress.md) from specs that provide deterministic project state
+  - [ ] `p166.d1.t1` Create stage_manager.py module (depends: p128.d1.t1)
+    > Create stage_manager.py: (1) StageManager class with: bootstrap(spec, workspace) that generates initial artifacts, update_progress(feature_id, status, notes) that updates artifacts after work, get_progress_summary() that returns current state, (2) ProgressArtifact schema: tests.json = [{feature_id, title, status: pending|passing|failing|skipped, last_updated, notes}], progress.md = markdown with session history, current focus, blockers, next steps, rules_of_engagement.md = project conventions and constraints, (3) ActorProtocol class with: load_context(workspace) that reads artifacts, select_next_task() that picks the highest-priority pending feature, report_result(feature_id, status, notes) that updates artifacts, (4) Integration with spec-driven workflow (phase 128): StageManager reads spec tasks and generates initial progress artifacts, (5) Integration with session chaining (phase 97): ActorProtocol.load_context provides structured state for session handoff, (6) CLI: python3 stage_manager.py --bootstrap <spec_file> --workspace <dir> --status.
+    _Files: ~/zion/projects/agent-orchestration/stage_manager.py_
+  - [ ] Stage Manager generates tests.json with per-feature pass/fail/pending status
+    _Validation: test artifact generation_
+  - [ ] Stage Manager generates progress.md with session summaries and current focus
+    _Validation: read generated artifact_
+  _~140 LOC_
+- [ ] **Actor protocol and session handoff integration** -- Actor reads progress artifacts at session start and updates them after work, enabling seamless session chaining
+  - [ ] `p166.d2.t1` Integrate Actor protocol with orchestrator lifecycle (depends: p166.d1.t1, p97.d1.t1)
+    > Modify orchestrator.py to: (1) On task start: call StageManager.load_context for structured project state, (2) On task tick: call ActorProtocol.select_next_task for work targeting, (3) On task complete: call ActorProtocol.report_result for progress update, (4) On session chain: include progress artifacts in marshaled context, (5) On spec update: call StageManager.bootstrap to regenerate artifacts.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Actor protocol selects next task based on progress artifacts
+    _Validation: test task selection_
+  - [ ] Session handoff includes structured progress state
+    _Validation: test handoff context_
+  _~100 LOC_
+- [ ] **Stage Manager tests** -- Test artifact generation, progress tracking, task selection, and session handoff
+  - [ ] `p166.d3.t1` Write stage manager tests (depends: p166.d1.t1, p166.d2.t1)
+    > Test cases: (1) Bootstrap generates tests.json, progress.md, rules_of_engagement.md from spec, (2) Tests.json has correct feature entries with pending status, (3) Progress.md has current focus and empty session history, (4) update_progress changes feature status and updates progress.md, (5) get_progress_summary returns accurate counts, (6) ActorProtocol.load_context reads all artifacts, (7) ActorProtocol.select_next_task picks highest-priority pending feature, (8) ActorProtocol.report_result updates artifacts correctly, (9) Session handoff includes structured progress state, (10) Spec update triggers artifact regeneration.
+    _Files: ~/zion/projects/agent-orchestration/test_stage_manager.py_
+  - [ ] Bootstrap generates all required artifacts from a spec
+    _Validation: test bootstrap_
+  - [ ] Progress updates correctly modify artifact state
+    _Validation: test progress updates_
+  _~80 LOC_
+
+### Technical Notes
+
+The key innovation is the separation of environment preparation (Stage Manager) from execution (Actor). Currently, the orchestrator jumps straight from issue assignment to agent execution. The Stage Manager creates a structured, deterministic interface to project state that the Actor can read at session start without needing to infer project state from the codebase. This is especially valuable for multi-session tasks where the Actor needs to know exactly what was completed in previous sessions. The progress artifacts serve as a lightweight alternative to full codebase analysis for state determination.
+
+### Risks
+
+- Progress artifacts may become stale if agents update code directly without going through ActorProtocol -- enforce artifact updates through the protocol
+- Tests.json may not map cleanly to all task types -- support flexible status tracking beyond pass/fail
+- Bootstrap from spec adds latency before implementation starts -- cache artifacts and only regenerate on spec changes
+
+## [ ] phase-167: Merkle Tree Tamper-Evident Audit Trail (PLANNED)
+
+**Goal:** Create a cryptographically verifiable audit trail using Merkle trees that detects any tampering with agent action history
+
+The Cross-Agent Reflex Loop research describes using Merkle trees to create a
+cryptographically verifiable, tamper-evident history of agent actions. Each action
+is a leaf in the tree, and the root hash changes if any action is modified, enabling
+integrity verification without storing the full history. This is critical for dark
+factory mode (phase 35) where 0% human review means the audit trail must be
+self-verifying.
+
+Phase 85 (Audit Trail) is append-only but NOT cryptographically verified -- entries
+could be modified without detection. Phase 51 (Federation) mentions gossip protocols
+but NOT Merkle trees for audit integrity. Phase 163 (Unified Memory) stores memory
+entries but does NOT provide tamper-evidence. Phase 167 closes this gap with a
+Merkle tree that hashes every action, maintains a verifiable root, and supports
+efficient proof generation for individual actions.
+
+
+### Deliverables
+
+- [ ] **Merkle tree audit module** -- Hash every agent action into a Merkle tree, maintain verifiable root hash, and generate inclusion proofs for individual actions
+  - [ ] `p167.d1.t1` Create merkle_audit.py module (depends: p85.d1.t1)
+    > Create merkle_audit.py: (1) AuditEntry dataclass: entry_id, timestamp, agent_id, action_type, target, outcome, details_hash, merkle_proof, (2) MerkleAuditTree class with: append_entry(entry) that adds leaf and recomputes tree, get_root_hash() returns current root, verify_entry(entry) validates inclusion proof, verify_tree() validates entire tree integrity, generate_proof(entry_id) returns Merkle proof path, detect_tampering() compares stored root with recomputed root, (3) Hashing: SHA-256 of canonical JSON representation of each entry, (4) Tree structure: binary Merkle tree with leaf count tracking, (5) Persistence: store tree state (root hash, leaf count, tree nodes) in a JSON file alongside the audit log, (6) CLI: python3 merkle_audit.py --verify --proof <entry_id> --root --append <entry_json>.
+    _Files: ~/zion/projects/agent-orchestration/merkle_audit.py_
+  - [ ] `p167.d1.t2` Integrate Merkle audit into execution log (depends: p167.d1.t1)
+    > Modify execution_log.py to: (1) After logging each action, append to MerkleAuditTree, (2) Store Merkle root hash alongside the execution log, (3) On log read, verify tree integrity and flag tampered entries, (4) Provide verify_audit() function for periodic integrity checks.
+    _Files: ~/zion/projects/agent-orchestration/execution_log.py_
+  - [ ] Every agent action is hashed and added as a leaf to the Merkle tree
+    _Validation: test action recording_
+  - [ ] Root hash changes if any action is modified, enabling tamper detection
+    _Validation: test tamper detection_
+  _~120 LOC_
+- [ ] **Merkle audit tests** -- Test tree construction, tamper detection, proof generation, and verification
+  - [ ] `p167.d2.t1` Write Merkle audit tests (depends: p167.d1.t1, p167.d1.t2)
+    > Test cases: (1) Empty tree has valid root hash, (2) Appending single entry creates valid tree, (3) Appending multiple entries builds correct tree structure, (4) Root hash changes after each append, (5) Modifying an entry body changes root hash, (6) verify_entry returns True for valid entries, (7) verify_entry returns False for tampered entries, (8) verify_tree detects tampering in any leaf, (9) generate_proof produces valid Merkle proof path, (10) Proof verification works independently of tree storage, (11) Execution log integration appends entries correctly, (12) Integrity check flags tampered entries in execution log.
+    _Files: ~/zion/projects/agent-orchestration/test_merkle_audit.py_
+  - [ ] Appending entries updates root hash correctly
+    _Validation: test root hash updates_
+  - [ ] Modifying any entry is detected by verify_tree()
+    _Validation: test tamper detection_
+  _~80 LOC_
+
+### Technical Notes
+
+The Merkle tree approach provides O(log n) proof generation and verification, making it efficient even for large audit histories. The key property is that the root hash serves as a compact integrity checksum for the entire history -- storing just the root hash (32 bytes for SHA-256) is sufficient to detect any modification to any entry. This is especially valuable for dark factory mode where the audit trail must be self-verifying without human inspection of individual entries. The implementation uses a simple binary Merkle tree with SHA-256 hashing of canonical JSON entries.
+
+### Risks
+
+- Merkle tree storage grows with O(n) entries -- implement tree pruning for old entries while preserving root chain
+- Hash computation adds latency to every action log -- batch hash computations for high-throughput scenarios
+- Canonical JSON serialization must be deterministic -- use sorted keys and no whitespace variation
+
+## [ ] phase-168: CRDT-Based Eventually-Consistent Shared State (PLANNED)
+
+**Goal:** Implement Conflict-free Replicated Data Types for shared state between agents, enabling lock-free coordination at Gas Town scale
+
+The Cross-Agent Reflex Loop research describes CRDTs (Conflict-free Replicated
+Data Types) for shared state between agents, enabling eventually-consistent
+coordination without centralized locking. CRDTs guarantee mathematical convergence:
+all replicas eventually reach the same state regardless of message ordering or
+network partitions.
+
+Phase 30 (Inter-Agent Communication) has simple key-value shared state. Phase 51
+(Federation) has distributed locking via GitHub labels. But neither implements
+CRDTs for lock-free, conflict-free state sharing. At Gas Town scale (20-30
+concurrent agents), centralized locking becomes a bottleneck. Phase 168 closes
+this gap with CRDT data structures for agent coordination.
+
+
+### Deliverables
+
+- [ ] **CRDT shared state module** -- Implement G-Counter, PN-Counter, G-Set, OR-Set, and LWW-Register CRDTs for agent coordination
+  - [ ] `p168.d1.t1` Create crdt_state.py module
+    > Create crdt_state.py: (1) CRDTBase abstract class with: merge(other), get_state(), get_value(), clone(), (2) GCounter (grow-only counter): increment(agent_id, amount), value returns sum, merge takes max per agent -- for counting completed tasks, tokens used, (3) PN-Counter (positive-negative counter): increment/decrement, merge handles both -- for budget tracking, (4) GSet (grow-only set): add(element), has(element), merge unions -- for tracking seen issues, completed features, (5) OR-Set (observed-remove set): add(element, tag), remove(element), merge handles concurrent add/remove -- for managing active task assignments, (6) LWWRegister (last-writer-wins register): set(value, timestamp), get(), merge keeps latest -- for configuration values, status updates, (7) CRDTStore class that manages named CRDT instances with: create(name, type), get(name), update(name, operation), merge_remote(agent_id, state_snapshot), export_state() for replication, (8) Persistence: serialize CRDT state to JSON file per agent, (9) CLI: python3 crdt_state.py --create --update --merge --export.
+    _Files: ~/zion/projects/agent-orchestration/crdt_state.py_
+  - [ ] `p168.d1.t2` Replace centralized shared state with CRDT store (depends: p168.d1.t1, p30.d1.t1)
+    > Modify the inter-agent communication (phase 30) and federation (phase 51) to use CRDTStore: (1) Replace simple key-value state with CRDT-backed state, (2) Use G-Counter for task completion counts, (3) Use OR-Set for active task assignments (replacing lock-based assignment), (4) Use LWW-Register for configuration values, (5) Add merge_remote() call when agents synchronize state.
+    _Files: ~/zion/projects/agent-orchestration/crdt_state.py_
+  - [ ] Supports at least 5 CRDT types suitable for agent coordination
+    _Validation: test CRDT operations_
+  - [ ] Concurrent updates from multiple agents converge to same state
+    _Validation: test convergence_
+  _~160 LOC_
+- [ ] **CRDT shared state tests** -- Test CRDT operations, convergence properties, and integration with orchestrator
+  - [ ] `p168.d2.t1` Write CRDT shared state tests (depends: p168.d1.t1, p168.d1.t2)
+    > Test cases: (1) GCounter increment and merge converge, (2) PN-Counter increment/decrement and merge converge, (3) GSet add and merge converge (union), (4) OR-Set add/remove and merge handle concurrent add-remove correctly, (5) LWW-Register set and merge keep latest timestamp, (6) CRDTStore create/get/update/export lifecycle, (7) Three agents with concurrent updates converge to same state, (8) Network partition simulation: updates applied after reconnection converge, (9) Persistence: save and restore CRDT state, (10) Integration with inter-agent communication works correctly, (11) Task assignment via OR-Set replaces lock-based assignment, (12) Configuration update via LWW-Register works across agents.
+    _Files: ~/zion/projects/agent-orchestration/test_crdt_state.py_
+  - [ ] Concurrent updates from 3+ agents converge to identical state
+    _Validation: test convergence with multiple agents_
+  - [ ] CRDT state survives process restart via persistence
+    _Validation: test persistence and recovery_
+  _~80 LOC_
+
+### Technical Notes
+
+CRDTs provide mathematical guarantees of convergence without coordination. The key advantage over centralized locking is throughput: agents can update shared state without waiting for locks, and the system is partition-tolerant (updates can be applied while disconnected and merged later). The five CRDT types chosen cover the common coordination patterns: G-Counter for monotonic counts (tasks completed, tokens used), PN-Counter for bidirectional counts (budget remaining), G-Set for accumulating sets (seen issues), OR-Set for mutable sets (active assignments), and LWW-Register for single-value state (configuration). The CRDTStore provides a namespace for managing multiple CRDT instances.
+
+### Risks
+
+- OR-Set concurrent add-remove semantics may surprise users -- document behavior clearly
+- LWW-Register requires synchronized clocks for correct last-writer determination -- use wall clock + monotonic counter
+- CRDT state files grow unboundedly -- implement compaction for old entries
+
+## [ ] phase-169: Mode-Based Tool Access Enforcement (PLANNED)
+
+**Goal:** Enforce different tool access levels per operational mode (ask/plan/code/debug) implementing Principle of Least Privilege at execution time
+
+The Kilo Operator Blueprint describes mode-based tool access enforcement where
+each operational mode strictly limits available tools. The "ask" mode can only
+read files and browse; "plan" mode can read and write markdown; "code" mode has
+full tool access; "debug" mode has full access plus diagnostic tools. Mode
+discipline is enforced as a deterministic execution constraint, not a prompt
+instruction that agents may ignore.
+
+Phase 6 (Role Specialization) assigns roles but does NOT enforce per-mode tool
+access at execution time. Phase 15 (Safety Policies) gates high-risk actions by
+task type but NOT by operational mode. Phase 74 (Trust Scoring) scores agents
+but does NOT adjust tool access based on mode. Phase 164 (Task Contract) restricts
+tools per task but NOT per operational mode. Phase 169 closes this gap.
+
+
+### Deliverables
+
+- [ ] **Mode enforcement module** -- Define operational modes with tool access matrices and enforce mode-based restrictions at execution time
+  - [ ] `p169.d1.t1` Create mode_enforcer.py module
+    > Create mode_enforcer.py: (1) AgentMode enum: ASK (read-only), PLAN (read + markdown write), CODE (full access), DEBUG (full + diagnostics), ORCHESTRATOR (delegation + full), (2) ToolAccess dataclass: tool_name, allowed_modes, parameters_restrictions, (3) ToolAccessMatrix class with: define_mode(mode, allowed_tools, restricted_params), check_access(mode, tool_name, params) returns AccessResult {allowed, reason}, list_tools(mode) returns available tools for mode, (4) Default tool access matrix: ASK=[read_file, search_files, gh_issue_view], PLAN=[ASK + write_file(markdown only), dag_view], CODE=[PLAN + write_file, execute_command, git_operations], DEBUG=[CODE + process_inspect, trace_read, log_tail], ORCHESTRATOR=[CODE + delegate_task, spawn_worker], (5) ModeEnforcer class that wraps executor tool calls with access checks, (6) CLI: python3 mode_enforcer.py --check <mode> <tool> --list <mode> --matrix.
+    _Files: ~/zion/projects/agent-orchestration/mode_enforcer.py_
+  - [ ] `p169.d1.t2` Integrate mode enforcement into DAG executor and spawner (depends: p169.d1.t1)
+    > Modify executor.py and spawner.py to: (1) Accept mode parameter for each task, (2) Wrap every tool call with ModeEnforcer.check_access, (3) Deny tool calls that violate mode with clear error, (4) Log mode violations to execution history, (5) Auto-detect mode from task type if not specified (analysis=PLAN, implementation=CODE, debugging=DEBUG, review=ASK).
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] At least 4 modes defined (ask, plan, code, debug) with different tool access levels
+    _Validation: test mode definitions_
+  - [ ] Tool access is enforced deterministically at execution time, not via prompt
+    _Validation: test enforcement bypass attempt_
+  _~120 LOC_
+- [ ] **Mode enforcement tests** -- Test mode definitions, tool access checks, and execution-time enforcement
+  - [ ] `p169.d2.t1` Write mode enforcement tests (depends: p169.d1.t1, p169.d1.t2)
+    > Test cases: (1) ASK mode allows read_file and search_files, (2) ASK mode denies write_file, execute_command, (3) PLAN mode allows markdown write_file, denies execute_command, (4) CODE mode allows all standard tools, (5) DEBUG mode allows diagnostic tools not in CODE, (6) ORCHESTRATOR mode allows delegate_task and spawn_worker, (7) Tool call with wrong mode returns AccessResult(denied=True), (8) Mode auto-detection from task type works correctly, (9) Executor integration enforces mode on every tool call, (10) Mode violations are logged to execution history, (11) Custom mode definitions work correctly, (12) Restricted parameters are enforced (e.g., PLAN write_file only allows .md files).
+    _Files: ~/zion/projects/agent-orchestration/test_mode_enforcer.py_
+  - [ ] ASK mode cannot execute commands or write non-markdown files
+    _Validation: test ASK restrictions_
+  - [ ] CODE mode has full access, DEBUG mode has additional diagnostics
+    _Validation: test CODE and DEBUG access_
+  _~80 LOC_
+
+### Technical Notes
+
+The key innovation is that mode enforcement is DETERMINISTIC, not prompt-based. Even if an agent ignores its system prompt and attempts to use a restricted tool, the enforcement layer blocks the call at the execution boundary. This is the "infrastructure as governance" pattern from the Archon research (phase 122 pre/post hooks). The mode concept is distinct from roles (phase 6): roles define WHAT the agent does (implementer, reviewer, tester), while modes define HOW MUCH access the agent has (read-only, full, diagnostic). An implementer role in PLAN mode has different access than an implementer role in CODE mode.
+
+### Risks
+
+- Overly restrictive modes may prevent agents from solving legitimate problems -- support mode escalation with justification
+- Mode auto-detection may misclassify tasks -- allow explicit mode override in task contracts
+- File type restrictions (e.g., markdown-only in PLAN mode) may be fragile -- use extension matching with allowlist
+
+## [ ] phase-170: Persistent Warm Server and Headless Execution API (PLANNED)
+
+**Goal:** Create a persistent headless server that maintains warm LLM connections for zero-latency agent invocation and supports non-interactive CI/CD integration
+
+The OpenCode research describes a persistent headless server that maintains warm
+LLM connections and MCP server state, eliminating cold-boot latency for repeated
+agent invocations. It supports non-interactive CLI execution with structured
+JSON output for CI/CD integration.
+
+Phase 63 (REST API) exposes orchestrator state but does NOT maintain a persistent
+warm server for zero-latency agent invocation. Phase 79 (Backend Abstraction)
+abstracts backends but does NOT implement persistent warm connections. Phase 99
+(Unified CLI) provides a CLI but does NOT support non-interactive headless
+execution with structured output. Phase 170 closes these gaps with a persistent
+server and headless execution mode.
+
+
+### Deliverables
+
+- [ ] **Persistent warm server** -- Long-running server that maintains warm LLM connections and MCP state for zero-latency agent invocation
+  - [ ] `p170.d1.t1` Create warm_server.py module (depends: p79.d1.t1)
+    > Create warm_server.py: (1) WarmServer class that runs as a persistent process with: start(), stop(), status(), (2) ConnectionPool that maintains N warm connections to configured LLM backends (configurable pool size), (3) Health checker that pings connections every 60s and replaces stale ones, (4) Request handler that routes agent invocations to warm connections, (5) MCP state cache that maintains warm connections to configured MCP servers, (6) Graceful shutdown that drains pending requests, (7) HTTP API: POST /invoke (submit agent task, get result), GET /status (server health, pool size, pending requests), POST /shutdown (graceful stop), (8) Uses asyncio for concurrent request handling, (9) CLI: python3 warm_server.py --start --stop --status --pool-size <n>.
+    _Files: ~/zion/projects/agent-orchestration/warm_server.py_
+  - [ ] Server maintains warm connection pool to configured LLM backends
+    _Validation: test connection pool_
+  - [ ] Agent invocation via server has <500ms latency (vs 3-5s cold start)
+    _Validation: benchmark latency_
+  _~140 LOC_
+- [ ] **Headless execution mode** -- Non-interactive CLI execution with structured JSON output for CI/CD integration
+  - [ ] `p170.d2.t1` Add headless execution to unified CLI (depends: p170.d1.t1, p99.d1.t1)
+    > Modify the unified CLI (phase 99) to add: (1) --headless flag for non-interactive execution, (2) --prompt/-p flag for task specification, (3) --format flag (json|text|yaml) for output format, (4) --attach flag to connect to running warm server, (5) --timeout flag for maximum execution time, (6) Structured JSON output: {status, task_id, result, duration_seconds, token_usage: {input, output}, errors: [{type, message}], agent_id, mode}, (7) Exit codes: 0=success, 1=agent_error, 2=timeout, 3=server_unavailable.
+    _Files: ~/zion/projects/agent-orchestration/warm_server.py_
+  - [ ] CLI supports non-interactive mode: python3 orch headless --prompt <task> --format json
+    _Validation: test headless invocation_
+  - [ ] JSON output includes: status, result, duration, token_usage, errors
+    _Validation: test output format_
+  _~80 LOC_
+- [ ] **Warm server and headless execution tests** -- Test server lifecycle, connection pool, headless invocation, and CI/CD integration
+  - [ ] `p170.d3.t1` Write warm server tests (depends: p170.d1.t1, p170.d2.t1)
+    > Test cases: (1) Server starts and binds to configured port, (2) Connection pool initializes with configured size, (3) Health checker replaces stale connections, (4) POST /invoke routes to warm connection and returns result, (5) GET /status returns server health info, (6) POST /shutdown drains pending requests, (7) Headless CLI invokes task and returns JSON output, (8) Headless CLI with --format yaml returns YAML output, (9) Headless CLI timeout returns exit code 2, (10) Headless CLI with --attach connects to running server, (11) Concurrent requests are handled correctly, (12) Server restart preserves configuration.
+    _Files: ~/zion/projects/agent-orchestration/test_warm_server.py_
+  - [ ] Server starts, maintains warm connections, handles requests, shuts down gracefully
+    _Validation: test server lifecycle_
+  - [ ] Headless execution returns structured output and correct exit codes
+    _Validation: test headless output_
+  _~80 LOC_
+
+### Technical Notes
+
+The persistent warm server eliminates the 3-5 second cold-start latency that occurs when initializing LLM connections and MCP servers on every agent invocation. For CI/CD integration, this means agent tasks can be invoked as build steps with sub-second response time. The headless mode provides the non-interactive execution model needed for automation: stdin/stdout with structured JSON output and meaningful exit codes. The --attach flag enables connecting to a running server for interactive debugging while maintaining the warm connection pool.
+
+### Risks
+
+- Warm connections consume resources (memory, API rate limits) when idle -- implement auto-scaling pool size based on request rate
+- Persistent server adds operational complexity (monitoring, restart) -- integrate with health monitor (phase 14)
+- LLM API connections may have idle timeouts -- health checker must respect API-specific timeout values

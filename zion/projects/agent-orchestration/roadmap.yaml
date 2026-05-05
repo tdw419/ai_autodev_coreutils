@@ -20137,831 +20137,642 @@ phases:
   - 'Existing memory modules have different data formats -- the unified manager must handle format translation'
   scope_lines_total: 260
   test_target: 10
-phases_added_from_nineteenth_pass: |2
+- id: 'phase-164'
+  title: 'Structured Task Object (STO) with Execution Contract and Goal Ancestry'
+  status: planned
+  goal: 'Create JSON Schema-validated task contracts that constrain agent execution behavior and propagate goal ancestry for context-aware decision-making'
+  description: |
+    The VISTA research describes a Structured Task Object (STO) that serves as the
+    contractual input for agent execution, validated by JSON Schema before processing
+    begins. The STO includes: allowed_tools (restricting tool access per task),
+    duration_minutes (time-bounded execution), constraints, success_metrics,
+    output_contract (format + required fields), references for RAG context, and
+    verification_hints. The Paperclip research adds goal ancestry tracking: every
+    task linked to its full chain (task -> objective -> strategic goal -> mission).
 
-    Phase 137-143: Seven new phases derived from a nineteenth gap analysis pass focused on
-    four research documents not previously analyzed: (1) "AI Workflow Orchestration and
-    Improvement" (216 lines, 19 citations), describing the Agent Operating System (A-OS),
-    ReAct loop, Code-Aware RAG (C-RAG), Agent-Driven TDD (Red-Green-Refactor), transactional
-    execution with pre-execution backup and rollback, and prompt chaining for structured
-    output; (2) "Autonomous Agent Design: Orchestrator-Worker" (183 lines, 40 citations),
-    describing intelligent session handoff, Mission Briefing generation, signature-based
-    loop detection, neurosymbolic guardrails with dirty-bit checks, no-progress heuristics,
-    and the Out-of-Band Advisor pattern; (3) "Recursive LLM Planning for Agents" (248
-    lines, 51 citations), describing the RecursiveGraphPlanner, System 2 thinking via
-    actor-critic cycles, massively decomposed agentic processes (MDAPs), mental simulation
-    via look-ahead planning (LEAP), Recursive Self-Aggregation (RSA), and Chain-of-Draft
-    (CoD) optimization; (4) "Managing AI Agents with MCP" (272 lines, 39 citations),
-    describing the Neural Swarm architecture, blackboard-based multi-agent coordination
-    (LbMAS), adaptive computational budgeting with quality throttling, token budget
-    enforcement, and the System Conscience governance layer.
+    Phase 160 (Executable Spec Schema) defines planning-stage specs. Phase 15 (Safety
+    Policies) gates high-risk actions. Phase 82 (Context Seeding) injects past
+    solutions. But no phase creates an execution-time task contract that constrains
+    agent behavior AND propagates goal ancestry. Phase 164 closes both gaps with a
+    unified TaskContract that wraps the spec-derived task definition with execution
+    constraints and goal context.
+  deliverables:
+  - name: Task contract schema and validator
+    description: 'JSON Schema for execution-time task contracts with allowed_tools, duration_minutes, output_contract, and goal ancestry chain'
+    status: planned
+    acceptance_criteria:
+    - description: 'JSON Schema validates all required fields: allowed_tools, duration_minutes, constraints, success_metrics, output_contract, references, verification_hints, goal_ancestry'
+      validation: test schema validation
+    - description: 'Goal ancestry chain includes: task_id, objective_id, strategic_goal_id, mission_id with titles'
+      validation: test ancestry chain structure
+    tasks:
+    - id: p164.d1.t1
+      title: Create task_contract.py module
+      status: planned
+      description: 'Create task_contract.py: (1) TaskContract dataclass with fields: id, title, description, allowed_tools (list of tool names), duration_minutes (min/max), constraints (list of strings), success_metrics (list of {name, target, unit}), output_contract ({format, required_fields}), references (list of file paths), verification_hints (list of strings), goal_ancestry ([{level, id, title, description}]), created_at, assigned_to, (2) task_contract_schema.json defining the JSON Schema, (3) validate_task_contract(contract_dict) function that returns ValidationResult with is_valid, errors, warnings, (4) build_contract_from_spec(spec, goal_chain) function that converts an executable spec (phase 160) into a TaskContract with execution constraints, (5) enforce_tool_access(contract, requested_tool) function that returns True/False based on allowed_tools, (6) check_duration_budget(contract, elapsed_minutes) function that returns remaining budget and warnings, (7) CLI: python3 task_contract.py --validate <file> --build-from-spec <spec_file> --ancestry <chain_file>.'
+      dependencies:
+      - p160.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/task_contract.py'
+      - '~/zion/projects/agent-orchestration/task_contract_schema.json'
+    - id: p164.d1.t2
+      title: Integrate task contracts into DAG executor
+      status: planned
+      description: 'Modify executor.py to: (1) Load task contract at node execution start, (2) Enforce allowed_tools before each tool call, (3) Check duration budget between nodes, (4) Propagate goal_ancestry into AI node prompts as context, (5) Validate output against output_contract after node completion, (6) Log contract compliance to execution history.'
+      dependencies:
+      - p164.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/executor.py'
+    scope_lines: 160
+    scope_files:
+    - '~/zion/projects/agent-orchestration/task_contract.py'
+    - '~/zion/projects/agent-orchestration/executor.py'
+  - name: Task contract tests
+    description: 'Test contract validation, tool enforcement, duration budgeting, and goal ancestry propagation'
+    status: planned
+    acceptance_criteria:
+    - description: 'Valid contracts pass validation, invalid contracts fail with specific errors'
+      validation: run tests
+    - description: 'Tool access enforcement blocks unauthorized tools'
+      validation: test tool restriction
+    tasks:
+    - id: p164.d2.t1
+      title: Write task contract tests
+      status: planned
+      description: 'Test cases: (1) Valid contract passes schema validation, (2) Missing allowed_tools fails validation, (3) Invalid duration range fails validation, (4) Goal ancestry chain with all 4 levels passes, (5) enforce_tool_access blocks unauthorized tools, (6) enforce_tool_access allows authorized tools, (7) check_duration_budget returns remaining time, (8) check_duration_budget triggers warning at 80%, (9) build_contract_from_spec produces valid contract, (10) Goal ancestry is injected into AI node prompts, (11) Output validation against output_contract, (12) Duration timeout triggers node failure.'
+      dependencies:
+      - p164.d1.t1
+      - p164.d1.t2
+      files:
+      - '~/zion/projects/agent-orchestration/test_task_contract.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_task_contract.py'
+  dependencies:
+  - source: 'phase-5'
+    target: 'phase-164'
+    type: soft
+    reason: Task contracts wrap DAG node execution with constraints
+  - source: 'phase-15'
+    target: 'phase-164'
+    type: soft
+    reason: Safety policies provide the high-risk action gating that task contracts extend with per-task tool restrictions
+  - source: 'phase-20'
+    target: 'phase-164'
+    type: soft
+    reason: Context budget manages context size while task contracts manage execution time bounds
+  - source: 'phase-82'
+    target: 'phase-164'
+    type: soft
+    reason: Context seeding injects past solutions while task contracts inject goal ancestry
+  - source: 'phase-160'
+    target: 'phase-164'
+    type: soft
+    reason: Executable spec schema provides the planning-stage definition that task contracts wrap with execution constraints
+  technical_notes: 'The STO concept bridges the gap between planning (what to build) and execution (how the agent behaves). The key innovation is that allowed_tools and duration_minutes are MACHINE-ENFORCED constraints, not prompt instructions that agents may ignore. Goal ancestry provides the "why" context that enables goal-aware decision-making when agents encounter obstacles -- instead of asking for clarification, the agent can consult the ancestry chain to make informed trade-offs.'
+  risks:
+  - 'Overly restrictive allowed_tools may prevent agents from solving problems that require unexpected tools -- support tool expansion requests'
+  - 'Duration budgets may be too tight for complex tasks -- support budget extension with justification'
+  - 'Goal ancestry chains may become stale if strategic goals change -- support ancestry refresh on goal updates'
+  scope_lines_total: 260
+  test_target: 12
+- id: 'phase-165'
+  title: 'Frustration Signals and Cognitive Damping for Adaptive Task Switching'
+  status: planned
+  goal: 'Track success/failure ratio across tool calls within tasks and force strategy switching when frustration exceeds threshold'
+  description: |
+    The ACE Framework research describes a "frustration signal" that tracks the
+    ratio of successes to failures during task execution. When frustration exceeds a
+    threshold, "cognitive damping" progressively reduces persistence, forcing the
+    agent to switch strategies or re-evaluate its plan. This prevents agents from
+    burning tokens on unproductive loops.
 
-    Previous eighteen passes achieved 100% concept coverage against the primary Symphony
-    research doc and 24 supplementary sources. This pass analyzed these 4 additional
-    research documents and identified 7 genuinely new concepts not covered by any of the
-    136 existing phases:
+    Phase 116 (Commit Stagnation Circuit Breaker) detects commit stalls via git SHA
+    tracking. Phase 133 (Plateau Breaker) triggers strategy reset after N consecutive
+    task-level failures. But neither tracks frustration at the TOOL CALL level within
+    a task, nor implements the progressive damping mechanism. An agent may succeed at
+    the task level (producing commits) while burning excessive tokens on failed tool
+    calls within each attempt. Phase 165 closes this gap.
+  deliverables:
+  - name: Frustration tracking module
+    description: 'Track success/failure ratio per tool call within tasks, compute frustration signal, and trigger adaptive switching'
+    status: planned
+    acceptance_criteria:
+    - description: 'Frustration signal increases on tool call failures and decreases on successes'
+      validation: test signal computation
+    - description: 'Cognitive damping triggers strategy switch when frustration exceeds configurable threshold'
+      validation: test damping trigger
+    tasks:
+    - id: p165.d1.t1
+      title: Create frustration.py module
+      status: planned
+      description: 'Create frustration.py: (1) ToolCallResult dataclass: tool_name, success, duration_ms, error_type, error_message, timestamp, (2) FrustrationTracker class with: record_result(result) that updates signal, get_frustration() returns current signal (0.0-1.0), get_tool_failure_counts() returns per-tool failure map, get_cognitive_damping() returns damping factor (1.0 at low frustration, 0.0 at max), (3) FrustrationSignal computed as: exponential moving average of recent failures with decay factor, weighted by tool importance, (4) CognitiveDamping function: when frustration > threshold_low, reduce max_turns by damping%; when frustration > threshold_high, force strategy_switch; when frustration > threshold_critical, halt task and escalate, (5) StrategySwitchRecommendation with: reason, suggested_alternatives (from past solutions in memory), frustration_history, (6) Integration points: record_result called by executor after each tool call, frustration checked between DAG nodes, (7) CLI: python3 frustration.py --signal --history --reset.'
+      files:
+      - '~/zion/projects/agent-orchestration/frustration.py'
+    - id: p165.d1.t2
+      title: Integrate frustration tracking into DAG executor
+      status: planned
+      description: 'Modify executor.py to: (1) Record tool call results to FrustrationTracker, (2) Check frustration signal between DAG nodes, (3) Apply cognitive damping to max_turns, (4) Trigger strategy switch on high frustration, (5) Halt and escalate on critical frustration, (6) Log frustration events to execution history with signal value, damping factor, and action taken.'
+      dependencies:
+      - p165.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/executor.py'
+    scope_lines: 120
+    scope_files:
+    - '~/zion/projects/agent-orchestration/frustration.py'
+    - '~/zion/projects/agent-orchestration/executor.py'
+  - name: Frustration tracking tests
+    description: 'Test signal computation, cognitive damping thresholds, and strategy switching'
+    status: planned
+    acceptance_criteria:
+    - description: 'Signal increases on failures, decreases on successes, with configurable decay'
+      validation: test signal dynamics
+    - description: 'Damping triggers at correct thresholds with correct actions'
+      validation: test threshold triggers
+    tasks:
+    - id: p165.d2.t1
+      title: Write frustration tracking tests
+      status: planned
+      description: 'Test cases: (1) Initial frustration is 0.0, (2) Single failure increases signal, (3) Single success decreases signal, (4) Consecutive failures push signal toward 1.0, (5) Signal decay over time without new events, (6) Cognitive damping at low threshold reduces max_turns, (7) Strategy switch triggered at high threshold, (8) Halt and escalate at critical threshold, (9) Per-tool failure counts are accurate, (10) Frustration history is correctly logged, (11) Executor integration records tool call results, (12) Executor integration checks frustration between nodes.'
+      dependencies:
+      - p165.d1.t1
+      - p165.d1.t2
+      files:
+      - '~/zion/projects/agent-orchestration/test_frustration.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_frustration.py'
+  dependencies:
+  - source: 'phase-5'
+    target: 'phase-165'
+    type: soft
+    reason: Frustration tracking wraps DAG node execution to monitor tool call success/failure
+  - source: 'phase-116'
+    target: 'phase-165'
+    type: soft
+    reason: Commit stagnation detects task-level stalls while frustration detects tool-level patterns
+  - source: 'phase-133'
+    target: 'phase-165'
+    type: soft
+    reason: Plateau breaker handles task-level strategy reset while frustration handles intra-task switching
+  technical_notes: 'The key distinction from existing phases is granularity. Phase 116 operates at the git commit level (task boundary). Phase 133 operates at the task attempt level. Frustration tracking operates at the INDIVIDUAL TOOL CALL level, providing much finer-grained feedback. An agent may produce a valid commit (satisfying phase 116) while making 15 failed tool calls within that attempt (wasting tokens). The cognitive damping mechanism is also novel: rather than a binary halt/continue decision, it progressively reduces the agent''s persistence, giving it a chance to self-correct before being force-stopped.'
+  risks:
+  - 'Frustration thresholds may be too aggressive for complex tasks that legitimately require many attempts -- calibrate based on task type'
+  - 'Strategy switch recommendations may not be relevant -- use historical success patterns from memory'
+  - 'Signal decay rate may cause oscillation between frustrated and calm states -- tune decay factor carefully'
+  scope_lines_total: 200
+  test_target: 12
+- id: 'phase-166'
+  title: 'Stage Manager / Actor Pattern with Structured Progress Artifacts'
+  status: planned
+  goal: 'Implement two-phase execution where a Stage Manager bootstraps structured progress artifacts before the Actor agent begins implementation'
+  description: |
+    The Domain Memory Architecture research describes a two-agent pattern: (1) a
+    "Stage Manager" (Initializer) that bootstraps structured state artifacts --
+    tests.json with pass/fail status per feature, progress.md with session summaries,
+    and rules of engagement -- and (2) an "Actor" (Coding Agent) that reads these
+    artifacts at session start, executes one atomic unit of work, runs verification,
+    and updates the artifacts. This separates environment preparation from execution
+    and provides agents with a deterministic project state interface.
 
-    (A) Agent-Driven TDD Pipeline -- the "AI Workflow Orchestration" research describes an
-    enforced Red-Green-Refactor cycle as a deterministic goalpost system for autonomous
-    agents. The orchestrator requires: (1) test generation and execution (Red -- expects
-    failure), (2) minimum implementation to pass tests (Green), (3) audit and refactoring
-    (Refactor). Phase 7 tests individual modules but does not enforce test-first ORDERING
-    in the agent pipeline. Phase 5 has a standard pipeline template but not a TDD-specific
-    one. The research also describes transactional execution: pre-execution file backup,
-    isolated execution monitoring, and rollback on failure. Phase 73 handles workspace
-    checkpoints but not file-level transactional backup/rollback within a single task.
-    Phase 137 closes this gap.
+    Phase 128 (Spec-Driven Workflow) creates specs but not structured progress
+    tracking artifacts. Phase 19 (Self-Improvement) improves strategies but not
+    progress files. Phase 163 (Unified Memory) provides tiered storage but not
+    task-level progress artifacts. Phase 166 closes this gap with a Stage Manager
+    that generates structured project state files and an Actor protocol that reads
+    and updates them.
+  deliverables:
+  - name: Stage Manager and progress artifact generator
+    description: 'Generate structured progress artifacts (tests.json, progress.md) from specs that provide deterministic project state'
+    status: planned
+    acceptance_criteria:
+    - description: 'Stage Manager generates tests.json with per-feature pass/fail/pending status'
+      validation: test artifact generation
+    - description: 'Stage Manager generates progress.md with session summaries and current focus'
+      validation: read generated artifact
+    tasks:
+    - id: p166.d1.t1
+      title: Create stage_manager.py module
+      status: planned
+      description: 'Create stage_manager.py: (1) StageManager class with: bootstrap(spec, workspace) that generates initial artifacts, update_progress(feature_id, status, notes) that updates artifacts after work, get_progress_summary() that returns current state, (2) ProgressArtifact schema: tests.json = [{feature_id, title, status: pending|passing|failing|skipped, last_updated, notes}], progress.md = markdown with session history, current focus, blockers, next steps, rules_of_engagement.md = project conventions and constraints, (3) ActorProtocol class with: load_context(workspace) that reads artifacts, select_next_task() that picks the highest-priority pending feature, report_result(feature_id, status, notes) that updates artifacts, (4) Integration with spec-driven workflow (phase 128): StageManager reads spec tasks and generates initial progress artifacts, (5) Integration with session chaining (phase 97): ActorProtocol.load_context provides structured state for session handoff, (6) CLI: python3 stage_manager.py --bootstrap <spec_file> --workspace <dir> --status.'
+      dependencies:
+      - p128.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/stage_manager.py'
+    scope_lines: 140
+    scope_files:
+    - '~/zion/projects/agent-orchestration/stage_manager.py'
+  - name: Actor protocol and session handoff integration
+    description: 'Actor reads progress artifacts at session start and updates them after work, enabling seamless session chaining'
+    status: planned
+    acceptance_criteria:
+    - description: 'Actor protocol selects next task based on progress artifacts'
+      validation: test task selection
+    - description: 'Session handoff includes structured progress state'
+      validation: test handoff context
+    tasks:
+    - id: p166.d2.t1
+      title: Integrate Actor protocol with orchestrator lifecycle
+      status: planned
+      description: 'Modify orchestrator.py to: (1) On task start: call StageManager.load_context for structured project state, (2) On task tick: call ActorProtocol.select_next_task for work targeting, (3) On task complete: call ActorProtocol.report_result for progress update, (4) On session chain: include progress artifacts in marshaled context, (5) On spec update: call StageManager.bootstrap to regenerate artifacts.'
+      dependencies:
+      - p166.d1.t1
+      - p97.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/orchestrator.py'
+    scope_lines: 100
+    scope_files:
+    - '~/zion/projects/agent-orchestration/orchestrator.py'
+  - name: Stage Manager tests
+    description: 'Test artifact generation, progress tracking, task selection, and session handoff'
+    status: planned
+    acceptance_criteria:
+    - description: 'Bootstrap generates all required artifacts from a spec'
+      validation: test bootstrap
+    - description: 'Progress updates correctly modify artifact state'
+      validation: test progress updates
+    tasks:
+    - id: p166.d3.t1
+      title: Write stage manager tests
+      status: planned
+      description: 'Test cases: (1) Bootstrap generates tests.json, progress.md, rules_of_engagement.md from spec, (2) Tests.json has correct feature entries with pending status, (3) Progress.md has current focus and empty session history, (4) update_progress changes feature status and updates progress.md, (5) get_progress_summary returns accurate counts, (6) ActorProtocol.load_context reads all artifacts, (7) ActorProtocol.select_next_task picks highest-priority pending feature, (8) ActorProtocol.report_result updates artifacts correctly, (9) Session handoff includes structured progress state, (10) Spec update triggers artifact regeneration.'
+      dependencies:
+      - p166.d1.t1
+      - p166.d2.t1
+      files:
+      - '~/zion/projects/agent-orchestration/test_stage_manager.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_stage_manager.py'
+  dependencies:
+  - source: 'phase-97'
+    target: 'phase-166'
+    type: soft
+    reason: Session chaining provides the cross-session context transfer that progress artifacts enhance
+  - source: 'phase-128'
+    target: 'phase-166'
+    type: soft
+    reason: Spec-driven workflow provides the task definitions that Stage Manager converts to progress artifacts
+  - source: 'phase-163'
+    target: 'phase-166'
+    type: soft
+    reason: Unified memory provides the tiered storage that progress artifacts use as a persistence layer
+  technical_notes: 'The key innovation is the separation of environment preparation (Stage Manager) from execution (Actor). Currently, the orchestrator jumps straight from issue assignment to agent execution. The Stage Manager creates a structured, deterministic interface to project state that the Actor can read at session start without needing to infer project state from the codebase. This is especially valuable for multi-session tasks where the Actor needs to know exactly what was completed in previous sessions. The progress artifacts serve as a lightweight alternative to full codebase analysis for state determination.'
+  risks:
+  - 'Progress artifacts may become stale if agents update code directly without going through ActorProtocol -- enforce artifact updates through the protocol'
+  - 'Tests.json may not map cleanly to all task types -- support flexible status tracking beyond pass/fail'
+  - 'Bootstrap from spec adds latency before implementation starts -- cache artifacts and only regenerate on spec changes'
+  scope_lines_total: 320
+  test_target: 10
+- id: 'phase-167'
+  title: 'Merkle Tree Tamper-Evident Audit Trail'
+  status: planned
+  goal: 'Create a cryptographically verifiable audit trail using Merkle trees that detects any tampering with agent action history'
+  description: |
+    The Cross-Agent Reflex Loop research describes using Merkle trees to create a
+    cryptographically verifiable, tamper-evident history of agent actions. Each action
+    is a leaf in the tree, and the root hash changes if any action is modified, enabling
+    integrity verification without storing the full history. This is critical for dark
+    factory mode (phase 35) where 0% human review means the audit trail must be
+    self-verifying.
 
-    (B) Signature-Based Loop Detection -- the "Autonomous Agent Design" research describes
-    comparing the last N tool call signatures (function name + normalized arguments) to
-    detect loops. This is more effective than plan-level deduplication because agents can
-    generate "novel" plans while making identical tool calls. Phase 116 detects commit
-    stagnation but only monitors git state. Phase 50 does chaos testing but not real-time
-    loop detection during execution. No existing phase monitors tool call patterns for
-    looping behavior. Phase 138 closes this gap.
+    Phase 85 (Audit Trail) is append-only but NOT cryptographically verified -- entries
+    could be modified without detection. Phase 51 (Federation) mentions gossip protocols
+    but NOT Merkle trees for audit integrity. Phase 163 (Unified Memory) stores memory
+    entries but does NOT provide tamper-evidence. Phase 167 closes this gap with a
+    Merkle tree that hashes every action, maintains a verifiable root, and supports
+    efficient proof generation for individual actions.
+  deliverables:
+  - name: Merkle tree audit module
+    description: 'Hash every agent action into a Merkle tree, maintain verifiable root hash, and generate inclusion proofs for individual actions'
+    status: planned
+    acceptance_criteria:
+    - description: 'Every agent action is hashed and added as a leaf to the Merkle tree'
+      validation: test action recording
+    - description: 'Root hash changes if any action is modified, enabling tamper detection'
+      validation: test tamper detection
+    tasks:
+    - id: p167.d1.t1
+      title: Create merkle_audit.py module
+      status: planned
+      description: 'Create merkle_audit.py: (1) AuditEntry dataclass: entry_id, timestamp, agent_id, action_type, target, outcome, details_hash, merkle_proof, (2) MerkleAuditTree class with: append_entry(entry) that adds leaf and recomputes tree, get_root_hash() returns current root, verify_entry(entry) validates inclusion proof, verify_tree() validates entire tree integrity, generate_proof(entry_id) returns Merkle proof path, detect_tampering() compares stored root with recomputed root, (3) Hashing: SHA-256 of canonical JSON representation of each entry, (4) Tree structure: binary Merkle tree with leaf count tracking, (5) Persistence: store tree state (root hash, leaf count, tree nodes) in a JSON file alongside the audit log, (6) CLI: python3 merkle_audit.py --verify --proof <entry_id> --root --append <entry_json>.'
+      dependencies:
+      - p85.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/merkle_audit.py'
+    - id: p167.d1.t2
+      title: Integrate Merkle audit into execution log
+      status: planned
+      description: 'Modify execution_log.py to: (1) After logging each action, append to MerkleAuditTree, (2) Store Merkle root hash alongside the execution log, (3) On log read, verify tree integrity and flag tampered entries, (4) Provide verify_audit() function for periodic integrity checks.'
+      dependencies:
+      - p167.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/execution_log.py'
+    scope_lines: 120
+    scope_files:
+    - '~/zion/projects/agent-orchestration/merkle_audit.py'
+    - '~/zion/projects/agent-orchestration/execution_log.py'
+  - name: Merkle audit tests
+    description: 'Test tree construction, tamper detection, proof generation, and verification'
+    status: planned
+    acceptance_criteria:
+    - description: 'Appending entries updates root hash correctly'
+      validation: test root hash updates
+    - description: 'Modifying any entry is detected by verify_tree()'
+      validation: test tamper detection
+    tasks:
+    - id: p167.d2.t1
+      title: Write Merkle audit tests
+      status: planned
+      description: 'Test cases: (1) Empty tree has valid root hash, (2) Appending single entry creates valid tree, (3) Appending multiple entries builds correct tree structure, (4) Root hash changes after each append, (5) Modifying an entry body changes root hash, (6) verify_entry returns True for valid entries, (7) verify_entry returns False for tampered entries, (8) verify_tree detects tampering in any leaf, (9) generate_proof produces valid Merkle proof path, (10) Proof verification works independently of tree storage, (11) Execution log integration appends entries correctly, (12) Integrity check flags tampered entries in execution log.'
+      dependencies:
+      - p167.d1.t1
+      - p167.d1.t2
+      files:
+      - '~/zion/projects/agent-orchestration/test_merkle_audit.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_merkle_audit.py'
+  dependencies:
+  - source: 'phase-8'
+    target: 'phase-167'
+    type: soft
+    reason: Execution history provides the log infrastructure that Merkle audit extends with cryptographic verification
+  - source: 'phase-85'
+    target: 'phase-167'
+    type: soft
+    reason: Audit trail provides the append-only logging that Merkle tree makes tamper-evident
+  technical_notes: 'The Merkle tree approach provides O(log n) proof generation and verification, making it efficient even for large audit histories. The key property is that the root hash serves as a compact integrity checksum for the entire history -- storing just the root hash (32 bytes for SHA-256) is sufficient to detect any modification to any entry. This is especially valuable for dark factory mode where the audit trail must be self-verifying without human inspection of individual entries. The implementation uses a simple binary Merkle tree with SHA-256 hashing of canonical JSON entries.'
+  risks:
+  - 'Merkle tree storage grows with O(n) entries -- implement tree pruning for old entries while preserving root chain'
+  - 'Hash computation adds latency to every action log -- batch hash computations for high-throughput scenarios'
+  - 'Canonical JSON serialization must be deterministic -- use sorted keys and no whitespace variation'
+  scope_lines_total: 200
+  test_target: 12
+- id: 'phase-168'
+  title: 'CRDT-Based Eventually-Consistent Shared State'
+  status: planned
+  goal: 'Implement Conflict-free Replicated Data Types for shared state between agents, enabling lock-free coordination at Gas Town scale'
+  description: |
+    The Cross-Agent Reflex Loop research describes CRDTs (Conflict-free Replicated
+    Data Types) for shared state between agents, enabling eventually-consistent
+    coordination without centralized locking. CRDTs guarantee mathematical convergence:
+    all replicas eventually reach the same state regardless of message ordering or
+    network partitions.
 
-    (C) Mission Briefing Generation -- the "Autonomous Agent Design" research describes
-    generating a structured "Mission Briefing" during session handoff that captures the
-    delta between current state and ultimate goal. The briefing is kept in the "Goldilocks
-    zone" -- enough context to be informed but not so much that the agent is distracted.
-    Phase 97 chains sessions with context marshaling but does not generate a structured
-    briefing document. Phase 82 seeds context from past solutions but not a delta-focused
-    briefing for session continuation. Phase 139 closes this gap.
+    Phase 30 (Inter-Agent Communication) has simple key-value shared state. Phase 51
+    (Federation) has distributed locking via GitHub labels. But neither implements
+    CRDTs for lock-free, conflict-free state sharing. At Gas Town scale (20-30
+    concurrent agents), centralized locking becomes a bottleneck. Phase 168 closes
+    this gap with CRDT data structures for agent coordination.
+  deliverables:
+  - name: CRDT shared state module
+    description: 'Implement G-Counter, PN-Counter, G-Set, OR-Set, and LWW-Register CRDTs for agent coordination'
+    status: planned
+    acceptance_criteria:
+    - description: 'Supports at least 5 CRDT types suitable for agent coordination'
+      validation: test CRDT operations
+    - description: 'Concurrent updates from multiple agents converge to same state'
+      validation: test convergence
+    tasks:
+    - id: p168.d1.t1
+      title: Create crdt_state.py module
+      status: planned
+      description: 'Create crdt_state.py: (1) CRDTBase abstract class with: merge(other), get_state(), get_value(), clone(), (2) GCounter (grow-only counter): increment(agent_id, amount), value returns sum, merge takes max per agent -- for counting completed tasks, tokens used, (3) PN-Counter (positive-negative counter): increment/decrement, merge handles both -- for budget tracking, (4) GSet (grow-only set): add(element), has(element), merge unions -- for tracking seen issues, completed features, (5) OR-Set (observed-remove set): add(element, tag), remove(element), merge handles concurrent add/remove -- for managing active task assignments, (6) LWWRegister (last-writer-wins register): set(value, timestamp), get(), merge keeps latest -- for configuration values, status updates, (7) CRDTStore class that manages named CRDT instances with: create(name, type), get(name), update(name, operation), merge_remote(agent_id, state_snapshot), export_state() for replication, (8) Persistence: serialize CRDT state to JSON file per agent, (9) CLI: python3 crdt_state.py --create --update --merge --export.'
+      files:
+      - '~/zion/projects/agent-orchestration/crdt_state.py'
+    - id: p168.d1.t2
+      title: Replace centralized shared state with CRDT store
+      status: planned
+      description: 'Modify the inter-agent communication (phase 30) and federation (phase 51) to use CRDTStore: (1) Replace simple key-value state with CRDT-backed state, (2) Use G-Counter for task completion counts, (3) Use OR-Set for active task assignments (replacing lock-based assignment), (4) Use LWW-Register for configuration values, (5) Add merge_remote() call when agents synchronize state.'
+      dependencies:
+      - p168.d1.t1
+      - p30.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/crdt_state.py'
+    scope_lines: 160
+    scope_files:
+    - '~/zion/projects/agent-orchestration/crdt_state.py'
+  - name: CRDT shared state tests
+    description: 'Test CRDT operations, convergence properties, and integration with orchestrator'
+    status: planned
+    acceptance_criteria:
+    - description: 'Concurrent updates from 3+ agents converge to identical state'
+      validation: test convergence with multiple agents
+    - description: 'CRDT state survives process restart via persistence'
+      validation: test persistence and recovery
+    tasks:
+    - id: p168.d2.t1
+      title: Write CRDT shared state tests
+      status: planned
+      description: 'Test cases: (1) GCounter increment and merge converge, (2) PN-Counter increment/decrement and merge converge, (3) GSet add and merge converge (union), (4) OR-Set add/remove and merge handle concurrent add-remove correctly, (5) LWW-Register set and merge keep latest timestamp, (6) CRDTStore create/get/update/export lifecycle, (7) Three agents with concurrent updates converge to same state, (8) Network partition simulation: updates applied after reconnection converge, (9) Persistence: save and restore CRDT state, (10) Integration with inter-agent communication works correctly, (11) Task assignment via OR-Set replaces lock-based assignment, (12) Configuration update via LWW-Register works across agents.'
+      dependencies:
+      - p168.d1.t1
+      - p168.d1.t2
+      files:
+      - '~/zion/projects/agent-orchestration/test_crdt_state.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_crdt_state.py'
+  dependencies:
+  - source: 'phase-30'
+    target: 'phase-168'
+    type: soft
+    reason: Inter-agent communication provides the shared state that CRDTs make lock-free and conflict-free
+  - source: 'phase-51'
+    target: 'phase-168'
+    type: soft
+    reason: Federation locking provides the distributed coordination that CRDTs replace with lock-free convergence
+  technical_notes: 'CRDTs provide mathematical guarantees of convergence without coordination. The key advantage over centralized locking is throughput: agents can update shared state without waiting for locks, and the system is partition-tolerant (updates can be applied while disconnected and merged later). The five CRDT types chosen cover the common coordination patterns: G-Counter for monotonic counts (tasks completed, tokens used), PN-Counter for bidirectional counts (budget remaining), G-Set for accumulating sets (seen issues), OR-Set for mutable sets (active assignments), and LWW-Register for single-value state (configuration). The CRDTStore provides a namespace for managing multiple CRDT instances.'
+  risks:
+  - 'OR-Set concurrent add-remove semantics may surprise users -- document behavior clearly'
+  - 'LWW-Register requires synchronized clocks for correct last-writer determination -- use wall clock + monotonic counter'
+  - 'CRDT state files grow unboundedly -- implement compaction for old entries'
+  scope_lines_total: 240
+  test_target: 12
+- id: 'phase-169'
+  title: 'Mode-Based Tool Access Enforcement'
+  status: planned
+  goal: 'Enforce different tool access levels per operational mode (ask/plan/code/debug) implementing Principle of Least Privilege at execution time'
+  description: |
+    The Kilo Operator Blueprint describes mode-based tool access enforcement where
+    each operational mode strictly limits available tools. The "ask" mode can only
+    read files and browse; "plan" mode can read and write markdown; "code" mode has
+    full tool access; "debug" mode has full access plus diagnostic tools. Mode
+    discipline is enforced as a deterministic execution constraint, not a prompt
+    instruction that agents may ignore.
 
-    (D) Neurosymbolic Guardrails (Dirty Bit) -- the "Autonomous Agent Design" research
-    describes deterministic "dirty bit" checks where an agent cannot finish a task if it
-    has modified code but has not run test_execution. This is INFRASTRUCTURAL enforcement,
-    not prompt-based instruction. Phase 15 has safety policies based on task type. Phase 67
-    checks at the PR level. No existing phase tracks runtime file modification state to
-    prevent premature task completion. Phase 140 closes this gap.
+    Phase 6 (Role Specialization) assigns roles but does NOT enforce per-mode tool
+    access at execution time. Phase 15 (Safety Policies) gates high-risk actions by
+    task type but NOT by operational mode. Phase 74 (Trust Scoring) scores agents
+    but does NOT adjust tool access based on mode. Phase 164 (Task Contract) restricts
+    tools per task but NOT per operational mode. Phase 169 closes this gap.
+  deliverables:
+  - name: Mode enforcement module
+    description: 'Define operational modes with tool access matrices and enforce mode-based restrictions at execution time'
+    status: planned
+    acceptance_criteria:
+    - description: 'At least 4 modes defined (ask, plan, code, debug) with different tool access levels'
+      validation: test mode definitions
+    - description: 'Tool access is enforced deterministically at execution time, not via prompt'
+      validation: test enforcement bypass attempt
+    tasks:
+    - id: p169.d1.t1
+      title: Create mode_enforcer.py module
+      status: planned
+      description: 'Create mode_enforcer.py: (1) AgentMode enum: ASK (read-only), PLAN (read + markdown write), CODE (full access), DEBUG (full + diagnostics), ORCHESTRATOR (delegation + full), (2) ToolAccess dataclass: tool_name, allowed_modes, parameters_restrictions, (3) ToolAccessMatrix class with: define_mode(mode, allowed_tools, restricted_params), check_access(mode, tool_name, params) returns AccessResult {allowed, reason}, list_tools(mode) returns available tools for mode, (4) Default tool access matrix: ASK=[read_file, search_files, gh_issue_view], PLAN=[ASK + write_file(markdown only), dag_view], CODE=[PLAN + write_file, execute_command, git_operations], DEBUG=[CODE + process_inspect, trace_read, log_tail], ORCHESTRATOR=[CODE + delegate_task, spawn_worker], (5) ModeEnforcer class that wraps executor tool calls with access checks, (6) CLI: python3 mode_enforcer.py --check <mode> <tool> --list <mode> --matrix.'
+      files:
+      - '~/zion/projects/agent-orchestration/mode_enforcer.py'
+    - id: p169.d1.t2
+      title: Integrate mode enforcement into DAG executor and spawner
+      status: planned
+      description: 'Modify executor.py and spawner.py to: (1) Accept mode parameter for each task, (2) Wrap every tool call with ModeEnforcer.check_access, (3) Deny tool calls that violate mode with clear error, (4) Log mode violations to execution history, (5) Auto-detect mode from task type if not specified (analysis=PLAN, implementation=CODE, debugging=DEBUG, review=ASK).'
+      dependencies:
+      - p169.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/executor.py'
+      - '~/zion/projects/agent-orchestration/spawner.py'
+    scope_lines: 120
+    scope_files:
+    - '~/zion/projects/agent-orchestration/mode_enforcer.py'
+    - '~/zion/projects/agent-orchestration/executor.py'
+  - name: Mode enforcement tests
+    description: 'Test mode definitions, tool access checks, and execution-time enforcement'
+    status: planned
+    acceptance_criteria:
+    - description: 'ASK mode cannot execute commands or write non-markdown files'
+      validation: test ASK restrictions
+    - description: 'CODE mode has full access, DEBUG mode has additional diagnostics'
+      validation: test CODE and DEBUG access
+    tasks:
+    - id: p169.d2.t1
+      title: Write mode enforcement tests
+      status: planned
+      description: 'Test cases: (1) ASK mode allows read_file and search_files, (2) ASK mode denies write_file, execute_command, (3) PLAN mode allows markdown write_file, denies execute_command, (4) CODE mode allows all standard tools, (5) DEBUG mode allows diagnostic tools not in CODE, (6) ORCHESTRATOR mode allows delegate_task and spawn_worker, (7) Tool call with wrong mode returns AccessResult(denied=True), (8) Mode auto-detection from task type works correctly, (9) Executor integration enforces mode on every tool call, (10) Mode violations are logged to execution history, (11) Custom mode definitions work correctly, (12) Restricted parameters are enforced (e.g., PLAN write_file only allows .md files).'
+      dependencies:
+      - p169.d1.t1
+      - p169.d1.t2
+      files:
+      - '~/zion/projects/agent-orchestration/test_mode_enforcer.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_mode_enforcer.py'
+  dependencies:
+  - source: 'phase-6'
+    target: 'phase-169'
+    type: soft
+    reason: Role specialization assigns roles while mode enforcement restricts tool access per mode
+  - source: 'phase-15'
+    target: 'phase-169'
+    type: soft
+    reason: Safety policies gate high-risk actions while mode enforcement provides per-mode restrictions
+  - source: 'phase-164'
+    target: 'phase-169'
+    type: soft
+    reason: Task contracts restrict tools per task while mode enforcement restricts tools per operational mode
+  technical_notes: 'The key innovation is that mode enforcement is DETERMINISTIC, not prompt-based. Even if an agent ignores its system prompt and attempts to use a restricted tool, the enforcement layer blocks the call at the execution boundary. This is the "infrastructure as governance" pattern from the Archon research (phase 122 pre/post hooks). The mode concept is distinct from roles (phase 6): roles define WHAT the agent does (implementer, reviewer, tester), while modes define HOW MUCH access the agent has (read-only, full, diagnostic). An implementer role in PLAN mode has different access than an implementer role in CODE mode.'
+  risks:
+  - 'Overly restrictive modes may prevent agents from solving legitimate problems -- support mode escalation with justification'
+  - 'Mode auto-detection may misclassify tasks -- allow explicit mode override in task contracts'
+  - 'File type restrictions (e.g., markdown-only in PLAN mode) may be fragile -- use extension matching with allowlist'
+  scope_lines_total: 200
+  test_target: 12
+- id: 'phase-170'
+  title: 'Persistent Warm Server and Headless Execution API'
+  status: planned
+  goal: 'Create a persistent headless server that maintains warm LLM connections for zero-latency agent invocation and supports non-interactive CI/CD integration'
+  description: |
+    The OpenCode research describes a persistent headless server that maintains warm
+    LLM connections and MCP server state, eliminating cold-boot latency for repeated
+    agent invocations. It supports non-interactive CLI execution with structured
+    JSON output for CI/CD integration.
 
-    (E) Blackboard Architecture -- the "Managing AI Agents with MCP" research describes
-    the LbMAS blackboard system where agents post hypotheses to a shared memory medium
-    and a control unit selects which agent acts next based on content. This includes
-    public/private spaces, conflict resolution, and majority voting. Phase 30 provides
-    simple key-value shared state but not the structured blackboard pattern with control-
-    unit routing, topic subscriptions, or conflict detection. Phase 141 closes this gap.
-
-    (F) Adaptive Quality Throttling -- the "Managing AI Agents with MCP" research
-    describes automatically switching from expensive to cheaper models when approaching
-    token budget limits. Phase 40 routes by task type at assignment time. Phase 32 tracks
-    costs. Phase 20 manages context budgets. But no phase implements DYNAMIC model
-    switching during active task execution based on remaining budget. Phase 142 closes
-    this gap.
-
-    (G) Recursive Self-Aggregation -- the "Recursive LLM Planning" research describes
-    maintaining a population of N candidate solutions and iteratively aggregating subsets
-    to bootstrap from partially correct solutions. Phase 28 runs speculative executions
-    independently. Phase 94 has ensemble review. But no phase implements the AGGREGATION
-    step where partially correct solutions are combined into a consensus superior to any
-    individual. Phase 143 closes this gap.
-phases_added_from_fifteenth_pass: |2
-
-    Phase 120-125: Six new phases derived from a fifteenth gap analysis pass focused on
-    four research sources not previously analyzed: (1) "DIS: Multi-Agent Orchestration
-    Research" (215 lines, 31 citations) describing the Semantic Intent Bus, intent-based
-    coordination primitives, kernel-level sandboxing, and the AestheticEngine for code
-    optimization; (2) "Multi-Agent Relay for Long-Horizon Tasks" (211 lines, 32 citations)
-    describing the Verification Loop (V-Loop), Defect Capsule schema, State Synopsis
-    compression, Signed Checkpoints, Task Ledger, and Agentic RAG for failure remediation;
-    (3) "Cross-Agent Reflex Loop Research Plan" (341 lines, 70 citations) describing
-    decentralized agent identity (DID/SSI), the reflex:// protocol, gossip protocols
-    for peer discovery, Merkle trees for reflex ancestry, and CRDT-based conflict
-    resolution; (4) "Archon V3: Harnessing AI Workflows" (231 lines, 8 citations)
-    describing Harness Engineering, pre/post tool-use hooks, git worktree isolation,
-    provider-agnostic workflows, and adaptive review intensity; (5) "Self-Correcting
-    Agent Loop" (322 lines, 77 citations) describing the Code Manifest (AST-based
-    codebase index), diff-patch generation, container sandboxing for code execution,
-    and Reinforcement Learning with Execution Feedback (RLEF); (6) "Enhancing Task
-    Orchestration Architecture" (254 lines, 14 citations) describing contract-first
-    template parameters, zero-trust verifier sandboxing, workload identity (JWT/OIDC),
-    JUnit XML standardized reporting, and diagnostic artifact repositories.
-
-    Previous fourteen passes achieved 100% concept coverage against the primary
-    Symphony research doc and all previously analyzed supplements. This pass analyzed
-    these six additional research documents and identified six genuinely new concepts
-    not covered by any of the 119 existing phases:
-
-    (A) Structured Defect Capsule and Agentic RAG for Remediation -- the Multi-Agent
-    Relay research describes a detailed Defect Capsule schema (defect_id, severity,
-    location, type, root_cause_synopsis, prescriptive_fix_steps, repro_steps_script,
-    vector_key) that transforms failure feedback from generic bug reports into
-    prescriptive, machine-readable remediation inputs. It also describes Agentic RAG
-    for remediation: vector-searching past RESOLVED failures and injecting relevant
-    fix patterns into agent prompts. Phase 93 (Long-Term Memory) performs semantic
-    search over knowledge but NOT specifically for failure remediation with
-    resolved-fix filtering. Phase 18 (Trace Formatter) formats execution traces but
-    does NOT create a structured defect schema. Phase 80 (Self-Healing Hints)
-    transforms error messages but NOT into a structured, queryable defect format.
-    Phase 120 closes this gap.
-
-    (B) Code Manifest and AST-Based Codebase Index -- the Self-Correcting Agent Loop
-    research describes automatically generating a machine-readable YAML manifest from
-    AST analysis, providing agents with a structured map of function signatures, class
-    hierarchies, and docstrings without processing full file contents. This is a form
-    of RAG where the knowledge base is a structured representation of the codebase
-    rather than raw code. Phase 12 (Self-Doc) generates human-readable documentation,
-    NOT machine-readable structured indexes. Phase 82 (Context Seeding) injects past
-    solutions but doesn't provide a codebase structural index. Phase 121 closes this
-    gap.
-
-    (C) Pre/Post Tool-Use Hooks -- the Archon V3 research describes self-correcting
-    hooks that intercept agent tool calls in real-time: pre-tool-use hooks can block
-    dangerous commands before execution, and post-tool-use hooks can enforce
-    constraints like running security audits after file writes. This is
-    INFRASTRUCTURAL enforcement, not prompt-based instruction. Phase 65 (Stop Hooks)
-    handles loop control at session TERMINATION, NOT tool-call interception during
-    execution. Phase 17 (Structural Invariants) validates code AFTER the fact, not
-    DURING tool execution. Phase 64 (Workspace Sandboxing) restricts filesystem
-    access but doesn't intercept individual tool calls. Phase 122 closes this gap.
-
-    (D) Contract-First Pipeline Template Input Validation -- the Task Orchestration
-    research describes replacing string-variable-based parameter passing with
-    strongly-typed input primitives that enforce schema validation at pipeline entry
-    points. This prevents command injection via type coercion and YAML parsing
-    ambiguities (e.g., octal misinterpretation of "012345"). Phase 71 (Config
-    Validation) validates orchestrator configuration YAML, NOT pipeline template input
-    contracts. Phase 77 (Template Library) creates reusable templates but doesn't
-    enforce input contracts with type safety. Phase 123 closes this gap.
-
-    (E) Dynamic Secrets Management -- the Task Orchestration research describes
-    workload identity (JWT/OIDC) for dynamic, time-bound secret retrieval from
-    centralized secrets stores, replacing static environment variables with
-    scoped, revocable credentials tied to execution context. No existing phase
-    covers secrets management at all -- agents currently access credentials via
-    environment variables with no rotation, scoping, or audit trail. Phase 124
-    closes this gap.
-
-    (F) Standardized Diagnostic Output and Artifact Repository -- the Task
-    Orchestration research mandates JUnit XML for test results and structured JSON
-    for all diagnostic data, with a consolidated artifact repository for
-    reproducibility and traceability. Phase 85 (Audit Trail) logs agent actions but
-    doesn't standardize diagnostic output formats. Phase 72 (Metrics) exposes
-    Prometheus metrics but doesn't mandate test output formats. Phase 125 closes
-    this gap.
-  phases_added_from_sixteenth_pass: |2
-
-    Phase 126-128: Three new phases derived from a sixteenth gap analysis pass
-    focused on three research documents not previously analyzed: (1) "AI Command
-    Centers Beyond Terminals" (222 lines), describing Vibe Kanban's git worktree
-    isolation, port pool management, Mission Control's secret detection in agent
-    output, and Paperclip's hierarchical delegation model; (2) "Prompt Compiler
-    AI Agent Guide" (227 lines), describing recipe-driven context assembly,
-    multi-modal extraction (skeletonization, RAG, skill matching, git context,
-    session history), strategy escalation on failure, token budget enforcement
-    with priority pruning, KV prefix caching optimization, and outcome tracking
-    for recipe optimization; (3) "AI Development Workflow: Spec to Autonomy"
-    (367 lines), describing OpenSpec's formal specification lifecycle
-    (proposal.md -> requirements.md -> design.md -> tasks.md), RFC 2119 keywords
-    for requirement strength, Given/When/Then testable scenarios, task pass rate
-    metrics, and context rot prevention via spec-driven development.
-
-    Previous fifteen passes achieved 100% concept coverage against the primary
-    Symphony research doc and all previously analyzed supplements. This pass
-    analyzed three additional research documents and identified three genuinely
-    new concepts not covered by any of the 125 existing phases:
-
-    (A) Secret/Credential Leak Detection in Agent Output -- the AI Command
-    Centers research describes Mission Control's "Secret Detection" feature that
-    monitors agent messages and logs for credential leaks. The Prompt Compiler
-    research mentions credential leakage prevention in its files extractor
-    (skipping .git, node_modules, etc.) but this is INPUT-side filtering, not
-    OUTPUT-side detection. Phase 85 (Audit Trail) logs agent actions. Phase 124
-    (Dynamic Secrets) manages credential storage and retrieval. But NO phase
-    scans agent OUTPUT (commits, PR descriptions, generated code, chat messages)
-    for accidentally leaked credentials (API keys, tokens, passwords, private
-    keys). In dark factory mode (phase 35) where 0% human review occurs, an
-    agent that accidentally includes a hardcoded secret in a commit could expose
-    it to the repository permanently. Phase 126 closes this gap with a
-    pre-commit scanner and PR-level detection.
-
-    (B) Prompt Compiler Integration for Orchestrator AI Nodes -- the Prompt
-    Compiler research describes a 9-step pipeline (load recipe, resolve templates,
-    checksum, cache, extract, construct, transform, assemble, persist) for
-    context assembly that is significantly more sophisticated than the current
-    orchestrator's ad-hoc prompt construction. Key capabilities not covered by
-    existing phases: (1) recipe-driven prompt templates that define which
-    extractors to use and what token budgets to enforce, (2) strategy escalation
-    on failure (FIXER -> SCOUT -> REFACTOR as retry attempts increase), (3)
-    checksummed caching to avoid re-compiling identical prompts, (4) multi-modal
-    extraction from 6 sources (codebase skeletonization, RAG, skill matching,
-    git diff, git context, session history), (5) outcome tracking correlating
-    recipe configurations with success rates for continuous optimization. Phase 20
-    (Context Budget) handles budget calculation. Phase 82 (Context Seeding)
-    handles context injection. But neither provides the recipe-driven compilation
-    pipeline. The Prompt Compiler already exists at ~/zion/tools/prompt-compiler/
-    and can be integrated. Phase 127 closes this gap.
-
-    (C) Spec-Driven Development Workflow (OpenSpec Pattern) -- the AI Development
-    Workflow research describes OpenSpec's formal specification lifecycle:
-    proposal.md (problem statement, success criteria, risks) -> requirements.md
-    (RFC 2119 keywords, Given/When/Then scenarios) -> design.md (architecture,
-    component breakdown, migration path) -> tasks.md (2-5 minute TDD tasks).
-    This creates a "contract of intent" between human and agent that prevents
-    "context rot" and "vibe coding." Phase 5 (DAG Executor) defines execution
-    pipelines (plan -> implement -> test -> review -> PR). Phase 26 (Work
-    Decomposition/Mayor) breaks issues into sub-issues. Phase 45 (WORKFLOW.md
-    Engine) loads runtime policies. But NONE provides the formal pre-execution
-    specification lifecycle with structured artifacts. The DAG executor jumps
-    straight to plan/implement without a formal proposal or requirements phase.
-    Phase 128 closes this gap by adding a SPEC node type to the DAG executor
-    and a spec-driven pipeline template.
-phases_added_from_twentieth_pass: |2
-
-    Phase 144-149: Six new phases derived from a twentieth gap analysis pass focused on
-    two research documents not previously analyzed in depth: (1) "Issue Trackers as AI Agent
-    Control Planes" (211 lines, 44 citations), describing the Theory of Transaction Closure,
-    typed mandates, reversible commitment lifecycle states, receipt graphs, split-state
-    detection, tiered memory architecture, A2A communication patterns, and coordination
-    failure taxonomy; (2) "Geometry OS Autodev Loop" (259 lines, 47 citations), describing
-    stale claim stealing, fencing tokens, roadmap metadata auditing, block count escalation
-    to deferred, stability index KPI, auto-replenish Oracle, resource-contended test locks,
-    WIP auto-commit by reviewer, and app creep prevention via North Star re-anchoring.
-
-    Previous nineteen passes achieved 100% concept coverage against the primary Symphony
-    research doc and 27 supplementary sources. This pass performed a deep re-analysis of
-    two previously-sampled documents (the Issue Trackers doc was partially analyzed in the
-    12th pass for Phase 112, and the Geometry OS doc was partially analyzed in the 13th pass
-    for Phases 114-115) and identified six genuinely new concepts not covered by any of
-    the 143 existing phases:
-
-    (A) Transaction Closure and Commitment Lifecycle -- the Issue Trackers research
-    introduces the Theory of Transaction Closure, arguing that task completion is
-    insufficient for delegated AI. Agents must manage externally binding commitments
-    through: (1) typed mandates representing principal authority, (2) reversible
-    lifecycle states (created/active/completed/reversed/disputed), (3) receipt graphs
-    linking authorization, payment, and outcome, and (4) recovery mechanisms for split
-    states. Phase 112 detects coordination failures BETWEEN agents but does NOT
-    manage the lifecycle of commitments agents create WITH external systems.
-    Phase 144 closes this gap.
-
-    (B) Stale Claim Stealing -- the Geometry OS research describes lease-based task
-    ownership where tasks held beyond a configurable TTL (default 30 min) can be
-    "stolen" by other workers. Phase 116 detects commit stalls and HALTS execution,
-    but does NOT implement reclamation. Phase 145 closes this gap with a recovery
-    mechanism that transfers ownership and injects handoff context.
-
-    (C) Fencing Tokens -- monotonically increasing tokens associated with each lock
-    to prevent "Zombie Write" problems. Phase 117 handles mutual exclusion but NOT
-    fencing tokens for write validation. Phase 146 closes this gap.
-
-    (D) Roadmap Metadata Auditor -- periodic consistency checking of roadmap state
-    machine: detecting drift, cross-referencing events, escalating blocked phases,
-    and calculating a Stability Index KPI (1 - reverts/claims). Phase 147 closes
-    this gap.
-
-    (E) Auto-Replenish Oracle -- dual-pass system (rule-based gap scanner + LLM Oracle)
-    that generates new phases when the roadmap runs empty, grounded in a North Star
-    document. Phase 148 closes this gap.
-
-    (F) Resource-Contended Test Lock -- file-based mutex serialization for
-    high-memory test execution to prevent OOM-killer interventions. Phase 149
-    closes this gap.
-
-    This pass also fixed a structural bug where global_risks (110 items) was at root
-    level, breaking the phases list at phase-136. Moved global_risks to meta section,
-    restoring all 143 existing phases to the parsed list.
-conventions:
-- Python scripts use python3 (no bare python command on this system)
-- 'GitHub API via gh CLI, not raw curl'
-- 'All new code goes to ~/zion/projects/agent-orchestration/'
-- Skills go to ~/.hermes/skills/ following existing category structure
-- 'Wiki pages follow SCHEMA.md conventions (frontmatter, wikilinks, tag taxonomy)'
-meta:
-  global_risks:
-  - 'Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change'
-  - 'delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)'
-  - 'GitHub Issues as control plane requires a public or accessible repo -- private repo token management adds complexity'
-  - 'Token costs for autonomous loops can escalate quickly (Symphony team uses 1B tokens/day) -- need cost awareness in the orchestrator'
-  - Speculative execution (phase 28) can multiply costs if not carefully budgeted
-  - 'Inter-agent coordination (phase 30) adds complexity that may not be needed at low concurrency levels'
-  - 'Dark factory mode (phase 35) should only be enabled for well-tested projects with comprehensive safety gates'
-  - 'Token budget enforcement (phase 32) relies on estimates -- actual costs may differ significantly'
-  - 'Code quality metrics (phase 87) could slow down PR workflow if analysis takes too long -- keep analysis fast (<10s per PR)'
-  - 'Documentation sync (phase 88) auto-fix could alter intended docs -- always require human review for prose changes'
-  - Release automation (phase 89) should gate major version bumps behind human approval to prevent premature breaking releases
-  - 'Agent profiling (phase 90) recommendations are only as good as the execution history -- sparse data means low-confidence recommendations'
-  - 'Web dashboard (phase 91) could expose sensitive orchestrator state -- authentication is critical for non-localhost access'
-  - 'WebSocket connections (phase 91) could accumulate on long-running servers -- implement heartbeat and cleanup'
-  - 'Dashboard server (phase 91) adds FastAPI/uvicorn as a runtime dependency -- keep it optional'
-  - 'Mock agent (phase 92) behavior may not match real agent behavior -- focus on testing orchestrator logic, not agent quality'
-  - 'Dry-run traces (phase 92) could be large for complex pipelines -- implement truncation'
-  - 'sentence-transformers (phase 93) adds an 80MB dependency -- make it optional, fall back to keyword search'
-  - 'Vector store (phase 93) could grow large -- implement size limits and automatic compaction'
-  - 'Cross-project memory (phase 93) could leak proprietary patterns between repos -- per-project isolation is essential'
-  - 'Ensemble review (phase 94) uses N times more tokens than single review -- cost-aware selection is essential'
-  - 'Synthesis quality (phase 94) depends on reviewer agreement -- high conflict rates indicate poorly calibrated perspectives'
-  - 'Auto-remediation (phase 95) could make things worse (kill wrong worker, reset wrong workspace) -- extensive testing required'
-  - Remediation rate limits (phase 95) could prevent fixing legitimate issues during outage storms
-  - 'Workspace reset (phase 95) could lose uncommitted work -- always checkpoint before remediation'
-  - 'agent.md validator (phase 96) may reject useful but non-standard agent.md formats as the spec evolves'
-  - 'agent.md auto-fix (phase 96) could alter intended content -- always show diff before applying'
-  - 'Task size estimation (phase 97) may be inaccurate -- conservative defaults with learning from historical data'
-  - 'Context marshaling (phase 97) could lose critical information between sessions -- prioritize task description and last session outcome'
-  - 'Chain state files (phase 97) could grow large -- implement retention/archival for completed chains'
-  - 'Webhook server (phase 37) requires network exposure -- needs security review for production use'
-  - 'Cross-project knowledge (phase 38) could leak proprietary patterns between repos -- need per-repo knowledge isolation controls'
-  - 'Browser automation (phase 39) requires Chrome/Chromium -- adds a heavy runtime dependency and may not work in all CI environments'
-  - 'Multi-model routing (phase 40) could route complex tasks to underpowered models if scoring is wrong -- need conservative defaults'
-  - 'Priority scheduling (phase 41) could starve complex tasks if urgency weights favor simple fast completions -- need starvation prevention'
-  - 'External observability (phase 42) could expose sensitive data from logs -- need PII/secrets filtering before injecting into agent context'
-  - 'Automated refactoring (phase 43) could make incorrect fixes that pass tests but change semantics -- always require human review for refactoring PRs'
-  - 'Health scorecard (phase 44) KPIs may not capture what matters initially -- need iteration based on real usage patterns'
-  - 'WORKFLOW.md format (phase 45) may evolve as Symphony matures -- parser needs version tolerance'
-  - 'Per-project WORKFLOW.md files (phase 45) could conflict with orchestrator.yaml global settings -- need clear precedence rules'
-  - 'Symphony-to-Hermes translation (phase 45) may lose information for Symphony features with no Hermes equivalent'
-  - 'Semantic principle checks (phase 46) are expensive and inconsistent -- use sparingly, only for high-value principles'
-  - 'Too many principles (phase 46) creates noise -- start with 10-15 and grow slowly'
-  - 'Principle evolution (phase 46) could drift from original intent -- human review required for all new principles'
-  - 'Knowledge extraction quality (phase 47) depends on session summary -- poorly summarized sessions add noise'
-  - 'Knowledge base (phase 47) could grow large -- need retention policies and pruning'
-  - 'Injecting past knowledge (phase 47) into prompts adds context tokens -- must respect budget limits'
-  - 'Knowledge relevance scoring (phase 47) may be inaccurate for novel tasks -- don''t let stale knowledge mislead'
-  - 'Aggressive cost optimization (phase 48) could reduce quality -- always measure success rate impact'
-  - Model tier recommendations (phase 48) require sufficient historical data (50+ runs per task type)
-  - Parameter tuning (phase 48) could make some edge cases worse while improving the average case
-  - 'Feedback categorization (phase 49) may be inaccurate -- need human validation of categories'
-  - 'Auto-generated suggestions (phase 49) could conflict with existing rules -- need deduplication'
-  - 'Reviewer comments may be subjective or wrong -- the system should not blindly follow all feedback'
-  - 'Fault injection (phase 50) could leak into production if safe-mode is disabled -- always use test workspaces'
-  - 'Resilience scoring (phase 50) may not capture all failure modes -- supplement with manual testing'
-  - 'Chaos tests (phase 50) may be flaky if they depend on timing -- use deterministic fault injection where possible'
-  - Distributed locking (phase 51) adds latency to every issue assignment
-  - 'Stale locks (phase 51) could prevent work from being picked up -- TTL expiry handles this but adds delay'
-  - Federation status (phase 51) could become a bottleneck if too many instances publish frequently
-  - Work stealing (phase 51) could cause thrashing if instances constantly redistribute work
-  - 'No consensus protocol (phase 51) -- federation is eventually consistent, not strongly consistent'
-  - agent.md generator (phase 55) may produce inaccurate tech stack detection for unusual project layouts
-  - Generated agent.md files (phase 55) need human review before production use
-  - 'Symphony spec compliance (phase 56) may break if Symphony spec changes -- needs version tolerance'
-  - Linear API adapter (phase 56) requires separate auth token and has rate limits
-  - Skill composition (phase 57) could create conflicting prompts that confuse agents
-  - No centralized skill registry (phase 57) means discovery depends on documentation
-  - 'Session recordings (phase 58) could expose secrets in agent context -- redaction essential'
-  - 'Forensic analysis (phase 58) heuristics may produce false positives -- treat as suggestions'
-  - Velocity metrics (phase 59) depend on GitHub API availability and rate limits
-  - 'Cost-per-PR attribution (phase 59) is imprecise -- execution logs may not map 1:1 to PRs'
-  - 'Human workflow auto-classification (phase 60) may mislabel issues -- require human confirmation'
-  - 'Benchmark tasks (phase 61) may not represent real-world complexity -- include diverse task types'
-  - 'Benchmark execution (phase 61) uses real tokens -- run weekly not per-commit to control costs'
-  - 'Prompt library centralization (phase 62) could conflict with per-repo customization -- support overrides'
-  - 'REST API (phase 63) exposes internal orchestrator state -- authentication is critical'
-  - 'Webhook receiver (phase 63) requires network exposure -- needs firewall rules and TLS'
-  - 'LD_PRELOAD sandboxing (phase 64) may not work with statically-linked binaries'
-  - 'Overly restrictive sandboxing (phase 64) could break legitimate agent operations (pip, git)'
-  - 'Stop hooks (phase 65) could false-positive on completion tags -- use specific tag formats'
-  - 'Maintenance automation (phase 66) auto-filing issues could spam repos with findings'
-  - 'Pre-PR verification gate (phase 67) could block legitimate PRs if checks too strict'
-  - Agent identity (phase 68) profiling could create unfair task distribution over time
-  - 'Integration tests (phase 69) mock-based approach may miss real-world GitHub API quirks'
-  - Backpressure (phase 70) could cause work starvation if rate limits are sustained for long periods
-  - Circuit breaker (phase 70) recovery timeout misconfiguration could leave APIs permanently blocked
-  - Config validation (phase 71) schemas may not cover all config edge cases as the system evolves
-  - 'Config migration (phase 71) bugs could corrupt production configs -- always backup before migrating'
-  - 'Metrics pipeline (phase 72) high-cardinality labels could explode Prometheus storage costs'
-  - 'Metrics HTTP server (phase 72) exposes internal orchestrator state -- require auth for non-localhost access'
-  - Workspace checkpoints (phase 73) could consume significant disk space on large workspaces
-  - 'Checkpoint restore (phase 73) during active writes could corrupt workspace state -- file locking is critical'
-  - 'Plugin system (phase 81) extensibility could be exploited -- audit trail captures all plugin activity'
-  - 'Context seeding (phase 82) could leak proprietary code patterns into prompts -- audit trail tracks what was injected'
-  - 'State migration (phase 83) could corrupt data -- always backup before migrating'
-  - 'Capability gap detection (phase 84) could create unnecessary tools -- require human review before acting on suggestions'
-  - 'Audit log (phase 85) could grow very large -- implement rotation/archival for old entries'
-  - 'Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks'
-  - 'Speculative ticket filing (phase 103) could create too many low-quality issues -- require dry-run review first'
-  - 'Governance reports (phase 104) aggregate from many data sources -- a bug in one source could corrupt the entire report'
-  - 'Defect capsule vector search (phase 120) adds indexing overhead on every failure -- keep embedding generation async'
-  - 'Code manifest (phase 121) may become stale if not regenerated after edits -- trigger regeneration on file change events'
-  - 'Tool-use hooks (phase 122) intercepting every tool call adds latency -- make hooks optional and fast (<10ms)'
-  - 'Template input validation (phase 123) could reject valid inputs if schema is too strict -- allow schema overrides'
-  - 'Dynamic secrets (phase 124) adds Vault/secret store as a runtime dependency -- make file-based backend the default'
-  - 'Artifact repository (phase 125) could consume significant disk space -- implement retention policies'
-  - 'Secret scanner (phase 126) false positives could block legitimate commits -- allow-list and SKIP env var mitigate this'
-  - 'Prompt Compiler integration (phase 127) adds coupling to external tool -- document as optional, fall back to inline prompts if unavailable'
-  - 'Spec-driven workflow (phase 128) adds latency before implementation -- support skipping spec phase for simple tasks'
-  - 'Local LLM crash recovery (phase 156) payload reduction may lose critical context -- always retain system prompt and current query'
-  - 'DAG failure rerouting (phase 157) can create infinite token-consuming loops -- enforce depth and time limits'
-  - 'Auto-generated requirements (phase 158) could create infinite work feedback loops -- rate limiting and manual review gate essential'
-  - 'WebMCP integration (phase 159) depends on W3C standard adoption -- treat as optional enhancement with CDP fallback'
-  - 'Executable spec compilation (phase 160) may produce incorrect DAG mappings -- validate compilation output before execution'
-  author: Hermes Agent
-  created: '2026-04-30'
-  source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 160
-  estimated_weeks: '150-180'
-  updated: '2026-05-05'
-  phases_added: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160]
-  phases_added_from_twenty_first_pass: |2
-
-    Phase 156-160: Five new phases derived from a twenty-first gap analysis pass focused on
-    three research documents not previously analyzed: (1) "RAG Loop Robustness Enhancements"
-    (247 lines, 17 citations), describing transient fault taxonomy for local LLM
-    deployments, exponential backoff with jitter, owned chat history with aggressive
-    pruning, and the causal link between stateless API design and local instability;
-    (2) "The Spec-Driven Autonomous Pipeline" (187 lines, 8 citations), describing
-    executable specifications as machine-readable contracts, feedback agents that
-    compare runtime metrics against spec-defined success criteria, on_failure_reroute_task_id
-    for DAG rework loops, and the spec-to-task compilation pipeline; (3) "WebMCP: AI-Web
-    Interaction Standard" (375 lines, 47 citations), describing structured web tool
-    contracts replacing visual browser automation, the three-pillar design (Context,
-    Capabilities, Coordination), 65-89% token reduction vs vision-based approaches,
-    and the Declarative/Imperative API model.
-
-    Previous twenty passes achieved concept coverage against the primary Symphony
-    research doc and 30 supplementary sources. This pass analyzed these 3 additional
-    sources and identified 5 genuinely new concepts not covered by any of the 155
-    existing phases:
-
-    (A) Local LLM Crash Recovery with Payload-Aware Retry -- the RAG Loop Robustness
-    research describes a Transient Fault Taxonomy specific to local LLM deployments
-    where errors manifest as connection failures (ConnectionError, Timeout) rather
-    than HTTP status codes. The research identifies a critical feedback loop: as
-    conversation history grows, retry payloads become heavier, which increases the
-    probability of re-crashing the recovering server. Phase 70 (Backpressure) handles
-    API rate limits for cloud services. Phase 119 (Preflight Doctor) validates
-    environment readiness. But no phase implements crash-recovery-retry with payload
-    reduction for local LLM backends. Phase 156 closes this gap.
-
-    (B) DAG Failure Rerouting and Rework Loops -- the Spec-Driven Pipeline research
-    describes on_failure_reroute_task_id, a pointer in the task schema that enables
-    the DAG to route execution to a DIFFERENT task (e.g., a fix task) when a task
-    fails, supporting iterative rework cycles (A -> Test -> A if test fails). Phase 5
-    (DAG Executor) handles dependency ordering but not failure-triggered rerouting.
-    Phase 131 (Attempt Pattern) preserves failure history but operates at the task
-    level, not within the DAG structure. Phase 157 closes this gap.
-
-    (C) Metric-Driven Requirement Generation -- the research describes a Feedback
-    Agent that continuously compares runtime metrics against spec-defined success
-    criteria and auto-generates new requirements when deviations are detected. This
-    closes the governance loop from monitoring to action. Phase 44 (Health Scorecard)
-    tracks KPIs and Phase 104 (Governance Reporting) generates reports, but neither
-    TRANSFORMS metric deviations into new actionable requirements. Phase 158 closes
-    this gap.
-
-    (D) WebMCP Tool Contract Integration -- the WebMCP research describes structured
-    web tool contracts that replace visual browser automation with direct function
-    calls, achieving 65-89% token reduction. Phase 39 (Browser Verification) uses
-    Chrome DevTools Protocol for visual verification. Phase 111 (MCP Integration)
-    adds general MCP support but not web-specific tool contracts. No existing phase
-    implements structured web interaction. Phase 159 closes this gap.
-
-    (E) Executable Specification Schema and Spec-to-Task Compiler -- the research
-    describes transforming specifications from passive documentation into executable
-    contracts with machine-readable success criteria, rollback plans, and work items
-    that compile directly into DAG task definitions. Phase 128 (Spec-Driven Workflow)
-    adds a SPEC node type but doesn't define the specification schema or compilation
-    step. Phase 160 closes this gap with a formal spec schema, validation, and
-    a compiler that produces DAG nodes with failure rerouting and metric registration.
-  phases_added_from: 'Phase 59-64: Six new phases derived from gap analysis of the research document against the existing 58-phase roadmap. Phase 59 (PR Velocity Metrics) addresses the "500% PR increase"
-    claim with a dedicated ROI measurement layer -- the research opens with this metric but no phase measured it. Phase 60 (Human-Agent Workflow Optimization) builds tooling for the "from coder to architect"
-    transformation described in the research, optimizing the human bottleneck (ticket filing, PR review queues, triage). Phase 61 (Agent Quality Regression Testing) creates a benchmarking framework to catch
-    agent quality degradation over time -- the research emphasizes harness quality but no phase systematically measured agent output quality. Phase 62 (Prompt Engineering as Infrastructure) treats the "Guides"
-    layer of the outer harness as version-controlled, testable code artifacts. Phase 63 (Orchestrator REST API) exposes the orchestrator as a platform for external integration, addressing the research''s
-    vision of Symphony as an "open specification." Phase 64 (Workspace Sandboxing) adds OS-level isolation to implement the "strict safety invariants" and "path normalization" described in the research,
-    making dark factory mode (phase 35) safe. Phase 65-69: Five new phases derived from a second gap analysis pass. Phase 65 (Stop Hooks and Agent Loop Control) implements the "stop hooks" mechanism from
-    the Ralph Wiggum pattern -- intercepting agent termination, checking completion tags, and re-feeding prompts when work remains. Phase 66 (Scheduled Periodic Maintenance Automation) implements the "weekly
-    garbage collection loops" the research describes as background tasks scanning for deviations from golden principles. Phase 67 (Pre-PR Self-Verification Gate) combines deterministic and inferential checks
-    into a single pipeline gate that agents must pass before PR submission, implementing the research''s "agents verify their own work before submitting" concept. Phase 68 (Agent Session Identity and Continuity)
-    implements persistent agent identity across restarts -- the "cattle sessions, pet identity" pattern where sessions are ephemeral but agent identity and project state persist. Phase 69 (Orchestrator
-    Integration Test Suite) creates a comprehensive end-to-end test harness that exercises the full orchestrator stack against real GitHub issues, replacing ad-hoc testing with a deterministic validation
-    framework. Phase 70-73: Four new phases derived from a third gap analysis pass focused on production readiness gaps. Phase 70 (Backpressure and Rate Limit Management) addresses the operational reality
-    of managing 20-30 concurrent agents (Gas Town scale) -- the research describes this scale but no phase handles API rate limits, resource exhaustion, or cascading failures when the orchestrator overwhelms
-    external services. Phase 71 (Orchestrator Configuration Validation and Drift Detection) applies the "structural invariants" concept (phase 17) to the orchestrator''s own configuration -- as the system
-    grows to 73 phases, misconfiguration becomes a critical risk. Phase 72 (Structured Metrics and External Telemetry Pipeline) completes the research''s "Status Surface" component by exposing orchestrator
-    KPIs in standard formats (Prometheus, StatsD) for integration with existing DevOps monitoring infrastructure. Phase 73 (Agent Workspace Checkpoint and Incremental Restore) fills the gap between orchestrator-level
-    resilience (phase 25) and the workspace-level crash recovery needed for long-running Ralph Wiggum loops -- when an agent crashes at 80% completion, checkpoints enable resumption instead of restart from
-    scratch. Phase 74-80: Seven new phases derived from a fourth gap analysis pass focused on agent autonomy, operational tooling, and research concepts with no phase coverage. Phase 74 (Agent Trust Scoring
-    and Gradual Autonomy Escalation) implements the research''s approval_policy spectrum (untrusted/on-failure/never) as a continuous trust scoring system -- agents earn autonomy through proven reliability,
-    enabling a safe path to dark factory mode. Phase 75 (Deterministic Test Generation from Structural Invariants) implements the research''s claim that "structural tests and custom linters were themselves
-    often generated by agents" -- auto-generating pytest tests from invariant rules for continuous CI enforcement. Phase 76 (Agent Output Deduplication and Work Conflict Prevention) addresses the Gas Town
-    scale problem of 20-30 concurrent agents producing duplicate work -- detecting overlap before assignment prevents wasted tokens and merge conflicts. Phase 77 (Pipeline Template Library and Marketplace)
-    provides reusable pipeline YAML templates for 8 common task types, implementing the research''s vision of WORKFLOW.md as shareable policy. Phase 78 (Orchestrator Interactive Debug Console) provides
-    a kubectl-like REPL for real-time orchestrator inspection and manipulation, addressing the research''s "live observability dashboard" and Witness role concepts. Phase 79 (Inner Harness Backend Abstraction
-    SDK) abstracts the boundary between Hermes and underlying coding agents (Claude Code, Codex, Cursor), enabling multi-vendor execution and backend failover -- the research notes the inner harness is
-    "increasingly commoditized." Phase 80 (Agent-Legible Error Messages and Self-Healing Hints) transforms raw test failures and stack traces into agent-optimized summaries with fix suggestions, implementing
-    the research''s "application legibility" concept at the most immediate level -- the error messages agents consume when self-correcting. Phase 81-86: Six new phases derived from a fifth gap analysis
-    pass focused on extensibility, context intelligence, operational maturity, and compliance. The research emphasizes that the outer harness is "the DNA of the organization" and that harness engineering
-    should be organization-specific. However, all 80 existing phases add monolithic modules to the orchestrator -- no phase provides a plugin architecture for extensibility. Phase 81 (Orchestrator Plugin
-    System) addresses this by defining plugin interfaces for custom node types, sensors, approval gates, and spawner behaviors, enabling org-specific customization without forking. Phase 82 (Agent Context
-    Seeding and Warm-Start) implements the research''s "Guides" concept at a higher level -- automatically discovering and injecting relevant context (similar past issues, prior solutions, relevant code
-    patterns) before an agent starts work on a new task. While phase 38 transfers knowledge across projects, no phase handles within-project context discovery for specific tasks. Phase 83 (Orchestrator
-    State Persistence and Migration Layer) implements the research''s "Beads" concept of a version-controlled persistent state layer -- the current system uses file-backed JSON but has no schema versioning,
-    migration support, or backup/restore. Phase 84 (Agent Capability Registry and Gap Detection) directly implements the research''s key insight that "when agents failed, the team analyzed the environment
-    to identify missing capabilities or structures" -- systematically discovering missing tools and suggesting their creation based on failure patterns. Phase 85 (Orchestrator Security Audit Trail) addresses
-    the compliance requirements of dark factory mode (phase 35) by creating a tamper-proof, append-only audit log of all agent actions with reporting capabilities. Phase 86 (Orchestrator Feature Flags and
-    Gradual Rollout) extends the research''s Elixir hot code reloading concept with feature flags for safely rolling out new orchestrator behaviors with automatic rollback. Phase 87-90: Four new phases
-    derived from a sixth gap analysis pass focused on operational maturity gaps that emerge when the orchestrator runs at production scale for extended periods. The research describes the end-state as "Agent-Legible
-    Software" where "code, tests, documentation, and infrastructure are all optimized for high-speed, autonomous iteration." However, after 86 phases, no phase tracks code quality trends over time (complexity
-    growth, duplication accumulation, test coverage decay) -- the metrics that tell you whether agent-legibility is improving or eroding. Phase 87 (Code Quality Metrics and Technical Debt Tracking) fills
-    this gap by measuring cyclomatic complexity, duplication, dead code, and test coverage trends on every PR, producing a "code health dashboard" that the self-improvement loop (phase 19) and health scorecard
-    (phase 44) can consume. Phase 88 (Automated Documentation Synchronization) addresses the research''s emphasis on making software "directly understandable and verifiable by agents" -- when agents modify
-    code, they should also update documentation. No phase currently ensures docs stay in sync with code changes. Phase 88 creates a post-commit hook that detects documentation drift and auto-updates affected
-    docs (README, API docs, inline comments) as part of the pipeline. Phase 89 (Release Engineering Automation) extends the agent lifecycle from code-to-PR (phase 13) to code-to-release: version bumping,
-    changelog generation, release notes, git tags, and GitHub release creation. The research describes the full development lifecycle but no phase covers what happens after merge. Phase 90 (Agent Performance
-    Profiling and Prompt Optimization) directly implements the Dark Factory experiment''s insight that "when an agent failed, the team analyzed the environment" -- this phase profiles which prompts, roles,
-    and strategies produce the best outcomes, creating a feedback loop that optimizes agent configuration over time based on actual performance data rather than intuition. Phase 91-95: Five new phases derived
-    from a seventh gap analysis pass focused on operational visibility, safe testing infrastructure, agent intelligence, review quality, and self-healing. Phase 91 (Orchestrator Web Dashboard) addresses
-    the research''s "live observability dashboard" concept -- phase 27 provides a terminal dashboard but the research describes a Phoenix-stack web UI for team-wide visibility. Phase 92 (Agent Simulation
-    and Dry-Run Testing) fills a critical safety gap: the orchestrator has no way to test itself without consuming API tokens. Mock agent backends enable zero-cost pipeline validation, configuration testing,
-    and regression reproduction. Phase 93 (Agent Long-Term Memory and Semantic Retrieval) upgrades the file-based knowledge extraction from phase 47 to semantic vector search using sentence-transformers,
-    enabling agents to find conceptually similar past solutions even when terminology differs. Phase 94 (Ensemble Multi-Agent Code Review) applies Gas Town''s specialized role concept to code review: instead
-    of a single reviewer, multiple specialized reviewers (security, performance, architecture, style, testing) analyze the same diff in parallel and synthesize their feedback with conflict resolution. Phase
-    95 (Orchestrator Auto-Remediation and Self-Healing) implements the research''s "self-correcting codebase" vision at the orchestrator level: detecting stuck workers, corrupted workspaces, config drift,
-    and recurring failures, then automatically fixing them with verification and escalation. Phase 96-97: Two new phases derived from an eighth gap analysis pass -- a systematic cross-reference of all 51
-    concepts extracted from the research document against all 95 existing phases. This analysis found that 49/51 concepts (96.1%) are already covered by existing phases, confirming the roadmap is extremely
-    comprehensive. The 2 remaining gaps are: (1) agent.md validation/linting -- the research emphasizes agent.md as a standardized AAIF spec, with analysis of 2,500+ repos identifying 4 required sections,
-    but phase 55 only generates agent.md files without validating them. Phase 96 closes this gap with a deterministic sensor that checks agent.md files against the spec, analogous to having a code formatter
-    without a linter. (2) Multi-session task chaining -- the research describes the Ralph Wiggum pattern where agents persist across sessions via externalized artifacts, and specifically calls out "large-scale
-    refactors or complex migrations" as the target use case. While phase 20 handles context budgeting and phase 65 handles stop hooks for single-session loops, nothing implements the CHAINING pattern where
-    one session''s output becomes the next session''s input with automatic context marshaling. Phase 97 closes this gap with a session chain manager that detects when tasks need multi-session execution.'
-  phases_added_from: |2
-
-    Phase 98-102: Five new phases derived from a ninth gap analysis pass focused on operational readiness, compositional integration, and operator experience gaps that emerge at the 97-phase scale. The previous eight passes achieved 96.1% research concept coverage (49/51), but concept coverage does not equal operational readiness. This pass analyzed the actual implemented codebase (30+ modules, 15+ independent scripts) and identified gaps in how the system operates as a whole rather than as individual components. Phase 98 (End-to-End Scenario Test Harness) addresses the critical gap that while phase 69 tests individual modules, no test validates the full issue-to-merge lifecycle as a coherent scenario. Phase 99 (Unified Orchestrator CLI) addresses the operator experience gap: 15+ independent Python scripts with different invocation patterns make the system unnecessarily hard to operate. Phase 100 (Agent PR Quality Standards) addresses application legibility at the PR level -- agents create PRs (phase 13) but no phase defines what a good agent-authored PR looks like. Phase 101 (Data Lifecycle and Retention) addresses the storage growth problem: with 20+ data-producing modules, storage grows unboundedly and no phase handles retention or cleanup. Phase 102 (Graceful Shutdown and Drain Mode) addresses operational safety: no phase handles stopping the orchestrator without losing active work or corrupting state.
-    Phase 103-104: Two new phases derived from a tenth gap analysis pass focused on the operator experience and organizational governance gaps that emerge at production scale. Previous passes comprehensively covered the research document concepts (51/51 = 100%) and the operational lifecycle of individual components. This pass analyzed the workflow from the OPERATOR's perspective: (1) how does an operator efficiently feed work into the orchestrator, and (2) how does an organization maintain accountability when the orchestrator runs autonomously? Phase 103 (Agent-Ready Issue Filing and Speculative Ticket CLI) addresses the "input side" of the issue-tracker-as-control-plane pattern. The research's key insight for the 500% PR increase is that "engineers shifted from supervising single tasks to filing speculative tickets and reviewing completed work." While the orchestrator consumes issues (phase 4 poller), no phase helps operators create them efficiently. This phase provides a CLI with templates, validation, and bulk filing for speculative exploration. Phase 104 (Orchestrator Governance and Compliance Reporting) addresses the accountability gap in dark factory mode. The research describes 0% human review with 1B tokens/day spend. Phase 85 (audit trail) logs actions, Phase 44 (health scorecard) tracks health, and Phase 59 (PR velocity) measures throughput, but no phase synthesizes these into a stakeholder-facing governance report. This phase creates periodic compliance reports with trend analysis and anomaly detection, making dark factory mode defensible to engineering leadership.
-  phases_added_from: |2
-
-    Phase 105-110: Six new phases derived from an eleventh gap analysis pass focused on production deployment readiness, operational automation, and enterprise scalability gaps that emerge at the 104-phase scale. Previous passes achieved 100% research concept coverage (51/51) and addressed operational readiness, operator experience, and governance. This pass analyzed the system from the DEPLOYMENT and OPERATIONS perspective: (1) how does the system get packaged and deployed, (2) how do operators get notified of problems proactively, (3) how are resources allocated intelligently, (4) how does the system maintain itself, (5) how do multiple teams coexist with different policies, and (6) how are incidents handled automatically? Phase 105 (Orchestrator Python Package and Deployment Profiles) addresses the deployment gap: 19 modules as standalone scripts with no packaging, no entry point, and no way to select a feature subset. Creates pyproject.toml, `orch` CLI entry point, and minimal/standard/full deployment profiles. Phase 106 (Real-Time Alerting and Notification System) addresses the observability-to-action gap: all monitoring is pull-based (operators check dashboards), none is push-based (system notifies operators). Creates configurable alert rules with GitHub comment, webhook, log, and stdout notification channels. Phase 107 (Task Complexity Scoring and Adaptive Resource Allocation) addresses the resource efficiency gap: all tasks get identical configuration regardless of complexity. Creates a complexity scorer that analyzes issue descriptions and maps to resource profiles (model tier, turns, budget, role), with calibration feedback from execution history. Phase 108 (Orchestrator Self-Upgrade Pipeline) addresses the meta-level self-improvement gap: the orchestrator can improve strategies but not its own code. Treats the orchestrator repo as a target project -- monitors for commits, pulls updates, runs tests, validates config, and hot-reloads with automatic rollback... [truncated]
-  phases_added_from: |2
-
-    Phase 111-112: Two new phases derived from a twelfth gap analysis pass focused on ADDITIONAL RESEARCH SOURCES not previously analyzed. Previous eleven passes analyzed only the primary research doc ("OpenAI Symphony: Agent Orchestration Explained") and achieved 100% concept coverage against that single source. This pass analyzed two additional research documents: (1) "Issue Trackers as AI Agent Control Planes" (Nate Jones analysis, 211 lines, 44 citations), and (2) "AI Drafting: From Autocomplete to Orchestration" (hierarchical orchestration patterns, 135 lines, 33 citations). From these sources, two genuinely new concepts were identified that have no equivalent in any of the 110 existing phases: (A) MCP (Model Context Protocol) Integration -- the "USB-C for AI" standard open-sourced by Anthropic that provides standardized tool/resource/prompt discovery between agents. No existing phase covers bidirectional MCP support (server + client). The orchestrator currently has a static, Hermes-specific tool interface (delegate_task). MCP makes the orchestrator interoperable with the broader agent ecosystem. Phase 111 creates an MCP server (exposing orchestrator capabilities) and MCP client (discovering external tools for workers). (B) Coordination Failure Detection -- the Issue Trackers research identifies four specific, named multi-agent coordination failure modes with concrete mitigation patterns: Handoff Drift (objective loss during delegation, mitigated by "Manifest of Objective"), Token Holding (agents refusing to release resources, mitigated by Lease Tokens with TTL), Recursive Inception (unbounded delegation depth, mitigated by depth limits), and Hallucination Loops (error compounding across handoffs, mitigated by phase gates). None of these four patterns are addressed by existing phases -- phase 76 covers dedup but not drift, phase 70 covers backpressure but not token holding, phase 15 covers safety but not delegation depth, phase 9 covers review but not cross-handoff hallucination detection. Phase 112 creates a dedicated coordination_safety.py module with four subsystems. Other concepts from the additional research (memory hierarchy, agent-to-agent communication, transaction closure theory, guardian agents) were found to be adequately covered by existing phases.
-  phases_added_from_thirteenth_pass: |2
-
-    Phase 113-115: Three new phases derived from a thirteenth gap analysis pass focused on two
-    research sources not previously analyzed: (1) "Hermes Bots: Autonomous AI Architecture" (167 lines,
-    13 citations), describing Cognitive CI/CD, skill authoring, three-tiered memory, and the Dynamic
-    Forgetting Layer concept, and (2) "Geometry OS Autodev Loop" (259 lines), describing lease-based
-    worker election, stale claim stealing, block/defer escalation, and the Shadow Compiler concept.
-    Previous twelve passes achieved 100% concept coverage against the primary Symphony research doc and
-    its supplements. This pass analyzed the two remaining research documents and identified three genuinely
-    new concepts not covered by any of the 112 existing phases: (A) Dynamic Forgetting Layer -- the
-    Hermes Bots research describes a system that scores accumulated skills/knowledge by cognitive utility
-    and prunes low-value entries to reduce context noise. Phase 101 (Data Lifecycle) handles storage
-    retention but NOT cognitive quality scoring. Phase 113 closes this gap with skill quality scoring,
-    context noise detection, and automated pruning. (B) Multi-Platform Control Plane Adapters -- the
-    Symphony spec defines tracker.kind as a configuration parameter, and the Issue Trackers research
-    emphasizes that any enterprise tool with a clear data model can serve as an agent substrate.
-    Phase 4 is hardcoded to GitHub Issues. Phase 114 creates a pluggable adapter interface with
-    GitHub, Linear, and Jira backends. (C) Shadow Prompt Engine -- the Geometry OS research describes
-    a "Shadow Compiler" that runs parallel prompt variations for diagnostic comparison. Phase 92
-    (Simulation) uses mock backends for zero-cost testing, but shadow prompting runs REAL prompts in
-    parallel for quality/cost optimization and regression detection. Phase 115 creates the shadow
-    prompt runner, variation generator, comparison reporter, and regression detector.
-  phases_added_from_fourteenth_pass: |2
-
-    Phase 116-119: Four new phases derived from a fourteenth gap analysis pass focused on two
-    research sources not previously analyzed: (1) "Anthropic's Conway: Agent OS Strategy" (164 lines,
-    28 citations), describing persistent agency, Kairos daemon, AutoDream memory consolidation,
-    webhook-driven awakening, and the behavioral lock-in paradigm, and (2) "Autonomous Coding Loop
-    Explained" (194 lines, 18 citations), describing the stateless coding loop, Ralph Wiggum
-    patterns, lock file mutual exclusion, commit-based stagnation detection, and preflight "doctor"
-    environment validation. Previous thirteen passes achieved 100% concept coverage against the
-    primary Symphony research doc and all previously analyzed supplements. This pass analyzed these
-    two new sources and identified four genuinely new concepts not covered by any of the 115 existing
-    phases: (A) Commit-Based Stagnation Circuit Breaker -- the Autonomous Coding Loop research
-    describes detecting when an agent fails to produce a commit for N consecutive ticks and halting
-    to prevent burning API credits on unsolvable tasks. Phase 70 (Backpressure) has circuit breakers
-    for API calls, and phase 14 (Health Monitor) detects stuck workspaces, but no phase implements
-    the specific pattern of tracking commit SHA stability across ticks as a task-level circuit
-    breaker. Phase 116 closes this gap. (B) Cron Session Mutex with Stale Lock Detection -- the
-    research describes writing a PID to /tmp/agent_tick.lock to prevent overlapping cron sessions,
-    with stale lock cleanup when the PID is no longer alive. Phase 51 (Federation Lock) handles
-    distributed locking across instances via GitHub labels, but nothing prevents the SAME instance
-    from running two overlapping ticks. Phase 117 closes this gap. (C) Memory Consolidation Cycle
-    (AutoDream) -- the Conway research describes an "AutoDream" system that performs a reflective
-    pass over accumulated memories to remove contradictions, deduplicate entries, and synthesize
-    durable organized memories. Phase 113 (Cognitive Forgetting) prunes low-quality knowledge by
-    score, but does NOT perform consolidation/synthesis of the remaining high-quality entries.
-    Phase 118 closes this gap. (D) Preflight Environment Doctor -- the Autonomous Coding Loop
-    research describes "doctor" logic that validates the execution environment before each tick:
-    checking required CLI tools exist, git is in a clean state, API endpoints are reachable, and
-    dependencies are installed. Phase 14 (Health Monitor) watches running agents, not the pre-tick
-    environment. Phase 117 (Cron Mutex) handles lock files but not environment validation. Phase 119
-    closes this gap with a comprehensive preflight check suite.
-  phases_added_from_fifteenth_pass: |2
-
-    Phase 120-125: Six new phases derived from a fifteenth gap analysis pass that analyzed three
-    additional research sources not previously covered: (1) "Multi-Agent Relay for Long-Horizon Tasks"
-    (11.8K chars), describing Defect Capsule schemas, agentic RAG for remediation, and relay coordination;
-    (2) "Self-Correcting Agent Loop Architecture" (11.6K chars), describing AST-based code manifests,
-    progressive skill disclosure, and codebase RAG; (3) "Archon V3: Harnessing AI Workflows" (36.2K chars),
-    describing self-correcting hooks, tool call interception, multi-surface adapters, and fleet coordination;
-    (4) "Paperclip AI: Agent Orchestration Framework" (35.8K chars), describing hierarchical delegation,
-    identity layers, heartbeat mechanisms, and pipeline template input validation; (5) "DIS: Multi-Agent
-    Orchestration Research" (31.2K chars), describing semantic intent buses and formal verification;
-    (6) "Enhancing Task Orchestration Architecture" (6.5K chars), describing contract-first templates,
-    zero-trust sandboxing, and dynamic secrets management. Previous fourteen passes achieved 100% concept
-    coverage against the primary Symphony doc and thirteen supplementary sources. This pass analyzed six
-    more sources and identified six genuinely new concepts: (A) Structured Defect Capsule and Agentic RAG
-    for Remediation -- the Multi-Agent Relay research describes a detailed Defect Capsule schema with
-    defect_id, severity, location, type, root_cause_synopsis, prescriptive_fix_steps, repro_steps_script,
-    and vector_key that transforms failure feedback from generic bug reports into prescriptive, machine-readable
-    remediation inputs. Phase 93 (Long-Term Memory) performs semantic search but NOT for failure remediation
-    with resolved-fix filtering. Phase 18 (Trace Formatter) formats traces but NOT into structured defect
-    schemas. Phase 120 closes this gap. (B) Code Manifest and AST-Based Codebase Index -- the Self-Correcting
-    Agent Loop research describes automatically generating a machine-readable YAML manifest from AST analysis,
-    providing agents with function signatures, class hierarchies, and docstrings without processing full file
-    contents. Phase 12 (Self-Doc) generates human-readable docs, NOT machine-readable indexes. Phase 82
-    (Context Seeding) injects past solutions but NOT codebase structural indexes. Phase 121 closes this gap.
-    (C) Pre/Post Tool-Use Hooks -- the Archon V3 research describes intercepting agent tool calls in real-time
-    with pre-tool-use validation (block dangerous commands, inject constraints) and post-tool-use enforcement
-    (require verification, run audits). Phase 65 (Stop Hooks) controls loop continuation but NOT individual
-    tool calls within a turn. Phase 64 (Sandboxing) provides OS-level isolation but NOT tool-level policy.
-    Phase 122 closes this gap. (D) Contract-First Pipeline Template Input Validation -- the Task Orchestration
-    Architecture research describes type-checked input contracts for pipeline templates that prevent command
-    injection via type coercion and validate inputs at pipeline entry points. Phase 71 (Config Validation)
-    validates orchestrator config but NOT pipeline template inputs. Phase 77 (Template Library) creates
-    templates but NOT with enforced input contracts. Phase 123 closes this gap. (E) Dynamic Secrets
-    Management -- the research describes JWT/OIDC workload identity for dynamic secret retrieval, replacing
-    static env vars with scoped, revocable credentials via centralized secret stores. Phase 85 (Audit Trail)
-    logs actions but does NOT manage credentials. Phase 124 closes this gap. (F) Standardized Diagnostic
-    Output and Artifact Repository -- the research describes JUnit XML for test results, structured JSON
-    for all diagnostic data, and a consolidated artifact repository with retention policies. Phase 85
-    (Audit Trail) logs actions but NOT artifacts. Phase 72 (Metrics) exposes KPIs but NOT test results
-    or build artifacts. Phase 125 closes this gap.'
-  phases_added_from_sixteenth_pass: |2
-
-    Phase 129-133: Five new phases derived from a sixteenth gap analysis pass that analyzed seven
-    additional research documents not previously covered in depth: (1) "AI Command Centers Beyond
-    Terminals" (222 lines, 28 citations), describing Vibe Kanban's git worktree isolation, Attempt
-    pattern, and port pool management; (2) "Ouroboros: Self-Prompting AI Architecture" (207 lines),
-    describing the Ambiguity Score gate, Double Diamond architecture, Plateau Breaker, and Experiment
-    Tree; (3) "AI Development Workflow: Spec to Autonomy" (367 lines), describing OpenSpec's formal
-    spec lifecycle and AutoResearch's fixed trust boundary; (4) "Claude Token Hacks Explained" (181
-    lines), describing KV-cache persistence, prompt prefix stability, loss-in-the-middle mitigation,
-    and MCP overhead management; (5) "Paperclip Automation Pipeline Layers" (149 lines), describing
-    the SAMT identity stack, atomic task checkout, rework rate tracking, and heartbeat budget
-    enforcement; (6) "Carry Forward AI Guide" (301 lines), describing thrash detection, session
-    source learning, and persistent blocker management; (7) "AIPM System: Architecture and
-    Improvements" (275 lines), describing CTRM prompt quality scoring and dynamic queue
-    reprioritization. Previous fifteen passes achieved 100% coverage against the primary Symphony
-    research doc and 14 supplementary sources. This pass analyzed these 7 additional sources and
-    identified 5 genuinely new concepts not covered by any of the 128 existing phases: (A) Git
-    Worktree-Based Task Isolation -- the Vibe Kanban research describes creating a separate git
-    worktree (linked copy sharing .git directory but with isolated checkout) for every task assigned
-    to an agent, enabling parallel branch development without file system conflicts. Phase 11
-    (Workspace Lifecycle) creates isolated directories but NOT git worktrees. Phase 64 (Sandboxing)
-    provides OS-level isolation but NOT git-native branch isolation. Git worktrees are fundamentally
-    different because they enable agents to work on different branches of the SAME repository
-    simultaneously, with all worktrees sharing commit history and enabling intentional merge points.
-    Phase 129 closes this gap. (B) Context Cache Warmth and Prompt Prefix Optimization -- the Claude
-    Token Hacks research describes how prompt caching (KV-cache persistence in GPU VRAM) provides up
-    to 5x cost reduction when cache hit rates reach 90%, but requires strict prefix stability: any
-    change to early parts of the prompt invalidates the entire cache. Phase 20 (Context Budget)
-    manages context window SIZE but does NOT track or optimize cache hit rates, prompt prefix
-    stability, or the 5-minute inactivity TTL that causes cache eviction. This is a pure cost
-    optimization phase with direct financial impact. Phase 130 closes this gap. (C) Attempt Pattern
-    with Failure History Learning -- the Vibe Kanban research describes an "Attempt" pattern where
-    if an agent's output is unsatisfactory, the manager rejects the work and initiates a new attempt
-    with a different model or refined prompt, preserving the history of previous failures as training
-    signals. Phase 28 (Speculative Execution) runs parallel explorations, each independent. The
-    Attempt pattern is fundamentally different: it is iterative improvement on the SAME task with
-    preserved failure context. Phase 131 closes this gap. (D) Ambiguity Score Gate -- the Ouroboros
-    research describes a weighted mathematical gate (Ambiguity Score) that evaluates task clarity
-    across multiple dimensions (goal clarity, constraint clarity, success criteria, context clarity)
-    with different weights for greenfield vs. brownfield projects, and prevents task assignment until
-    the score drops below a threshold. Phase 41 (Intelligent Scheduling) prioritizes tasks by
-    urgency and complexity but does NOT evaluate whether a task is sufficiently well-defined before
-    assigning it to an agent. Poorly-defined tasks waste tokens and produce low-quality output.
-    Phase 132 closes this gap. (E) Plateau Breaker and Experiment Tree -- the Ouroboros research
-    describes two related concepts: (1) a Plateau Breaker that triggers when N consecutive attempts
-    fail to improve the target metric, forcing the agent to discard the current approach and draft a
-    fresh strategy based on failure analysis, and (2) an Experiment Tree (tree.yaml) that tracks
-    branching logic allowing the agent to jump between successful states. Phase 116 (Stagnation
-    Circuit Breaker) detects commit stalls but does NOT force strategy reset or track experiment
-    branches. Phase 133 closes this gap. Phase 134-136: Three new phases derived from an eighteenth gap analysis pass focused on three research documents not previously analyzed: (1) "AI Project Management Architectures_" (284 lines), describing Policy-as-Agent governance, Verifiable AI via ADRs, hybrid cloud/local architecture, and prompt injection defense; (2) "Extracting Code Patterns, Not Code" (294 lines), describing the five-step pattern extraction protocol (Documentation-First Analysis, Categorization, Distillation to Essence, Memory Persistence, Sanitization) and the Rule/Why/How-to-Apply essence format; (3) "Automating Claude CLI with Bash" (206 lines), describing the three-stage recursive wrapper lifecycle (Extraction, Injection, Termination), sliding window context extraction from JSONL history, and the Out-of-Band Advisor pattern for cognitive deadlock. Previous seventeen passes achieved 100% concept coverage against the primary Symphony research doc and 21 supplementary sources. This pass analyzed these 3 additional sources and identified 3 genuinely new concepts not covered by any of the 133 existing phases: (A) Policy-as-Agent and Verifiable AI -- the AI Project Management Architectures research describes "Policy-as-Agent" where autonomous governance agents proactively monitor configurations, detect misconfigurations, and generate remediation PRs in real-time, plus "Verifiable AI" via Architectural Decision Records (ADRs) that make all agent decisions auditable and traceable. Phase 45 (WORKFLOW.md Engine) loads static policies but doesn't enforce them autonomously. Phase 85 (Audit Trail) logs actions but doesn't proactively detect violations. Phase 126 (Secret Leak Detection) scans for one violation type but is not a general framework. Phase 134 closes this gap with a general Policy-as-Agent engine, auto-remediation via PRs, and an ADR subsystem. (B) Pattern Extraction Engine -- the "Extracting Code Patterns, Not Code" research describes a systematic protocol for extracting architectural patterns (not implementation details) from codebases and distilling them into concise "Rule, Why, How to Apply" essence records. Phase 93 (Cross-Project Memory) stores execution knowledge. Phase 47 (Knowledge Extraction) extracts task patterns. But NO phase implements the systematic pattern extraction protocol with documentation-first analysis, categorical filtering, or essence distillation. Phase 135 closes this gap.    (C) Recursive Session Chaining with Out-of-Band Advisor -- the "Automating Claude CLI with Bash" research describes a three-stage recursive orchestration loop (extraction of JSONL history via sliding window, injection into fresh headless sessions, event-driven termination with hang detection) plus an "Out-of-Band Advisor" that escalates to a larger model when sessions enter cognitive deadlock. Phase 97 (Session Chaining) provides basic context marshaling but lacks sliding window extraction, JSONL DAG traversal, event-driven termination, and the Out-of-Band Advisor. Phase 136 closes this gap.'
-  phases_added_from_twentieth_pass: |2
-
-    Phase 150-155: Six new phases derived from a twentieth gap analysis pass focused on
-    six research documents not previously analyzed (or only partially analyzed): (1)
-    "Building an AI Agent Bridge" (300 lines, 62 citations), describing the
-    Planner-Worker-Watchdog paradigm, Agentic File System (AFS) abstraction,
-    Token-Oriented Object Notation (TOON) for token-optimized serialization, CLI
-    hook-based cross-agent coordination, and three-tier watchdog recovery with OS
-    signal-based process wakeup (SIGUSR1, SIGALRM); (2) "Auto Research: Agentic Loops
-    Explained" (184 lines, 36 citations), describing the three-file governance model,
-    five-minute wall-clock budget, AI Gateway token governance with directional
-    guardrails, execution-based billing, and the professional evolution from execution
-    to arena design; (3) "Autonomous Agent Design: Orchestrator-Worker" (183 lines, 40
-    citations, partially analyzed in pass 19), describing the Compaction Gate for
-    context window management and PreCompact state preservation; (4) "Hybrid LLM: API
-    Fallback to Local" (196 lines, 39 citations), describing proactive task routing
-    by complexity tier (background/default/think/longContext), translation proxy for
-    API protocol incompatibility, and cooldown management; (5) "Claude Code Automation
-    and Event Handling" (234 lines, 30 citations), describing the 17-point lifecycle
-    event matrix, PreCompact lifecycle hooks, and API stop reason to CLI event mapping;
-    (6) "OpenClaw: Improving Agent UX" (214 lines, 47 citations), describing
-    Progressive Disclosure for separating thinking from user-facing output, Proxy
-    Streaming for sub-agent event forwarding, adaptive dynamic throttling, and
-    Markdown-safe buffering.
-
-    Previous nineteen passes achieved concept coverage against the primary Symphony
-    research doc and 28 supplementary sources. This pass analyzed these 6 additional
-    sources and identified 6 genuinely new concepts not covered by any of the 149
-    existing phases:
-
-    (A) TOON Token-Optimized Serialization -- the "Building an AI Agent Bridge"
-    research describes TOON (Token-Oriented Object Notation), a serialization format
-    that achieves 35-60% token reduction for uniform object arrays (the most common
-    pattern in agent communication: task lists, file change lists, test results). TOON
-    also improves LLM comprehension accuracy (73.9% vs 69.7% for compact JSON) due to
-    explicit schema headers. Phase 130 (Context Cache Warmth) optimizes KV-cache hit
-    rates but does NOT address serialization format optimization. No phase implements
-    token-optimized serialization at model boundaries. Phase 150 closes this gap.
-
-    (B) Proactive Task Routing by Complexity Tier -- the "Hybrid LLM" research
-    describes classifying tasks into tiers (background, default, think, longContext)
-    and routing to appropriate model tiers (local 7-8B for indexing/scanning, cloud
-    frontier for coding, premium for architecture, specialized for large-context
-    analysis). This proactively prevents 429/1302 rate limit errors. Phase 79
-    (Backend Abstraction) abstracts backends but does NOT classify tasks for routing.
-    Phase 107 (Task Complexity Scoring) scores complexity but does NOT use scores for
-    model selection. Phase 151 closes this gap.
-
-    (C) Compaction Gate and PreCompact State Preservation -- the "Autonomous Agent
-    Design" research describes a "Compaction Gate" that forces terminal stop and summary
-    generation when context usage exceeds 85%. The "Claude Code Automation" research
-    describes a PreCompact lifecycle event for preserving critical state before history
-    truncation. Phase 20 (Context Budget) manages context size but does NOT enforce a
-    hard compaction gate. Phase 97 (Session Chaining) marshals context but does NOT
-    preserve state before compaction. Phase 152 closes this gap.
-
-    (D) AI Gateway Token Governance -- the "Auto Research" research describes AI
-    Gateways (e.g., Kong) that enforce "directional guardrails" monitoring recursive
-    token generation and setting hard quotas. Agentic loops may cycle 50-200 times for
-    a single task, burning thousands of dollars overnight. Phase 70 (Backpressure)
-    handles rate limits reactively. Phase 143 (Quality Throttling) adjusts quality but
-    does NOT detect recursive spending patterns or enforce hard spending limits. Phase
-    153 closes this gap with cumulative token tracking, hard quotas per task/session/
-    day, and recursive loop detection via spending acceleration analysis.
-
-    (E) Three-Tier Watchdog with OS Signal Recovery -- the "Building an AI Agent
-    Bridge" research describes a three-tier watchdog: Level 1 (passive question
-    routing), Level 2 (SIGUSR1 nudge + SIGALRM timeout), Level 3 (SIGTERM/SIGKILL
-    escalation with critical alert). OS signals provide "guaranteed execution" unlike
-    markdown instructions agents may ignore. Phase 14 (Health Monitor) watches
-    processes but does NOT use OS signals or multi-tier escalation. Phase 154 closes
-    this gap.
-
-    (F) Progressive Disclosure and Sub-Agent Proxy Streaming -- the "OpenClaw" research
-    describes separating "Internal Monologue" (thinking) from "User-Facing Response"
-    (acting) via Progressive Disclosure, plus Proxy Streaming that pipes sub-agent
-    event streams through the main agent for real-time visibility. Users currently
-    experience "hours-long" waits with no progress visibility. Phase 91 (Dashboard)
-    provides observability but NOT progressive disclosure. Phase 106 (Alerting) sends
-    notifications but NOT real-time sub-agent progress streaming. Phase 155 closes
-    this gap.'
-  phases_added_from_twentyfirst_pass: |2
-
-    Phase 161-163: Three new phases derived from a twenty-first gap analysis pass focused on
-    two research documents not previously analyzed: (1) "AI Unpredictability: From Vibe Coding
-    to Engineered Trust" (291 lines, 65 citations), describing CRANE constrained reasoning
-    augmented generation, GlimpRouter entropy-based routing, LLM-42 determinism protocol,
-    instrumentation-based Application Vulnerability Monitoring (AVM), the 40% vulnerability
-    rate in agent-generated code, and the civilizational design philosophy of engineered
-    trust; (2) "Issue Trackers as AI Agent Control Planes" (Nate Jones analysis, 211 lines,
-    44 citations, partially analyzed in pass 12 for phases 111-112), re-analyzed for the
-    Tiered Memory Architecture formalization.
-
-    Previous twenty passes achieved concept coverage against the primary Symphony research
-    doc and 34 supplementary sources. This pass analyzed these additional sources and
-    identified 3 genuinely new concepts not covered by any of the 160 existing phases:
-
-    (A) CRANE Constrained Decoding for AI Node Output Validation -- the "AI Unpredictability"
-    research describes the CRANE (Constrained Reasoning Augmented Generation) algorithm that
-    enforces formal grammar compliance (JSON, YAML, SQL) via logit masking while preserving
-    reasoning flexibility through delimiter-switched windows. The model reasons freely in
-    unconstrained mode, then switches to constrained decoding when specific delimiters are
-    detected. This is different from structural invariant checking (phase 17 checks CODE
-    structure, not AI node OUTPUT format), prompt engineering (phase 62 manages prompts, not
-    output decoding), and config validation (phase 71 validates YAML config, not AI-generated
-    output). No existing phase ensures that AI nodes produce structurally valid output in
-    formal grammars. Phase 161 closes this gap with a CRANE-style output validator that
-    wraps AI node execution with delimiter detection, grammar enforcement, and output
-    recovery on malformed results.
-
-    (B) Runtime Application Vulnerability Monitoring (AVM) -- the "AI Unpredictability"
-    research describes instrumentation-based Application Vulnerability Monitoring that
-    detects security vulnerabilities at RUNTIME as code actually executes, rather than
-    relying on static pre-production scanning. The research notes that 40% of agent-generated
-    code contains at least one security vulnerability, and static scanning alone is
-    insufficient because "vibe coding" bypasses pre-production gates. Phase 126 (Secret Leak
-    Detection) performs static credential scanning. Phase 9 (Review Sensor) does LLM-based
-    code review. Phase 15 (Safety Policies) gates high-risk actions. None of these perform
-    RUNTIME instrumentation-based vulnerability monitoring -- watching code as it executes
-    to detect logical flaws, injection attempts, and privilege escalation. Phase 162 closes
-    this gap with an AVM framework that instruments agent-generated code, monitors execution
-    for vulnerability patterns, and generates findings for the review sensor.
-
-    (C) Unified Agent Memory Architecture -- the "Issue Trackers as Control Planes" research
-    (partially analyzed in pass 12) describes a formal 4-tier memory hierarchy: (1) Working
-    Context (transient, prompt buffer), (2) Session State (mid-term, structured event log),
-    (3) Durable Memory (long-term, SQL/Vector DB), (4) Artifact Layer (persistent, filesystem/
-    git). While individual phases address specific memory concerns (phase 20 for context
-    budgeting, phase 47 for knowledge extraction, phase 93 for long-term memory, phase 97
-    for session chaining, phase 113 for cognitive forgetting, phase 118 for memory
-    consolidation), there is no UNIFIED memory architecture that defines explicit data flow
-    between tiers, memory promotion/demotion policies, cross-tier consistency checks, and
-    a single interface for agents to interact with all memory tiers. Without this unification,
-    memory operations are fragmented across 6+ modules with no coherent data lifecycle.
-    Phase 163 closes this gap with a unified memory manager that provides a single
-    interface, tier-aware routing, promotion/demotion policies, and cross-tier consistency.
+    Phase 63 (REST API) exposes orchestrator state but does NOT maintain a persistent
+    warm server for zero-latency agent invocation. Phase 79 (Backend Abstraction)
+    abstracts backends but does NOT implement persistent warm connections. Phase 99
+    (Unified CLI) provides a CLI but does NOT support non-interactive headless
+    execution with structured output. Phase 170 closes these gaps with a persistent
+    server and headless execution mode.
+  deliverables:
+  - name: Persistent warm server
+    description: 'Long-running server that maintains warm LLM connections and MCP state for zero-latency agent invocation'
+    status: planned
+    acceptance_criteria:
+    - description: 'Server maintains warm connection pool to configured LLM backends'
+      validation: test connection pool
+    - description: 'Agent invocation via server has <500ms latency (vs 3-5s cold start)'
+      validation: benchmark latency
+    tasks:
+    - id: p170.d1.t1
+      title: Create warm_server.py module
+      status: planned
+      description: 'Create warm_server.py: (1) WarmServer class that runs as a persistent process with: start(), stop(), status(), (2) ConnectionPool that maintains N warm connections to configured LLM backends (configurable pool size), (3) Health checker that pings connections every 60s and replaces stale ones, (4) Request handler that routes agent invocations to warm connections, (5) MCP state cache that maintains warm connections to configured MCP servers, (6) Graceful shutdown that drains pending requests, (7) HTTP API: POST /invoke (submit agent task, get result), GET /status (server health, pool size, pending requests), POST /shutdown (graceful stop), (8) Uses asyncio for concurrent request handling, (9) CLI: python3 warm_server.py --start --stop --status --pool-size <n>.'
+      dependencies:
+      - p79.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/warm_server.py'
+    scope_lines: 140
+    scope_files:
+    - '~/zion/projects/agent-orchestration/warm_server.py'
+  - name: Headless execution mode
+    description: 'Non-interactive CLI execution with structured JSON output for CI/CD integration'
+    status: planned
+    acceptance_criteria:
+    - description: 'CLI supports non-interactive mode: python3 orch headless --prompt <task> --format json'
+      validation: test headless invocation
+    - description: 'JSON output includes: status, result, duration, token_usage, errors'
+      validation: test output format
+    tasks:
+    - id: p170.d2.t1
+      title: Add headless execution to unified CLI
+      status: planned
+      description: 'Modify the unified CLI (phase 99) to add: (1) --headless flag for non-interactive execution, (2) --prompt/-p flag for task specification, (3) --format flag (json|text|yaml) for output format, (4) --attach flag to connect to running warm server, (5) --timeout flag for maximum execution time, (6) Structured JSON output: {status, task_id, result, duration_seconds, token_usage: {input, output}, errors: [{type, message}], agent_id, mode}, (7) Exit codes: 0=success, 1=agent_error, 2=timeout, 3=server_unavailable.'
+      dependencies:
+      - p170.d1.t1
+      - p99.d1.t1
+      files:
+      - '~/zion/projects/agent-orchestration/warm_server.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/warm_server.py'
+  - name: Warm server and headless execution tests
+    description: 'Test server lifecycle, connection pool, headless invocation, and CI/CD integration'
+    status: planned
+    acceptance_criteria:
+    - description: 'Server starts, maintains warm connections, handles requests, shuts down gracefully'
+      validation: test server lifecycle
+    - description: 'Headless execution returns structured output and correct exit codes'
+      validation: test headless output
+    tasks:
+    - id: p170.d3.t1
+      title: Write warm server tests
+      status: planned
+      description: 'Test cases: (1) Server starts and binds to configured port, (2) Connection pool initializes with configured size, (3) Health checker replaces stale connections, (4) POST /invoke routes to warm connection and returns result, (5) GET /status returns server health info, (6) POST /shutdown drains pending requests, (7) Headless CLI invokes task and returns JSON output, (8) Headless CLI with --format yaml returns YAML output, (9) Headless CLI timeout returns exit code 2, (10) Headless CLI with --attach connects to running server, (11) Concurrent requests are handled correctly, (12) Server restart preserves configuration.'
+      dependencies:
+      - p170.d1.t1
+      - p170.d2.t1
+      files:
+      - '~/zion/projects/agent-orchestration/test_warm_server.py'
+    scope_lines: 80
+    scope_files:
+    - '~/zion/projects/agent-orchestration/test_warm_server.py'
+  dependencies:
+  - source: 'phase-63'
+    target: 'phase-170'
+    type: soft
+    reason: REST API provides the HTTP interface that warm server extends with persistent connections
+  - source: 'phase-79'
+    target: 'phase-170'
+    type: soft
+    reason: Backend abstraction provides the LLM interface that warm server maintains warm connections to
+  - source: 'phase-99'
+    target: 'phase-170'
+    type: soft
+    reason: Unified CLI provides the command interface that headless mode extends with structured output
+  technical_notes: 'The persistent warm server eliminates the 3-5 second cold-start latency that occurs when initializing LLM connections and MCP servers on every agent invocation. For CI/CD integration, this means agent tasks can be invoked as build steps with sub-second response time. The headless mode provides the non-interactive execution model needed for automation: stdin/stdout with structured JSON output and meaningful exit codes. The --attach flag enables connecting to a running server for interactive debugging while maintaining the warm connection pool.'
+  risks:
+  - 'Warm connections consume resources (memory, API rate limits) when idle -- implement auto-scaling pool size based on request rate'
+  - 'Persistent server adds operational complexity (monitoring, restart) -- integrate with health monitor (phase 14)'
+  - 'LLM API connections may have idle timeouts -- health checker must respect API-specific timeout values'
+  scope_lines_total: 300
+  test_target: 12
