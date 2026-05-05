@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/175 phases complete, 0 in progress
+**Progress:** 23/178 phases complete, 0 in progress
 
-**Deliverables:** 90/645 complete
+**Deliverables:** 90/657 complete
 
-**Tasks:** 90/669 complete
+**Tasks:** 90/681 complete
 
 ## Scope Summary
 
@@ -187,6 +187,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-173 Disposable Experiment Arena | PLANNED | 0/4 | 400 | 12 |
 | phase-174 Non-Functional Requirements Verification | PLANNED | 0/4 | 330 | 11 |
 | phase-175 Orchestrator Maturity Model and Capability Assessment | PLANNED | 0/4 | 360 | 12 |
+| phase-176 Harness Gap Feedback Loop (Analyze Environment, Not Prompts) | PLANNED | 0/4 | 340 | 10 |
+| phase-177 Agent Output Sanitization Pipeline | PLANNED | 0/4 | 290 | 16 |
+| phase-178 Automated Changelog Generation and Semantic Versioning | PLANNED | 0/4 | 290 | 15 |
 
 ## Dependencies
 
@@ -789,6 +792,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-8 | phase-175 | soft | Execution history from phase 8 stores maturity assessment results over time |
 | phase-66 | phase-175 | soft | Maintenance automation from phase 66 runs the weekly maturity assessment |
 | phase-27 | phase-175 | soft | Dashboard from phase 27 provides the visualization surface for maturity data |
+| phase-8 | phase-176 | soft | Execution history from phase 8 provides the failure data to classify |
+| phase-18 | phase-176 | soft | Self-improvement from phase 18 provides the learning infrastructure; this phase extends it to harness-level analysis |
+| phase-17 | phase-176 | soft | Invariant checker from phase 17 is both a consumer and producer of gap analysis |
+| phase-66 | phase-176 | soft | Maintenance cron from phase 66 runs the weekly gap report |
+| phase-138 | phase-177 | soft | Secret scanner from phase 138 detects leaks; sanitizer prevents them from appearing in the first place -- complementary |
+| phase-5 | phase-177 | soft | DAG executor from phase 5 is the primary integration point for output sanitization |
+| phase-8 | phase-177 | soft | Execution logging from phase 8 stores output that needs sanitization |
+| phase-12 | phase-177 | soft | PR automation from phase 12 submits text that needs sanitization |
+| phase-68 | phase-178 | soft | Release engineering from phase 68 provides the release pipeline that changelog generation extends |
+| phase-5 | phase-178 | soft | DAG executor from phase 5 is extended with CHANGELOG and TAG_VERSION node types |
+| phase-12 | phase-178 | soft | PR automation from phase 12 should enforce conventional commit format for changelog parsing |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -10917,3 +10931,178 @@ This is the meta-phase: it does not build new orchestrator capabilities, it meas
 - Assessment methods may produce false positives (file exists but feature is broken) -- use test_passes where possible
 - Maturity levels are subjective -- base them on concrete, measurable criteria from the research
 - Assessment may be slow if it runs many checks -- cache results and run incrementally
+
+## [ ] phase-176: Harness Gap Feedback Loop (Analyze Environment, Not Prompts) (PLANNED)
+
+**Goal:** Systematically analyze agent failures to identify missing harness capabilities and feed improvements back into guides, invariants, and tooling
+
+The Harness Engineering research core insight: "When agents failed, the team analyzed the environment for missing
+capabilities rather than refining prompts." Phase 18 (Self-Improvement) focuses on prompt optimization and strategy
+adaptation. This phase is different: it treats agent failures as signals about harness gaps. When an agent repeatedly
+fails at a category of tasks, the system should identify that the failure is caused by a missing guide, an incomplete
+invariant, a missing tool, or insufficient context -- and automatically propose or create harness improvements. This
+closes the feedback loop from agent execution failures to harness evolution.
+
+
+### Deliverables
+
+- [ ] **Failure taxonomy and harness gap classifier** -- Module that classifies agent failures by root cause category (missing guide, missing invariant, missing tool, insufficient context, bad prompt, external dependency)
+  - [ ] `p176.d1.t1` Create harness_gap_classifier.py module (depends: p8.d1.t1, p18.d1.t1)
+    > Python module: (1) FailureClassifier class with classify(execution_record) -> GapReport, (2) GapReport: failure_id, category (missing_guide|missing_invariant|missing_tool|insufficient_context|bad_prompt|external_dependency|model_limitation), confidence, evidence (which logs/patterns led to classification), recommended_action, (3) classify() logic: parse execution_log records, look for patterns: repeated failures on same file type -> missing guide, structural violations not caught -> missing invariant, tool-not-found errors -> missing tool, context-exceeded errors -> insufficient context, fix-attempt loops that never converge -> bad prompt or model limitation, dependency/install errors -> external dependency, (4) batch_classify() -- analyze a window of recent failures, produce summary of gap categories with frequency counts, (5) persist gap reports to execution history (phase 8) for trending.
+    _Files: ~/zion/projects/agent-orchestration/harness_gap_classifier.py_
+  - [ ] Classifier categorizes failures into at least 6 root cause categories with evidence
+    _Validation: test with sample failure logs_
+  - [ ] Harness-gap failures (guide, invariant, tool, context) are distinguished from agent-gap failures (prompt, model limitation)
+    _Validation: check classification accuracy on labeled failures_
+  _~120 LOC_
+- [ ] **Automatic harness improvement proposals** -- When a harness gap is identified, automatically propose specific improvements (new invariant, guide section, tool config)
+  - [ ] `p176.d2.t1` Add improvement proposal generation to harness_gap_classifier.py (depends: p176.d1.t1, p17.d1.t1)
+    > Extend harness_gap_classifier.py: (1) propose_improvement(gap_report) -> ImprovementProposal, (2) For missing_guide: analyze which file types/patterns caused failures, propose specific AGENT.md sections with example commands, (3) For missing_invariant: analyze what structural violation occurred, propose invariant rule in invariants.yaml format, (4) For missing_tool: identify which tool was needed, propose tool installation step or alternative approach, (5) For insufficient_context: identify what context was missing, propose context_budget.py configuration change, (6) ImprovementProposal: category, title, description, artifact (the actual YAML/markdown to add), target_file (which file to modify), priority (based on failure frequency), (7) review_queue: store proposals in a review file, human can accept/reject/modify before application.
+    _Files: ~/zion/projects/agent-orchestration/harness_gap_classifier.py_
+  - [ ] System generates concrete improvement proposals: new invariant rules, guide sections to add, tools to install
+    _Validation: test with classified failures_
+  - [ ] Proposals are written as actionable items that can be reviewed and applied
+    _Validation: inspect proposal format_
+  _~100 LOC_
+- [ ] **Weekly harness gap report** -- Cron job that generates a weekly report of harness gaps with improvement proposals
+  - [ ] `p176.d3.t1` Create harness gap report cron job (depends: p176.d1.t1, p176.d2.t1, p66.d1.t1)
+    > Create a weekly cron job that: (1) runs batch_classify on the past week of execution logs, (2) generates top-5 gap categories with frequency and trend, (3) for each gap, includes the latest improvement proposal, (4) compares gap counts to previous week to show improvement trend, (5) outputs markdown report suitable for human review, (6) stores report in execution history with type="harness_gap_report".
+  - [ ] Weekly cron generates gap report with top gaps and proposed fixes
+    _Validation: check cron output_
+  - [ ] Report shows trend: are gaps shrinking over time as improvements are applied?
+    _Validation: inspect report trend section_
+  _~40 LOC_
+- [ ] **Harness gap classifier tests** -- Test classifier, proposal generation, and reporting
+  - [ ] `p176.d4.t1` Create test_harness_gap.py (depends: p176.d1.t1, p176.d2.t1)
+    > Test cases: (1) Missing guide: agent fails on unfamiliar file type, classifier identifies guide gap, (2) Missing invariant: agent violates structure not in invariants.yaml, classifier identifies invariant gap, (3) Missing tool: agent tries to run tool that is not installed, classifier identifies tool gap, (4) Insufficient context: context budget exceeded, classifier identifies context gap, (5) Bad prompt: fix loop converges to wrong solution, classifier identifies prompt gap, (6) External dependency: install/build fails, classifier identifies dependency gap, (7) Batch classify produces correct frequency counts, (8) Improvement proposals are specific and actionable, (9) Weekly report generates correct markdown, (10) Trend calculation is accurate.
+    _Files: ~/zion/projects/agent-orchestration/test_harness_gap.py_
+  - [ ] Test file covers all 6 failure categories, proposal generation, and batch analysis
+    _Validation: python3 -m pytest test_harness_gap.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+This is the "analyze the environment" principle from Harness Engineering made systematic. The key distinction from phase 18 (self-improvement): phase 18 asks "how can the agent do better next time?" This phase asks "what is missing from the harness that caused the agent to fail?" One is prompt/strategy optimization (agent-centric), the other is infrastructure improvement (environment-centric). Both are needed for the Dark Factory model.
+
+### Risks
+
+- Classification accuracy depends on log quality -- ensure execution logs capture enough context for classification
+- Improvement proposals may be noisy for novel failure modes -- start with high-confidence patterns only
+- Automated harness changes could break existing workflows -- always route through human review queue
+
+## [ ] phase-177: Agent Output Sanitization Pipeline (PLANNED)
+
+**Goal:** Strip sensitive data (PII, internal URLs, secrets, debug artifacts) from all agent outputs before they leave the workspace or enter logs
+
+Phase 138 (Secret/Credential Leak Detection) scans for leaked secrets in diffs. But the research describes a broader
+concern: agent outputs (logs, PR descriptions, commit messages, execution history, traces) may contain PII, internal
+infrastructure URLs, database connection strings, debug tokens, and other sensitive data. This phase creates a
+sanitization pipeline that runs on all agent outputs before they are stored, transmitted, or displayed. Unlike the
+secret scanner (which detects and blocks), the sanitizer transforms outputs to remove or redact sensitive patterns.
+
+
+### Deliverables
+
+- [ ] **Output sanitizer module** -- Module that detects and redacts sensitive patterns from arbitrary text output
+  - [ ] `p177.d1.t1` Create output_sanitizer.py module
+    > Python module: (1) OutputSanitizer class with sanitize(text, config) -> sanitized_text, (2) Built-in pattern detectors: EmailDetector (regex for email addresses), PhoneDetector (regex for phone numbers), IPDetector (regex for IP addresses, configurable: internal-only or all), URLDetector (regex for URLs, configurable: internal domain blacklist), TokenDetector (regex for API keys, bearer tokens, JWTs), DBConnectionStringDetector (regex for postgresql://, mysql://, mongodb:// patterns), FilePathDetector (regex for paths containing /home/<user>/ or similar), DebugArtifactDetector (regex for trace IDs, request IDs, session tokens), (3) SanitizerConfig: which detectors to enable, redaction mode (mask|remove|replace), mask_char (default: *), preserve_length (for masking), custom_patterns (user-defined regex), allowed_domains (URL whitelist), (4) sanitize() applies all enabled detectors, replaces matches with configured redaction, (5) stats() returns count of redactions by category for observability.
+    _Files: ~/zion/projects/agent-orchestration/output_sanitizer.py_
+  - [ ] Sanitizer handles: PII (emails, phone numbers, IPs), internal URLs, API keys/tokens, database connection strings, file paths with usernames, debug artifacts
+    _Validation: test each pattern category_
+  - [ ] Redaction is configurable: mask, remove, or replace with placeholder
+    _Validation: test each redaction mode_
+  _~120 LOC_
+- [ ] **Sanitizer integration with executor and logging** -- Integrate sanitizer into DAG executor output capture, execution logging, and PR automation
+  - [ ] `p177.d2.t1` Integrate sanitizer into executor and logging (depends: p177.d1.t1, p5.d2.t1, p8.d1.t1, p12.d1.t1)
+    > Modify executor.py: (1) After each node execution, sanitize the output before storing in execution_log, (2) Sanitize AI node prompts before logging (protect any secrets in issue bodies), (3) Add sanitization config to context_config.yaml or new sanitizer.yaml, (4) Modify pr_automation.py: sanitize PR title, body, and commit messages before gh command, (5) Modify orch_history.py: sanitize displayed output, (6) Modify trace_formatter.py: sanitize trace output, (7) Add sanitization stats to metrics (phase 30): count of redactions per run.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/execution_log.py, ~/zion/projects/agent-orchestration/pr_automation.py, ~/zion/projects/agent-orchestration/orch_history.py, ~/zion/projects/agent-orchestration/trace_formatter.py_
+  - [ ] Node outputs are sanitized before being stored in execution history
+    _Validation: check logged output for redacted patterns_
+  - [ ] PR descriptions and commit messages are sanitized before submission
+    _Validation: check PR output for redacted patterns_
+  _~60 LOC_
+- [ ] **Sanitizer configuration and custom patterns** -- YAML configuration file for sanitizer with project-specific patterns
+  - [ ] `p177.d3.t1` Create sanitizer.yaml configuration (depends: p177.d1.t1)
+    > Create sanitizer.yaml: (1) enabled_detectors: list of detector names to enable, (2) redaction_mode: mask (default), (3) custom_patterns: list of {name, regex, redaction_mode}, (4) allowed_domains: list of domains to skip for URL detection, (5) internal_domains: list of internal domains to always redact, (6) path_prefixes: list of path prefixes to redact (e.g., /home/), (7) Include sensible defaults: all detectors enabled, mask mode, common internal domains.
+    _Files: ~/zion/projects/agent-orchestration/sanitizer.yaml_
+  - [ ] Config file allows enabling/disabling individual detectors and adding custom patterns
+    _Validation: test with custom config_
+  - [ ] Default config provides sensible defaults for a typical Hermes setup
+    _Validation: read default config_
+  _~30 LOC_
+- [ ] **Sanitizer tests** -- Test all detectors, sanitization modes, and integration points
+  - [ ] `p177.d4.t1` Create test_sanitizer.py (depends: p177.d1.t1, p177.d2.t1)
+    > Test cases: (1) EmailDetector redacts email addresses, (2) PhoneDetector redacts phone numbers, (3) IPDetector redacts IP addresses (internal-only mode skips public IPs), (4) URLDetector redacts URLs matching internal domains, (5) TokenDetector redacts API keys, bearer tokens, JWTs, (6) DBConnectionStringDetector redacts database URLs, (7) FilePathDetector redacts paths with usernames, (8) DebugArtifactDetector redacts trace/request/session IDs, (9) mask mode preserves length, (10) remove mode deletes matches, (11) replace mode uses configurable placeholder, (12) Custom patterns from config are applied, (13) Allowed domains are not redacted, (14) Sanitizer stats return correct counts, (15) Executor output is sanitized before logging, (16) PR text is sanitized before submission.
+    _Files: ~/zion/projects/agent-orchestration/test_sanitizer.py_
+  - [ ] Test file covers all 8 detector types, all 3 redaction modes, and executor integration
+    _Validation: python3 -m pytest test_sanitizer.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+The key distinction from phase 138 (secret scanner): the scanner is a gate that BLOCKS submissions containing secrets. The sanitizer is a transform that REDACTS sensitive data in all outputs (logs, traces, displayed text) regardless of whether they are being submitted. The scanner prevents data exfiltration. The sanitizer prevents data exposure in internal systems. Both are needed: sanitize outputs by default, scan diffs as a safety net before PR submission.
+
+### Risks
+
+- Over-aggressive sanitization may redact useful debugging information -- make it configurable and allow per-project tuning
+- Pattern-based detection has false positives -- allow whitelists for known-safe patterns
+- Sanitization adds latency to output processing -- keep patterns efficient and cache compiled regex
+
+## [ ] phase-178: Automated Changelog Generation and Semantic Versioning (PLANNED)
+
+**Goal:** Automatically generate changelogs from agent commit history and enforce semantic versioning for orchestrator-managed projects
+
+Phase 68 covers release engineering automation (release detection, execution, pipeline). But there is no phase for
+automated changelog generation from the conventional commit messages that agents produce, or for enforcing semantic
+versioning (semver) as part of the release process. In the Dark Factory model where 0% of code is human-reviewed,
+automated changelogs and versioning become essential for maintaining a readable history of changes. This phase creates
+a changelog generator that parses commit messages, categorizes changes (feat/fix/breaking), and generates
+CHANGELOG.md entries, plus a semver calculator that determines the next version number based on commit categories.
+
+
+### Deliverables
+
+- [ ] **Changelog generator module** -- Parse conventional commit messages and generate structured changelog entries
+  - [ ] `p178.d1.t1` Create changelog_generator.py module
+    > Python module: (1) ChangelogGenerator class with generate(repo_path, since_ref, config) -> ChangelogEntry, (2) parse_commits(repo_path, since_ref) -- use git log to get commits since last tag, parse conventional commit format (type(scope): description), (3) Categorize commits: feat (Features), fix (Bug Fixes), breaking (BREAKING CHANGES), perf (Performance), refactor (Refactoring), docs (Documentation), chore (Miscellaneous), (4) ChangelogEntry: version, date, categories with commit lists, (5) format_markdown() -- output in Keep a Changelog format, (6) update_changelog() -- prepend entry to CHANGELOG.md, create file if not exists, (7) detect_breaking() -- check for BREAKING CHANGE footer or ! after type, (8) Config: section_order, commit_link_template, max_commits_per_section, exclude_patterns.
+    _Files: ~/zion/projects/agent-orchestration/changelog_generator.py_
+  - [ ] Generator parses conventional commits (feat:, fix:, breaking:, chore:, docs:) and categorizes them
+    _Validation: test with sample commits_
+  - [ ] Generated changelog follows Keep a Changelog format
+    _Validation: inspect output format_
+  _~100 LOC_
+- [ ] **Semantic version calculator** -- Calculate next version number based on commit categories and current version
+  - [ ] `p178.d2.t1` Add semver calculator to changelog_generator.py (depends: p178.d1.t1)
+    > Extend changelog_generator.py: (1) SemVer class: major, minor, patch, prerelease, build, (2) parse(version_string) -- parse semver string, (3) next_version(commits, current_version) -> SemVer, (4) Rules: any breaking change -> bump major, any feat -> bump minor, any fix/perf -> bump patch, chore/docs/refactor alone -> no bump (but still include in changelog), (5) Prerelease handling: if current is prerelease, feat bumps prerelease number not minor (unless explicitly requested), (6) tag_version() -- create git tag with calculated version, (7) CLI: python3 changelog_generator.py --version --repo <path> --dry-run.
+    _Files: ~/zion/projects/agent-orchestration/changelog_generator.py_
+  - [ ] Calculator follows semver 2.0 rules: breaking -> major, feat -> minor, fix -> patch
+    _Validation: test version calculation_
+  - [ ] Supports pre-release versions (alpha, beta, rc)
+    _Validation: test pre-release handling_
+  _~60 LOC_
+- [ ] **Changelog pipeline integration** -- Add changelog generation and version tagging as DAG pipeline nodes
+  - [ ] `p178.d3.t1` Add CHANGELOG and TAG_VERSION node types to DAG (depends: p178.d1.t1, p178.d2.t1, p5.d1.t1, p68.d3.t1)
+    > Modify dag.py and executor.py: (1) Add NodeType.CHANGELOG -- runs changelog_generator.generate(), outputs generated markdown, (2) Add NodeType.TAG_VERSION -- runs semver calculator and creates git tag, (3) Update release-pipeline.yaml (phase 68) to include CHANGELOG node before TAG_VERSION, (4) CHANGELOG node config: since_ref (default: last tag), format (markdown), output_file (CHANGELOG.md), (5) TAG_VERSION node config: bump_rule (auto|major|minor|patch), dry_run (bool), tag_prefix (default: v).
+    _Files: ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/pipelines/release-pipeline.yaml_
+  - [ ] Pipeline YAML includes CHANGELOG and TAG_VERSION node types
+    _Validation: test pipeline with changelog nodes_
+  - [ ] Release pipeline from phase 68 can use changelog node for automatic changelog generation
+    _Validation: verify integration with release pipeline_
+  _~50 LOC_
+- [ ] **Changelog and semver tests** -- Test commit parsing, version calculation, changelog formatting, and pipeline integration
+  - [ ] `p178.d4.t1` Create test_changelog.py (depends: p178.d1.t1, p178.d2.t1, p178.d3.t1)
+    > Test cases: (1) Parse conventional commit with scope: feat(auth): add OAuth2 support, (2) Parse breaking change: feat(api)!: redesign endpoint schema, (3) Parse BREAKING CHANGE footer, (4) Categorize mixed commits correctly, (5) Breaking change bumps major version, (6) Feat bumps minor version, (7) Fix bumps patch version, (8) Chore/docs alone do not bump version, (9) Prerelease handling: feat on 1.0.0-alpha.1 -> 1.0.0-alpha.2, (10) Prerelease promotion: 1.0.0-alpha.1 -> 1.0.0 on major bump, (11) Markdown output follows Keep a Changelog format, (12) CHANGELOG.md is correctly updated (prepended, not appended), (13) CHANGELOG node executes in DAG pipeline, (14) TAG_VERSION node creates correct git tag, (15) Dry-run mode does not modify files or create tags.
+    _Files: ~/zion/projects/agent-orchestration/test_changelog.py_
+  - [ ] Test file covers all commit types, version bump rules, and node execution
+    _Validation: python3 -m pytest test_changelog.py -v_
+  _~80 LOC_
+
+### Technical Notes
+
+This phase assumes agents produce conventional commits (type(scope): description format). Phase 12 (PR automation) should be configured to generate conventional commit messages. If agents do not use conventional commits, the changelog generator falls back to a basic git log summary. The semver calculator is conservative: when in doubt, it bumps patch rather than minor/major.
+
+### Risks
+
+- Agents may not produce conventional commits -- need fallback to basic git log parsing
+- Breaking change detection is heuristic-based -- may miss implicit breaking changes
+- Changelog quality depends on commit message quality -- provide commit message templates in agent guides
