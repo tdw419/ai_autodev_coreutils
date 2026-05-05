@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/155 phases complete, 0 in progress
+**Progress:** 23/160 phases complete, 0 in progress
 
-**Deliverables:** 90/593 complete
+**Deliverables:** 90/603 complete
 
-**Tasks:** 90/604 complete
+**Tasks:** 90/619 complete
 
 ## Scope Summary
 
@@ -167,6 +167,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-153 AI Gateway Token Governance and Directional Guardrails | PLANNED | 0/2 | 260 | 9 |
 | phase-154 Three-Tier Watchdog with OS Signal-Based Recovery | PLANNED | 0/2 | 280 | 9 |
 | phase-155 Progressive Disclosure and Sub-Agent Proxy Streaming | PLANNED | 0/2 | 260 | 10 |
+| phase-156 Local LLM Crash Recovery with Smart Retry Taxonomy | PLANNED | 0/2 | 280 | 9 |
+| phase-157 DAG Failure Rerouting and Rework Loops | PLANNED | 0/2 | 280 | 8 |
+| phase-158 Metric-Driven Requirement Generation (Feedback Agent) | PLANNED | 0/2 | 260 | 8 |
+| phase-159 WebMCP Tool Contract Integration for Agent Web Verification | PLANNED | 0/2 | 280 | 8 |
+| phase-160 Executable Specification Schema and Spec-to-Task Compiler | PLANNED | 0/2 | 260 | 9 |
 
 ## Dependencies
 
@@ -704,6 +709,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-14 | phase-154 | soft | Health monitor provides process monitoring infrastructure |
 | phase-91 | phase-155 | soft | Web dashboard provides the output channel for progressive disclosure |
 | phase-106 | phase-155 | soft | Alerting infrastructure provides notification delivery for proxy streaming |
+| phase-70 | phase-156 | soft | Backpressure provides the circuit breaker framework that crash recovery extends |
+| phase-79 | phase-156 | soft | Backend abstraction provides the LLM interface that crash recovery wraps |
+| phase-5 | phase-157 | hard | Extends the DAG executor with failure rerouting capability |
+| phase-131 | phase-157 | soft | Attempt pattern provides failure history that complements DAG-level rerouting |
+| phase-44 | phase-158 | hard | Health scorecard provides the metrics that the feedback agent monitors |
+| phase-104 | phase-158 | soft | Governance reporting provides the reporting infrastructure that feedback agent extends to action |
+| phase-39 | phase-159 | soft | Browser verification provides the fallback when WebMCP is not available |
+| phase-111 | phase-159 | soft | MCP integration provides the protocol framework that WebMCP extends for web |
+| phase-5 | phase-160 | hard | DAG executor consumes the compiled task definitions |
+| phase-128 | phase-160 | soft | Spec-driven workflow provides the SPEC node type that this phase formalizes with a schema |
+| phase-158 | phase-160 | soft | Feedback agent consumes the success evaluation metrics extracted from specs |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -9713,6 +9729,274 @@ sends notifications but does NOT stream sub-agent progress in real-time. Phase 1
 
 - Output filtering may hide important diagnostic information -- ensure verbose mode is easily accessible
 - Proxy streaming adds complexity to the event system -- keep throttling simple and configurable
+
+## [ ] phase-156: Local LLM Crash Recovery with Smart Retry Taxonomy (PLANNED)
+
+**Goal:** Implement transient fault detection and recovery for local LLM backends that crash under resource pressure, distinguishing retriable from non-retriable errors
+
+The "RAG Loop Robustness Enhancements" research (247 lines, 17 citations) describes
+a critical failure mode in local LLM deployments: the "Model has unloaded or crashed"
+error that occurs when the underlying llama.cpp process exhausts VRAM/RAM. Unlike
+cloud APIs that return 503 with Retry-After headers, local LLM crashes often terminate
+communication entirely (ConnectionError, Timeout) rather than returning HTTP status
+codes. The research introduces a Transient Fault Taxonomy that classifies errors into
+retriable (ConnectionError, Timeout) vs non-retriable (4xx client errors), and implements
+exponential backoff with jitter to prevent cascading retry storms. Additionally, the
+research identifies a causal link between stateless API design and instability: as
+conversation history grows, retry payloads become heavier, increasing the probability
+of re-crashing the recovering server. Phase 70 (Backpressure) handles API rate limits
+for cloud services. Phase 119 (Preflight Doctor) validates environment readiness but
+does not handle runtime transient faults. Phase 79 (Backend Abstraction) abstracts
+backends but does not implement crash recovery logic. No existing phase handles the
+specific pattern of local LLM crash-recovery-retry cycles with payload-aware retry.
+
+
+### Deliverables
+
+- [ ] **Transient fault classifier** -- Classify LLM API errors into retriable vs non-retriable categories using exception type hierarchy
+  - [ ] `p156.d1.t1` Create transient fault classifier
+    > Create local_llm_retry.py: (1) FaultClassifier class that takes an exception and returns a RetryDecision (retry=True/False, delay_seconds, max_retries), (2) Classification hierarchy: requests.exceptions.ConnectionError -> retriable (high priority), requests.exceptions.Timeout -> retriable (high priority), HTTP 503 -> conditional retry with Retry-After header parsing, HTTP 4xx -> non-retriable (raise immediately), (3) Exponential backoff with jitter: delay = base_factor * 2^(attempt-1) + random_jitter, (4) Maximum retry count (configurable, default 5), (5) Retry budget awareness: track total retry time and abort if budget exceeded.
+    _Files: ~/zion/projects/agent-orchestration/local_llm_retry.py_
+  - [ ] ConnectionError and Timeout are classified as retriable with exponential backoff
+    _Validation: test error classification_
+  - [ ] HTTP 4xx errors are classified as non-retriable and raised immediately
+    _Validation: test non-retriable handling_
+  - [ ] HTTP 503 with Retry-After uses server-suggested delay
+    _Validation: test retry-after parsing_
+  _~120 LOC_
+- [ ] **Payload-aware retry with context reduction** -- Reduce retry payload size when re-attempting after crash to prevent re-crashing the recovering server
+  - [ ] `p156.d2.t1` Implement payload-aware retry (depends: p156.d1.t1)
+    > Add to local_llm_retry.py: (1) ContextReducer class that progressively reduces retry payload size, (2) On consecutive retry failures (attempt > 2), prune oldest messages from history to reduce payload weight, (3) Token budget calculation for retry payloads using tiktoken or character-based estimation, (4) Minimum viable context: always retain system prompt + current user query + last N messages, (5) Log payload reduction decisions for observability.
+    _Files: ~/zion/projects/agent-orchestration/local_llm_retry.py_
+  - [ ] `p156.d3.t1` Write crash recovery tests (depends: p156.d2.t1)
+    > Test cases: (1) ConnectionError triggers retry with backoff, (2) Timeout triggers retry with backoff, (3) HTTP 4xx does not retry, (4) HTTP 503 with Retry-After uses suggested delay, (5) Consecutive failures trigger payload reduction, (6) Oldest messages are pruned first, (7) System prompt is never pruned, (8) Max retry count is enforced, (9) Jitter prevents synchronized retries.
+    _Files: ~/zion/projects/agent-orchestration/test_local_llm_retry.py_
+  - [ ] Retry payloads are progressively reduced on consecutive failures
+    _Validation: test payload reduction_
+  - [ ] Oldest messages are pruned first when reducing payload
+    _Validation: test pruning order_
+  _~80 LOC_
+
+### Technical Notes
+
+The research identifies a critical feedback loop: as conversation history grows, retry payloads become heavier, which increases the probability of crashing the recovering server. This creates a cascading failure cycle. The payload-aware retry breaks this cycle by reducing context on each consecutive failure. The jitter prevents the "thundering herd" problem when multiple agents retry simultaneously. The fault taxonomy is specifically designed for local LLM deployments where errors manifest as connection failures rather than HTTP status codes.
+
+### Risks
+
+- Payload reduction may cause the LLM to lose critical context -- always retain system prompt and current query
+- Exponential backoff may add unacceptable latency for time-sensitive tasks -- make backoff configurable
+- tiktoken adds a dependency -- fall back to character-based estimation (1 token ~= 4 chars)
+
+## [ ] phase-157: DAG Failure Rerouting and Rework Loops (PLANNED)
+
+**Goal:** Extend the DAG executor to support failure reroute pointers that enable automatic rework cycles when tasks fail
+
+The "Spec-Driven Autonomous Pipeline" research (187 lines, 8 citations) describes
+an executable task schema that includes an `on_failure_reroute_task_id` field. This
+enables DAGs that support rework cycles (A -> Test -> A if test fails) rather than
+just linear progression (A -> B -> C). The research argues that standard DAG modeling
+is insufficient for iterative software development, which inherently includes cycles
+of rework and debugging. The failure reroute pointer transforms the DAG from a
+purely sequential execution graph into a state machine capable of handling iterative
+improvement. Phase 5 (DAG Executor) handles dependency ordering and conditional
+branching but does NOT support failure-triggered rerouting. Phase 131 (Attempt
+Pattern) preserves failure history across attempts but operates at the task level,
+not within the DAG structure. No existing phase enables the DAG itself to route
+execution to a different node when a task fails.
+
+
+### Deliverables
+
+- [ ] **Failure reroute extension to DAG executor** -- Add on_failure_reroute_task_id support to the DAG execution engine
+  - [ ] `p157.d1.t1` Extend DAG executor with failure rerouting
+    > Modify dag.py: (1) Add optional `on_failure_reroute_task_id` field to node definitions, (2) When a node execution fails and reroute is specified, execute the target node instead of marking the DAG as failed, (3) Track reroute depth per node: increment each time execution is rerouted to a node, (4) Enforce maximum reroute depth (configurable, default 3) to prevent infinite loops, (5) After reroute target succeeds, re-execute the original failed node, (6) Log all reroute events with: source_node, target_node, failure_reason, reroute_depth, (7) Support conditional rerouting: `on_failure_reroute_task_id` can be a dict mapping error types to targets.
+    _Files: ~/zion/projects/agent-orchestration/dag.py_
+  - [ ] Tasks can specify a reroute target that executes when the task fails
+    _Validation: test failure reroute execution_
+  - [ ] Maximum reroute depth is enforced to prevent infinite loops
+    _Validation: test max depth enforcement_
+  - [ ] Reroute history is tracked in execution logs
+    _Validation: check log output_
+  _~120 LOC_
+- [ ] **Rework loop pipeline templates** -- Create pre-built DAG templates with failure rerouting for common rework patterns
+  - [ ] `p157.d2.t1` Create rework loop pipeline templates (depends: p157.d1.t1)
+    > Create rework_templates.py: (1) implement_test_fix_loop() template: implement -> test -> (on failure) -> fix -> test, (2) review_fix_resubmit() template: implement -> review -> (on rejection) -> fix -> review, (3) Each template includes max reroute depth, timeout per cycle, and escalation on exhaustion, (4) Templates use the extended DAG executor from p157.d1.t1.
+    _Files: ~/zion/projects/agent-orchestration/rework_templates.py_
+  - [ ] `p157.d3.t1` Write failure reroute tests (depends: p157.d2.t1)
+    > Test cases: (1) Failed task with reroute executes the reroute target, (2) After reroute succeeds, original task is re-executed, (3) Max reroute depth prevents infinite loops, (4) Reroute history is logged, (5) Conditional rerouting by error type works, (6) implement_test_fix_loop template cycles correctly, (7) review_fix_resubmit template handles rejection, (8) Reroute exhaustion marks DAG as failed with clear error.
+    _Files: ~/zion/projects/agent-orchestration/test_rework.py_
+  - [ ] Implement-test-fix template re-routes failed tests to a fix task
+    _Validation: test template execution_
+  - [ ] Review-fix-resubmit template handles review rejection gracefully
+    _Validation: test review reroute_
+  _~80 LOC_
+
+### Technical Notes
+
+The research describes the on_failure_reroute_task_id as a pointer in the task schema that enables the orchestrator to manage rework cycles as part of the DAG structure rather than external retry logic. This is fundamentally different from retry (same task again) -- reroute executes a DIFFERENT task (e.g., a fix task) that addresses the failure. The max depth enforcement is critical: without it, a buggy fix task could create an infinite loop. The conditional rerouting by error type enables sophisticated patterns like "on timeout -> reduce scope, on test failure -> fix bugs, on review rejection -> address feedback."
+
+### Risks
+
+- Reroute loops can consume significant tokens -- enforce both depth and total time limits
+- Conditional rerouting by error type requires consistent error classification -- may need an error taxonomy registry
+- Modifying dag.py could break existing pipeline templates -- ensure backward compatibility with optional field
+
+## [ ] phase-158: Metric-Driven Requirement Generation (Feedback Agent) (PLANNED)
+
+**Goal:** Automatically generate new requirements when runtime metrics deviate from spec-defined success criteria, closing the governance feedback loop
+
+The "Spec-Driven Autonomous Pipeline" research (187 lines, 8 citations) describes a
+"Feedback Agent" that continuously compares runtime performance metrics against the
+objective success criteria defined in the technical specification. When a deviation
+is detected (e.g., latency exceeds target, test coverage drops below threshold), the
+Feedback Agent automatically generates a new requirement document that becomes input
+for the next planning cycle. This creates a closed-loop governance system where the
+orchestrator not only executes tasks but also identifies when outcomes don't meet
+specifications and files new work to address the gap. Phase 44 (Health Scorecard)
+tracks KPIs. Phase 19 (Self-Improvement) optimizes strategies. Phase 104 (Governance
+Reporting) generates compliance reports. But no existing phase automatically
+TRANSFORMS metric deviations into new actionable requirements. The feedback loop
+currently ends at "reporting" -- this phase closes the loop at "action."
+
+
+### Deliverables
+
+- [ ] **Metric deviation detector** -- Compare runtime metrics against spec-defined thresholds and flag deviations
+  - [ ] `p158.d1.t1` Create metric deviation detector
+    > Create metric_deviation.py: (1) MetricDeviationDetector class that takes a metric name, current value, target value, and tolerance, (2) Deviation types: drift (gradual trend away from target over N measurements), breach (single value exceeds threshold), improvement (value moving toward target), (3) Trend detection using simple linear regression on last N measurements, (4) Severity levels: info (within tolerance), warning (approaching threshold), critical (exceeding threshold), (5) Configurable per-metric thresholds and tolerances, (6) Store deviation events with timestamp, metric, severity, direction (improving/worsening).
+    _Files: ~/zion/projects/agent-orchestration/metric_deviation.py_
+  - [ ] Metric values are compared against spec-defined targets with configurable tolerance
+    _Validation: test threshold comparison_
+  - [ ] Deviations are classified as drift (gradual) or breach (sudden)
+    _Validation: test deviation classification_
+  _~100 LOC_
+- [ ] **Requirement generator from deviations** -- Transform detected metric deviations into structured requirement documents for the next planning cycle
+  - [ ] `p158.d2.t1` Create requirement generator (depends: p158.d1.t1)
+    > Create feedback_agent.py: (1) FeedbackAgent class that consumes deviation events and generates requirements, (2) Requirement template: title (metric name + deviation type), description (current value, target value, trend analysis), acceptance_criteria (metric must return to within tolerance), suggested_approach (based on deviation type), priority (critical for breaches, normal for drift), (3) Deduplication: don't file duplicate requirements for the same metric deviation, (4) Auto-close: when a metric returns to within tolerance, close the generated requirement, (5) Rate limiting: max N requirements per day to prevent issue spam, (6) Integration with poller: requirements are filed via the same issue-tracker-as-control-plane mechanism.
+    _Files: ~/zion/projects/agent-orchestration/feedback_agent.py_
+  - [ ] `p158.d3.t1` Write feedback agent tests (depends: p158.d2.t1)
+    > Test cases: (1) Drift is detected from trend analysis, (2) Breach is detected from single value, (3) Deviation severity levels are correctly assigned, (4) Requirements are generated with correct template, (5) Duplicate requirements are not filed, (6) Requirements are auto-closed when metric recovers, (7) Rate limiting prevents excessive issue filing, (8) Integration with issue tracker works end-to-end.
+    _Files: ~/zion/projects/agent-orchestration/test_feedback_agent.py_
+  - [ ] Metric deviations are converted to requirement documents with clear problem statement and success criteria
+    _Validation: test requirement generation_
+  - [ ] Generated requirements are filed as issues in the control plane
+    _Validation: test issue filing_
+  _~80 LOC_
+
+### Technical Notes
+
+The research describes the Feedback Agent as the component that "compares runtime performance against the objective criteria defined in the specification and generates the input for the next cycle's Planning phase." This is fundamentally different from alerting (phase 106) which notifies humans, or governance reporting (phase 104) which aggregates data for stakeholders. The Feedback Agent autonomously GENERATES new work items based on metric deviations, closing the governance loop from monitoring to action. The deduplication and rate limiting are essential to prevent the system from flooding the issue tracker with requirements during sustained metric degradation.
+
+### Risks
+
+- Auto-generated requirements could create a feedback loop of infinite work -- rate limiting and manual review gate are essential
+- Metric deviations may have external causes (infrastructure, third-party) that filing a requirement cannot fix -- add root cause classification
+- Trend detection with simple linear regression may produce false positives for metrics with natural variance -- require minimum N data points before triggering
+
+## [ ] phase-159: WebMCP Tool Contract Integration for Agent Web Verification (PLANNED)
+
+**Goal:** Replace visual browser automation with structured WebMCP tool contracts for token-efficient, reliable web-based verification
+
+The "WebMCP: AI-Web Interaction Standard" research (375 lines, 47 citations) describes
+a paradigm shift from visual browser automation (Chrome DevTools, screenshotting) to
+structured tool contracts where websites expose functionality as typed API calls. The
+research quantifies the improvement: traditional vision-based web interaction consumes
+70-90% of context window on HTML/screenshots, while WebMCP uses only 15-25%, achieving
+65-89% token reduction. WebMCP introduces three pillars: Context (session state and
+history), Capabilities (published tool contracts with JSON Schema), and Coordination
+(human-in-the-loop consent via requestUserInteraction()). Phase 39 (Browser-Based UI
+Verification) uses Chrome DevTools Protocol for visual verification. Phase 111 (MCP
+Integration) adds MCP server/client support but focuses on general tool discovery,
+not web-specific tool contracts. No existing phase implements WebMCP-style structured
+web interaction that could replace expensive visual browser automation with direct
+function calls.
+
+
+### Deliverables
+
+- [ ] **WebMCP tool contract adapter** -- Discover and invoke WebMCP tool contracts from agent execution context
+  - [ ] `p159.d1.t1` Create WebMCP adapter
+    > Create webmcp_adapter.py: (1) WebMCPClient class that connects to WebMCP-enabled websites via navigator.modelContext, (2) discover_tools(url) method that retrieves published tool contracts (name, description, inputSchema, readOnlyHint), (3) invoke_tool(url, tool_name, params) method that executes tool calls and returns structured results, (4) Session context management: track web session state across multiple tool invocations, (5) Fallback to visual automation when WebMCP is not available on target site, (6) Tool contract caching: cache discovered tools per domain to avoid repeated discovery, (7) Token savings estimation: compare tool-call token cost vs equivalent visual interaction.
+    _Files: ~/zion/projects/agent-orchestration/webmcp_adapter.py_
+  - [ ] WebMCP tool contracts are discovered from target websites
+    _Validation: test tool discovery_
+  - [ ] Tool invocations use structured input/output instead of visual interaction
+    _Validation: test tool invocation_
+  _~120 LOC_
+- [ ] **WebMCP-based verification pipeline node** -- DAG node type that uses WebMCP for web verification instead of visual browser automation
+  - [ ] `p159.d2.t1` Create WebMCP verification node (depends: p159.d1.t1)
+    > Extend dag.py with WebMCP verification node: (1) webmcp_verify node type that takes URL and verification criteria, (2) Auto-discover available tools on target page, (3) Map verification criteria to tool invocations (e.g., "check form submission" -> invoke submit tool), (4) Compare structured results against expected outcomes, (5) Fall back to CDP-based visual verification if WebMCP unavailable, (6) Report token savings in execution log, (7) Support readOnlyHint for safe pre-PR verification (no state modification).
+    _Files: ~/zion/projects/agent-orchestration/dag.py_
+  - [ ] `p159.d3.t1` Write WebMCP adapter tests (depends: p159.d2.t1)
+    > Test cases: (1) Tool discovery returns published contracts, (2) Tool invocation with valid params succeeds, (3) Tool invocation with invalid params returns schema error, (4) Fallback to CDP when WebMCP unavailable, (5) Session context persists across invocations, (6) Token savings estimation is calculated, (7) readOnlyHint is respected in verification mode, (8) Verification node produces pass/fail result.
+    _Files: ~/zion/projects/agent-orchestration/test_webmcp.py_
+  - [ ] Verification DAG node uses WebMCP when available, falls back to CDP
+    _Validation: test node execution_
+  - [ ] Token usage is reduced by 50%+ compared to visual verification
+    _Validation: compare token counts_
+  _~80 LOC_
+
+### Technical Notes
+
+The research describes WebMCP as an extension of MCP specifically adapted for the web browser security model. The key innovation is the Declarative API where HTML forms can become tools with minimal markup changes (semantic attributes), and the Imperative API for dynamic JavaScript-driven tool registration. The three-pillar design (Context, Capabilities, Coordination) maps well to the orchestrator pattern: Context maps to session state management, Capabilities maps to tool discovery, and Coordination maps to safety approval gates. The 65-89% token reduction makes this a high-value optimization for dark factory mode where agents verify their own work via web UIs.
+
+### Risks
+
+- WebMCP is a proposed W3C standard with limited adoption -- treat as optional enhancement, not required
+- WebMCP tool contracts may not be available on most websites in the near term -- fallback to CDP is essential
+- Structured web interaction may miss visual bugs that only screenshot-based verification would catch -- keep visual verification as fallback
+
+## [ ] phase-160: Executable Specification Schema and Spec-to-Task Compiler (PLANNED)
+
+**Goal:** Implement a machine-readable specification format with success criteria that compiles directly into executable DAG tasks
+
+The "Spec-Driven Autonomous Pipeline" research (187 lines, 8 citations) describes
+transforming technical specifications from passive documentation into "executable
+contracts" that serve as the definitive source of truth for agent execution. The
+key insight is the chain: High-Level Input -> Roadmap -> Detailed Spec -> Executable
+Task Schema -> Reliable Code. The spec must include: Solutions (design, rollback plan),
+Success Evaluation (quantifiable metrics), and Work (specific, measurable tasks with
+dependencies and failure rerouting). Phase 128 (Spec-Driven Workflow) adds a SPEC
+node type to the DAG but does not define a structured specification FORMAT with
+machine-readable success criteria. Phase 5 (DAG Executor) defines pipeline templates
+but not the specification-to-task compilation step. Phase 26 (Work Decomposition)
+breaks issues into sub-issues but not from a formal spec document. No existing phase
+defines the specification SCHEMA or implements the spec-to-task COMPILATION step.
+
+
+### Deliverables
+
+- [ ] **Executable specification schema** -- Define a YAML schema for machine-readable specifications with success criteria and rollback plans
+  - [ ] `p160.d1.t1` Define executable spec schema
+    > Create spec_schema.py: (1) SpecSchema class with JSON Schema validation for specification YAML, (2) Required sections: metadata (title, version, author, created), solutions (design_description, data_model_changes, rollback_plan as list of reverse operations), success_evaluation (list of metrics with name, target_value, tolerance, measurement_tool), work (list of tasks with description, dependencies, assigned_agent, estimated_effort, on_failure_reroute_task_id), (3) validate_spec(spec_yaml) function that checks schema compliance and returns validation errors, (4) Spec template generator for common task types, (5) Schema versioning for forward compatibility.
+    _Files: ~/zion/projects/agent-orchestration/spec_schema.py_
+  - [ ] Spec schema includes solutions, success_evaluation, and work sections
+    _Validation: validate spec against schema_
+  - [ ] Success criteria include quantifiable metrics with thresholds
+    _Validation: test metric definitions_
+  _~100 LOC_
+- [ ] **Spec-to-task compiler** -- Compile executable specifications into DAG task definitions ready for orchestration
+  - [ ] `p160.d2.t1` Create spec-to-task compiler (depends: p160.d1.t1)
+    > Create spec_compiler.py: (1) SpecCompiler class that takes a validated spec YAML and produces DAG node definitions, (2) Each work item becomes a DAG node with description, dependencies mapped to node ordering, and on_failure_reroute_task_id from the spec, (3) Extract success_evaluation metrics and register them with the metric deviation detector (phase 158), (4) Extract rollback_plan and associate it with the DAG for emergency use, (5) Generate a pipeline summary: total tasks, critical path, estimated effort, risk level, (6) Support incremental compilation: only recompile changed sections when spec is updated.
+    _Files: ~/zion/projects/agent-orchestration/spec_compiler.py_
+  - [ ] `p160.d3.t1` Write spec schema and compiler tests (depends: p160.d2.t1)
+    > Test cases: (1) Valid spec passes schema validation, (2) Missing required sections fail validation, (3) Success metrics have quantifiable targets, (4) Work items compile to DAG nodes, (5) Dependencies are correctly mapped to node ordering, (6) Failure reroute pointers are preserved in compiled nodes, (7) Success metrics are registered with deviation detector, (8) Rollback plan is associated with compiled DAG, (9) Incremental compilation only recompiles changed sections.
+    _Files: ~/zion/projects/agent-orchestration/test_spec_compiler.py_
+  - [ ] Spec work section compiles to DAG node definitions
+    _Validation: test compilation output_
+  - [ ] Success evaluation metrics are extracted and registered with health scorecard
+    _Validation: test metric registration_
+  _~80 LOC_
+
+### Technical Notes
+
+The research describes the specification as an "executable contract" that serves as the definitive source of truth. The critical innovation is the Success Evaluation section with quantifiable metrics -- this is what enables the Feedback Agent (phase 158) to close the governance loop. The Rollback Plan section is specifically designed to be "structured such that the orchestrator can execute it immediately" as a list of reverse operations, not prose. The compilation step bridges the gap between human-readable specifications and machine-executable DAG definitions, ensuring that the spec is not just documentation but a direct input to the orchestration pipeline.
+
+### Risks
+
+- Overly rigid spec schema may not fit all project types -- support schema extensions and custom sections
+- Spec compilation adds a planning step that increases latency before implementation -- support skipping for simple tasks
+- Rollback plans generated by agents may be incorrect -- require human review for high-risk rollbacks
 
 ## Conventions
 
