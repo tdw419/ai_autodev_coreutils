@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/181 phases complete, 0 in progress
+**Progress:** 23/185 phases complete, 0 in progress
 
-**Deliverables:** 90/669 complete
+**Deliverables:** 90/685 complete
 
-**Tasks:** 90/693 complete
+**Tasks:** 90/709 complete
 
 ## Scope Summary
 
@@ -193,6 +193,10 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-179 Ticket Feasibility Pre-Assessment | PLANNED | 0/4 | 410 | 12 |
 | phase-180 Session Change Budget Enforcement | PLANNED | 0/4 | 360 | 13 |
 | phase-181 Agent Approach Recommendation Engine | PLANNED | 0/4 | 440 | 14 |
+| phase-182 Orchestrator Soak Testing and Long-Running Stability | PLANNED | 0/4 | 570 | 8 |
+| phase-183 Agent Output Regression Detection | PLANNED | 0/4 | 540 | 10 |
+| phase-184 Pipeline Efficiency Analytics and Token Optimization | PLANNED | 0/4 | 550 | 12 |
+| phase-185 Orchestrator Disaster Recovery and Full State Reconciliation | PLANNED | 0/4 | 570 | 8 |
 
 ## Dependencies
 
@@ -821,6 +825,32 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-28 | phase-181 | soft | Speculative execution (phase-28) is the fallback when recommendations have low confidence |
 | phase-29 | phase-181 | soft | A/B testing analytics (phase-29) validate recommendation accuracy over time |
 | phase-179 | phase-181 | soft | Feasibility assessment (phase-179) runs before approach recommendation |
+| phase-4 | phase-182 | soft | Soak testing exercises the orchestrator loop from phase 4 under sustained load |
+| phase-11 | phase-182 | soft | Workspace lifecycle from phase 11 is a primary source of potential resource leaks |
+| phase-8 | phase-182 | soft | Execution history from phase 8 is a potential source of state file bloat |
+| phase-50 | phase-182 | soft | Chaos engineering (phase-50) tests fault injection; soak testing tests sustained operation -- complementary validation |
+| phase-14 | phase-182 | soft | Health monitoring from phase 14 provides the metrics infrastructure that soak testing validates under load |
+| phase-69 | phase-182 | soft | Integration test suite (phase-69) validates correctness; soak testing validates stability -- both needed for production confidence |
+| phase-5 | phase-183 | soft | Reference tasks run through the DAG executor pipeline from phase 5 |
+| phase-9 | phase-183 | soft | Review sensor from phase 9 provides the inferential quality score used as a regression dimension |
+| phase-8 | phase-183 | soft | Execution history from phase 8 records model versions and execution context for correlation analysis |
+| phase-35 | phase-183 | soft | Dark factory mode (phase 35) requires automated quality assurance -- regression detection is a critical safety net for zero-human-review operation |
+| phase-61 | phase-183 | soft | Quality regression testing (phase 61) tests orchestrator code quality; this phase tests agent output quality -- complementary |
+| phase-106 | phase-183 | soft | Alerting system from phase 106 provides the notification channel for regression alerts |
+| phase-44 | phase-183 | soft | Health scorecard from phase 44 should include regression trends as a quality signal |
+| phase-5 | phase-184 | soft | Pipeline profiler instruments the DAG executor from phase 5 |
+| phase-32 | phase-184 | soft | Cost tracker from phase 32 provides the token tracking infrastructure that profiling extends with per-node granularity |
+| phase-9 | phase-184 | soft | Review sensor from phase 9 provides quality scores that efficiency analysis correlates with token consumption |
+| phase-20 | phase-184 | soft | Context budget from phase 20 manages token budgets; efficiency analysis identifies where budgets are being wasted |
+| phase-77 | phase-184 | soft | Pipeline template library (phase 77) is where optimization recommendations are applied -- templates should be pre-optimized based on analysis |
+| phase-48 | phase-184 | soft | Cost optimization (phase 48) provides the financial analysis; this phase provides the technical analysis -- complementary |
+| phase-8 | phase-185 | soft | Execution history from phase 8 is the primary state that disaster recovery must preserve or reconstruct |
+| phase-11 | phase-185 | soft | Workspace metadata from phase 11 is critical state for tracking in-progress work |
+| phase-25 | phase-185 | soft | State recovery (phase 25) handles task-level recovery; disaster recovery (phase 185) handles orchestrator-level recovery -- phase 25 is a subset of phase 185 |
+| phase-21 | phase-185 | soft | Merge queue state from phase 21 must be preserved or reconstructable in disaster recovery |
+| phase-32 | phase-185 | soft | Cost tracking state from phase 32 must be preserved for financial continuity |
+| phase-4 | phase-185 | soft | Orchestrator from phase 4 is the system being recovered -- it must be able to start from reconstructed state |
+| phase-83 | phase-185 | soft | State persistence layer (phase 83) defines how state is stored; disaster recovery defines how it is backed up and reconstructed |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -11301,3 +11331,230 @@ The recommendation engine is essentially a simple statistical model, not an ML s
 - Concept drift: optimal approaches may change over time (e.g., after model upgrades) -- recency weighting helps but is not perfect
 - Task type classification may be too coarse (e.g., "bug" covers trivial typo fixes and complex race conditions) -- allow sub-classification
 - Recommendation engine may create a feedback loop where successful approaches are always chosen, preventing exploration of new approaches -- periodically inject random exploration
+
+## [ ] phase-182: Orchestrator Soak Testing and Long-Running Stability (PLANNED)
+
+**Goal:** Validate that the orchestrator can run continuously for extended periods (24h+) under realistic concurrent workload without degradation, memory leaks, or state corruption
+
+The Gas Town research describes managing "20-30 Claude Code instances working concurrently" in a system that runs "24/7, constantly refactoring, testing, and improving its own codebase." The Dark Factory experiment consumed over 1B tokens/day in continuous operation. However, none of the existing 181 phases validate that the Hermes orchestrator can actually sustain this level of operation. Phase-7 adds unit/integration tests. Phase-69 adds an integration test suite. Phase-50 adds chaos engineering. But none of these run the orchestrator for extended periods under realistic concurrent load to detect slow degradation patterns like memory leaks, file descriptor exhaustion, state file bloat, workspace accumulation, or gradual performance degradation. This phase creates a soak test framework that runs the orchestrator with synthetic workloads for 24+ hours, continuously monitoring for stability issues that only manifest over time.
+
+
+### Deliverables
+
+- [ ] **Soak test framework with synthetic workload generator** -- Create a framework that runs the orchestrator with mock poller/spawner/executor for extended periods, generating synthetic issues at configurable rates
+  - [ ] `p182.d1.t1` Create soak test framework with synthetic workload generator (depends: p4.d3.t1)
+    > Create soak_test.py: (1) SoakTestConfig: duration_hours (default 24), issue_rate (issues/min, default 10), max_concurrent (default 5), failure_rate (0-1, default 0.05), workspace_base_dir (temp), (2) SyntheticPoller: generates issues at configured rate with random labels and titles from a predefined pool, returns structured task objects, (3) SyntheticSpawner: creates workspace directories, simulates work by sleeping for random duration (30s-5min), writes mock files to workspace, updates workspace state, (4) SyntheticExecutor: simulates pipeline execution with configurable success/failure rates, tracks execution time per node, (5) SoakTestRunner: orchestrates the test, starts poller-spawner-executor loop, monitors resource usage (memory, file descriptors, disk space, workspace count), collects metrics at 1-minute intervals, (6) Stop conditions: duration reached, resource threshold exceeded (memory > 2GB, workspace count > 1000, disk > 90%), crash detected, (7) CLI: python3 soak_test.py --duration 24 --rate 10 --max-concurrent 5 --output results.json.
+    _Files: ~/zion/projects/agent-orchestration/soak_test.py_
+  - [ ] Framework runs orchestrator loop for 24+ hours without manual intervention
+    _Validation: run soak test and verify completion_
+  - [ ] Synthetic workload generates configurable issue rates (1/min, 10/min, 50/min)
+    _Validation: check workload configuration_
+  - [ ] Mock components (poller, spawner, executor) produce realistic but deterministic behavior
+    _Validation: read mock implementations_
+  _~200 LOC_
+- [ ] **Resource monitoring and degradation detection** -- Monitor orchestrator resource consumption during soak tests and detect degradation patterns
+  - [ ] `p182.d2.t1` Create resource monitor with degradation detection (depends: p182.d1.t1)
+    > Create soak_monitor.py: (1) ResourceCollector: samples process memory (via /proc/PID/status or psutil), CPU usage, open file descriptors (ls /proc/PID/fd | wc -l), workspace directory count, state file sizes (execution_log.json, workspace_metadata), disk usage of workspace base, (2) MetricsStore: time-series storage for all metrics, append-only JSONL format, (3) DegradationDetector: analyze metrics for patterns -- memory leak (linear or super-linear growth over time, threshold: > 10% growth per hour), execution time creep (average task time increasing, threshold: > 20% increase from baseline), state file bloat (file size growing without proportional task count increase), resource exhaustion prediction (extrapolate current trends to predict when limits will be hit), (4) Alert conditions: any degradation pattern detected, resource usage > 80% of limit, (5) Report generation: summary statistics, trend charts (ASCII), detected anomalies, predicted failure time.
+    _Files: ~/zion/projects/agent-orchestration/soak_monitor.py_
+  - [ ] Monitors: memory, CPU, open file descriptors, workspace count, state file size, disk usage
+    _Validation: check monitoring output_
+  - [ ] Detects degradation: memory trend (linear growth = leak), execution time trend (slowing = bloat), state file growth rate
+    _Validation: test with intentionally leaky mock_
+  _~150 LOC_
+- [ ] **Workspace lifecycle validation under load** -- Verify that workspace creation, usage, and cleanup work correctly under sustained concurrent load
+  - [ ] `p182.d3.t1` Add workspace lifecycle validation to soak test (depends: p182.d1.t1, p11.d1.t1)
+    > Extend soak_test.py: (1) After test completion, scan workspace_base_dir for orphan directories (created but not tracked in workspace_manager state), (2) Scan state files for references to deleted workspaces (dangling references), (3) Verify workspace count matches expected count (issues spawned - issues completed - issues failed), (4) Check for file descriptor leaks (workspaces with open files after completion), (5) Validate state file integrity: JSON parse all state files, check for corruption, verify monotonic timestamps, (6) Generate cleanup report: orphan workspaces found, dangling references found, corrupted state files found, cleanup actions taken.
+    _Files: ~/zion/projects/agent-orchestration/soak_test.py_
+  - [ ] All workspaces created during soak test are properly tracked and cleaned up
+    _Validation: check workspace state after test_
+  - [ ] No orphan workspaces or state files remain after test completion
+    _Validation: scan filesystem post-test_
+  _~100 LOC_
+- [ ] **Soak test integration and CI readiness** -- Make soak tests runnable as part of CI with shortened duration, and document results format
+  - [ ] `p182.d4.t1` Create test_soak.py with CI integration (depends: p182.d1.t1, p182.d2.t1, p182.d3.t1)
+    > Create test_soak.py: (1) Short soak test (1 hour, 5 issues/min, 3 concurrent) for CI, (2) Assert no degradation detected, no orphan workspaces, no state corruption, (3) Assert memory growth < 5% per hour, execution time stable within 10%, (4) Assert workspace count matches expected (all created, all tracked, all cleaned), (5) Test with intentionally degraded mocks: memory-leaking spawner (should be detected), slowing executor (should be detected), (6) Document full soak test procedure: how to run 24h test, how to interpret results, what to do if degradation is found, (7) Create soak_test_quick.sh script for ad-hoc validation.
+    _Files: ~/zion/projects/agent-orchestration/test_soak.py_
+  - [ ] Short soak test (1 hour) runs in CI and passes
+    _Validation: run CI soak test_
+  - [ ] Full soak test (24 hour) documented as manual validation step
+    _Validation: read documentation_
+  _~120 LOC_
+
+### Technical Notes
+
+Soak testing is fundamentally different from integration testing and chaos engineering. Integration tests verify correctness (does it work right?). Chaos tests verify resilience (does it recover from failures?). Soak tests verify stability (does it keep working over time?). The Gas Town and Dark Factory research both assume continuous 24/7 operation, which is exactly what soak testing validates. The Hermes orchestrator runs as a cron job, so it restarts periodically, but state accumulates across restarts. The soak test should simulate this pattern: periodic restarts with persistent state, not just a single long-running process. Keep the synthetic workload realistic but cheap: no actual LLM calls, no actual git operations, just file I/O and state management.
+
+### Risks
+
+- Soak tests are time-consuming -- provide both quick (1h) and full (24h) variants
+- Synthetic workload may not accurately model real orchestrator behavior -- calibrate against production metrics when available
+- Resource limits on the test machine may cause false positives -- document expected resource consumption and set appropriate thresholds
+- State file corruption may be hard to detect with simple JSON parsing -- consider checksumming critical fields
+
+## [ ] phase-183: Agent Output Regression Detection (PLANNED)
+
+**Goal:** Detect when the same type of task produces worse output quality over time (due to model updates, prompt drift, or environment changes) without requiring human review
+
+The Dark Factory model operates with "0% human review" and treats "code as a disposable artifact." This works because the harness enforces quality gates. However, a critical blind spot exists: what happens when the underlying model changes (e.g., Claude gets updated from v3.5 to v4) and the same task now produces worse output? The deterministic sensors (linters, tests) catch syntax errors and test failures, but they cannot detect semantic quality regression (e.g., code that passes tests but is less readable, less efficient, or uses deprecated patterns). The research emphasizes that "the strategic advantage belongs to those with the most effective system around them" -- but system effectiveness degrades silently if agent output quality regresses. Phase-61 (Quality Regression Testing) tests the orchestrator code itself. Phase-9 (Inferential Sensor) reviews individual outputs. But neither tracks quality trends over time for the same task type. This phase creates a regression detection system that periodically re-runs reference tasks (known-good tasks with established baselines) and compares new outputs against baselines to detect quality drift.
+
+
+### Deliverables
+
+- [ ] **Reference task suite and baseline management** -- Curate a set of reference tasks with known-good outputs that serve as quality baselines
+  - [ ] `p183.d1.t1` Create reference task registry and baseline format (depends: p9.d1.t1)
+    > Create regression/ directory with: (1) reference_tasks.yaml: list of reference tasks with metadata, (2) Each task: id, type (bug_fix/feature/refactor/test/doc), description, target_repo, expected_changes (files affected, approximate LOC), quality_criteria (test_pass_required, lint_clean, review_score_threshold, no_deprecated_apis), baseline_metrics (established from first successful run), last_run_timestamp, last_run_metrics, regression_status, (3) baselines/ directory: one subdirectory per task, containing the expected output state (git diff, test results, review score), (4) Baseline establishment: run each task, capture output, compute quality metrics, store as baseline, (5) Baseline update protocol: manual approval required (prevent silent baseline lowering), audit log of all baseline changes, (6) CLI: python3 regression.py register --task-id ref-001 --description "Fix off-by-one in pagination" --type bug_fix.
+    _Files: ~/zion/projects/agent-orchestration/regression/_
+  - [ ] At least 10 reference tasks covering different task types (bug fix, feature, refactor, test, documentation)
+    _Validation: read reference task registry_
+  - [ ] Each reference task has: task description, expected output characteristics, quality metrics baseline
+    _Validation: check reference task format_
+  _~150 LOC_
+- [ ] **Output comparison engine** -- Compare new task outputs against baselines using multi-dimensional quality metrics
+  - [ ] `p183.d2.t1` Create output comparison engine (depends: p183.d1.t1, p9.d1.t1)
+    > Create regression_engine.py: (1) compare_output(task_id, new_output) -> RegressionReport, (2) Dimensions: test_pass_rate (must equal baseline), lint_clean (must equal baseline), review_score (must be within 10% of baseline), loc_changed (must be within 20% of baseline -- significant deviation suggests different approach), files_affected (set intersection with baseline -- missing files or extra files flagged), deprecated_api_usage (count, must be 0), execution_time (must be within 50% of baseline), (3) RegressionReport: overall_score (0-100, weighted average), per_dimension_scores, regression_flagged (boolean, true if any dimension fails threshold), regression_details (human-readable explanation), recommendation (pass/warn/fail), (4) Thresholds are configurable per task type in reference_tasks.yaml, (5) Handle baseline absence: if no baseline exists, skip comparison and suggest establishing one, (6) Store comparison results in regression/results.jsonl for trend analysis.
+    _Files: ~/zion/projects/agent-orchestration/regression_engine.py_
+  - [ ] Compares outputs on: test results, lint results, review score, LOC delta, file count, deprecated API usage
+    _Validation: test comparison with known regression_
+  - [ ] Produces regression score (0-100) with per-dimension breakdown
+    _Validation: inspect comparison output_
+  _~140 LOC_
+- [ ] **Scheduled regression scan and alerting** -- Run reference tasks periodically and alert on detected regressions
+  - [ ] `p183.d3.t1` Create regression scan scheduler (depends: p183.d1.t1, p183.d2.t1, p5.d2.t1)
+    > Create regression_scan.py: (1) Load reference_tasks.yaml, filter tasks due for re-run (based on schedule -- weekly default, per-task override), (2) For each due task: checkout clean workspace, run task through orchestrator (using standard pipeline from phase 5), capture output, run comparison against baseline via regression_engine.compare_output(), (3) Aggregate results into RegressionScanReport: tasks_run, tasks_passed, tasks_regressed, tasks_improved (bonus: track improvements too), per_task_details, (4) If any regression detected: log to execution history (phase 8), trigger alert via notification system (phase 106 if available, else stderr), flag task for human review, (5) Store scan report in regression/scans/ directory with timestamp, (6) CLI: python3 regression_scan.py --schedule weekly --tasks "ref-001,ref-005" --output scan-report.json, (7) Hermes cron integration: create cron job that runs weekly regression scan.
+    _Files: ~/zion/projects/agent-orchestration/regression_scan.py_
+  - [ ] Regression scan runs on a configurable schedule (default: weekly)
+    _Validation: check cron or scheduler config_
+  - [ ] Detected regressions trigger alerts (log + optional notification)
+    _Validation: test with intentionally degraded output_
+  _~120 LOC_
+- [ ] **Regression trend analysis and model change correlation** -- Track regression trends over time and correlate with model updates to identify causes
+  - [ ] `p183.d4.t1` Create regression trend analyzer (depends: p183.d2.t1, p183.d3.t1, p8.d1.t1)
+    > Create regression_trends.py: (1) Read all scan results from regression/scans/ directory, (2) Plot per-task regression score over time (ASCII line chart), (3) Annotate timeline with: model version changes (from execution history provider/model field), orchestrator version changes (from git tags), prompt template changes (from git log of prompt files), (4) Compute trend direction: improving, stable, degrading (linear regression on scores), (5) Correlation analysis: for each score drop, check what changed in the preceding period (model update? prompt change? dependency update?), (6) Generate RegressionTrendReport: per-task trends, overall system quality trend, notable correlations, recommendations (e.g., "quality dropped 15% after model update to claude-4-opus on 2026-05-01 -- consider prompt adjustments"), (7) CLI: python3 regression_trends.py --task ref-001 --period 30d --output trend-report.md.
+    _Files: ~/zion/projects/agent-orchestration/regression_trends.py_
+  - [ ] Historical regression scores are plotted over time to show trends
+    _Validation: generate trend report_
+  - [ ] Model version changes are annotated on the timeline for correlation
+    _Validation: check trend report annotations_
+  _~130 LOC_
+
+### Technical Notes
+
+This phase is specifically about detecting quality regression in agent OUTPUTS, not in the orchestrator code itself (that is phase 61). The key insight from the Dark Factory research is that when you remove humans from the review loop, you need automated mechanisms to detect when quality degrades. The reference task approach is borrowed from ML model evaluation: maintain a test set, run inference periodically, compare against baselines. The challenge is defining "quality" for code output -- we use a multi-dimensional approach (tests, lint, review score, LOC, deprecated APIs) rather than a single metric. The trend analysis is the most valuable part: it tells you not just that quality dropped, but WHEN it dropped and WHAT changed, enabling root cause analysis. Correlating regressions with model updates is particularly valuable because it tells you whether a model upgrade was beneficial or harmful for your specific use case.
+
+### Risks
+
+- Reference tasks may become stale if the codebase evolves significantly -- periodic baseline updates needed
+- Review scores are subjective and may vary between runs even without quality changes -- use wide thresholds (10-20%) and look for trends not single-point deviations
+- Running reference tasks consumes tokens -- limit to weekly runs and small tasks (target < 50K tokens per scan)
+- False positives (flagging non-regressions) may cause alert fatigue -- tune thresholds conservatively and require multiple consecutive failures before alerting
+
+## [ ] phase-184: Pipeline Efficiency Analytics and Token Optimization (PLANNED)
+
+**Goal:** Analyze pipeline execution to identify redundant or low-value steps, estimate token cost per step, and recommend pipeline optimizations to reduce overall token consumption
+
+The Dark Factory experiment consumed "over one billion output tokens per day" at an estimated "$2,000 to $3,000 daily." The research states that "the primary cost center shifts from implementation to verification and infrastructure." Phase 20 manages context budgets and phase 32 tracks costs. But neither provides pipeline-level efficiency analysis: which pipeline steps consume the most tokens relative to their value? Are there redundant AI nodes that could be replaced with bash nodes? Are there sequential steps that could run in parallel? Are there review steps that rarely change the outcome? This phase creates a pipeline profiler that measures token consumption per step, identifies optimization opportunities, and recommends pipeline modifications to reduce cost without sacrificing quality.
+
+
+### Deliverables
+
+- [ ] **Pipeline token profiler** -- Instrument the DAG executor to track token consumption per node and per pipeline run
+  - [ ] `p184.d1.t1` Add token profiling to DAG executor (depends: p5.d2.t1, p32.d1.t1)
+    > Modify executor.py: (1) Create PipelineProfiler class that wraps each node execution, (2) For AI nodes: capture token usage from delegate_task response (input_tokens, output_tokens, model, provider), (3) For Bash nodes: record execution time as the "cost" metric (bash nodes cost time, not tokens), (4) For Loop nodes: aggregate child node costs, record iteration count, (5) PipelineProfile: per_node_costs (list of {node_id, node_type, tokens_in, tokens_out, wall_time, status}), total_tokens, total_time, pipeline_id, timestamp, task_context, (6) Store profiles in ~/.orchestrator/state/pipeline-profiles.jsonl (append-only), (7) Provide summary: percentage of total tokens per node, most expensive node, average cost per node type, (8) CLI: python3 pipeline_profiler.py --last 10 --sort-by tokens --output profile-report.txt.
+    _Files: ~/zion/projects/agent-orchestration/pipeline_profiler.py_
+  - [ ] Each pipeline execution records per-node token usage (input tokens, output tokens, total)
+    _Validation: run pipeline and check profile output_
+  - [ ] Profile data is stored alongside execution history for analysis
+    _Validation: check execution log entries_
+  _~130 LOC_
+- [ ] **Pipeline efficiency analyzer** -- Analyze profile data to identify redundant steps, unnecessary AI nodes, and optimization opportunities
+  - [ ] `p184.d2.t1` Create pipeline efficiency analyzer (depends: p184.d1.t1, p9.d1.t1)
+    > Create pipeline_analyzer.py: (1) Load pipeline profiles from JSONL, (2) Redundancy detection: if an AI node consistently produces output that passes all downstream gates without modification, flag as "potentially replaceable with bash", (3) Review node pass rate: if a review node passes > 95% of the time with no suggested changes, flag as "low-value review", (4) Sequential-to-parallel: identify sequential AI nodes that have no data dependencies and could run in parallel, (5) Token hotspots: identify nodes consuming > 30% of total pipeline tokens, (6) Cost-per-quality: correlate token consumption with output quality metrics (from phase 9 review scores), identify nodes with high cost but low quality contribution, (7) PipelineEfficiencyReport: per_pipeline_stats, redundancy_flags, parallelization_opportunities, token_hotspots, optimization_recommendations (ranked by estimated token savings), (8) Estimated savings: for each recommendation, estimate tokens saved per pipeline run and tokens saved per week.
+    _Files: ~/zion/projects/agent-orchestration/pipeline_analyzer.py_
+  - [ ] Identifies AI nodes that could be replaced with bash nodes (deterministic outputs)
+    _Validation: test with known-redundant pipeline_
+  - [ ] Identifies review nodes that rarely change the outcome (>90% pass rate with no modifications)
+    _Validation: test with pipeline history_
+  _~150 LOC_
+- [ ] **Pipeline optimization recommendations engine** -- Generate concrete pipeline modification suggestions with before/after cost estimates
+  - [ ] `p184.d3.t1` Create pipeline optimization recommender (depends: p184.d1.t1, p184.d2.t1)
+    > Create pipeline_optimizer.py: (1) Input: pipeline YAML + profile history, (2) Generate recommendations: -- REPLACE_AI_WITH_BASH: node X consistently produces deterministic output, suggest replacing with bash equivalent (estimated saving: Y tokens/run), -- MERGE_SEQUENTIAL_NODES: nodes X and Y are always sequential with no dependency, suggest merging into single AI node (estimated saving: Z tokens/run from reduced prompt overhead), -- REMOVE_LOW_VALUE_REVIEW: review node X passes 98% of time, suggest making optional or removing (estimated saving: W tokens/run), -- PARALLELIZE: nodes X, Y, Z have no dependencies, suggest parallel execution (estimated time saving: T min/run), -- CACHE_AI_OUTPUT: node X produces same output for same inputs across runs, suggest caching (estimated saving: V tokens/run for repeated tasks), (3) For each recommendation: confidence (based on sample size), estimated_savings (tokens per run), risk_level (low/medium/high), yaml_diff (show exact change), (4) Generate optimized pipeline YAML with all low-risk recommendations applied, (5) CLI: python3 pipeline_optimizer.py --pipeline standard-pipeline.yaml --profiles-last 50 --apply-low-risk --output optimized-pipeline.yaml.
+    _Files: ~/zion/projects/agent-orchestration/pipeline_optimizer.py_
+  - [ ] Generates specific YAML diffs showing recommended pipeline changes
+    _Validation: test with real pipeline profiles_
+  - [ ] Estimates token savings for each recommendation
+    _Validation: check recommendation output_
+  _~140 LOC_
+- [ ] **Pipeline efficiency tests** -- Test profiling, analysis, and optimization recommendation with synthetic and real pipeline data
+  - [ ] `p184.d4.t1` Create test_pipeline_efficiency.py (depends: p184.d1.t1, p184.d2.t1, p184.d3.t1)
+    > Create test_pipeline_efficiency.py: (1) Profile capture: run pipeline with profiler, verify per-node token counts recorded, (2) Profile storage: verify profiles appended to JSONL, retrievable by date range, (3) Redundancy detection: create mock profiles where AI node always passes downstream gates, verify flagged as replaceable, (4) Review pass rate: create mock profiles where review node passes 98% of time, verify flagged as low-value, (5) Parallelization: create profiles for sequential nodes with no dependencies, verify parallelization suggested, (6) Token hotspot: create profile where one node uses 40% of tokens, verify flagged, (7) Optimization recommendation: feed profiles into optimizer, verify YAML diff generated, (8) Savings estimate: verify token savings calculation is correct, (9) Apply low-risk: verify optimized pipeline YAML is valid and executable, (10) Edge case: single-node pipeline (no optimization possible), (11) Edge case: all nodes are bash (no token optimization needed), (12) Edge case: insufficient profile data (recommendation requires minimum 10 runs).
+    _Files: ~/zion/projects/agent-orchestration/test_pipeline_efficiency.py_
+  - [ ] Test file covers profiling capture, redundancy detection, and recommendation generation
+    _Validation: python3 -m pytest test_pipeline_efficiency.py -v_
+  _~130 LOC_
+
+### Technical Notes
+
+The Dark Factory research makes token efficiency a first-class concern: "$2,000-3,000 daily" means even 10% optimization saves $200-300/day. The key insight is that most pipeline optimization is LOW-RISK: if a review node passes 98% of the time, making it optional (run only when confidence is low) saves tokens with minimal quality impact. The profiler is intentionally lightweight: just count tokens per node and store in JSONL. No complex analysis needed at collection time. The analyzer runs separately on accumulated profiles, so it does not add latency to pipeline execution. The optimizer produces YAML diffs rather than modifying pipelines directly, so humans can review and approve changes. This aligns with the Harness Engineering principle of "analyze the environment, not the prompt" -- we are analyzing the pipeline structure, not trying to make agents use fewer tokens through prompt engineering.
+
+### Risks
+
+- Token counting may be inaccurate if the LLM provider reports tokens differently -- normalize across providers
+- Redundancy detection requires sufficient historical data (minimum 10 runs per node) -- warn when data is insufficient
+- Removing review nodes based on pass rate may miss rare but critical issues -- always keep review for high-risk changes (safety policy integration)
+- Optimization recommendations may not apply to all task types -- allow per-pipeline-type overrides
+
+## [ ] phase-185: Orchestrator Disaster Recovery and Full State Reconciliation (PLANNED)
+
+**Goal:** Enable full recovery of the orchestrator from total failure (state corruption, machine loss, or data center outage) with minimal data loss and automatic state reconciliation
+
+Phase 25 (Orchestrator Resilience and State Recovery) handles individual task failure: checkpoint, retry, and recover. But it does not address total orchestrator failure: the entire state directory is corrupted, the machine is lost, or a bug in the orchestrator itself corrupts state across all tasks. The Gas Town research describes a system that runs "24/7" and the Dark Factory treats code as disposable -- but the orchestrator STATE (task assignments, execution history, workspace metadata, merge queue state) is NOT disposable. Losing it means losing track of what work has been done, what is in progress, and what remains. This phase creates a disaster recovery system that: (1) maintains off-machine backups of critical state, (2) can reconstruct orchestrator state from authoritative external sources (GitHub Issues, git history) when local state is lost, (3) reconciles discrepancies between reconstructed state and any surviving local state, and (4) provides a "nuclear option" for complete state rebuild from scratch.
+
+
+### Deliverables
+
+- [ ] **State backup and replication system** -- Periodically backup critical orchestrator state to an off-machine location with versioning
+  - [ ] `p185.d1.t1` Create state backup system (depends: p8.d1.t1, p11.d1.t1)
+    > Create state_backup.py: (1) Identify critical state files: ~/.orchestrator/state/execution_log.jsonl, ~/.orchestrator/state/workspace_metadata/, orchestrator.yaml, merge_queue state, cost_tracker state, (2) BackupStrategy: tar+gzip critical state, upload to configurable remote (S3, GCS, or local secondary path), (3) BackupSchedule: full backup daily, incremental backup hourly (rsync-style diff), (4) BackupManifest: timestamp, file checksums (SHA256), file sizes, backup duration, backup status, (5) Retention policy: keep 7 daily, 4 weekly, 3 monthly backups, (6) Backup verification: after backup, download and verify checksums match, (7) CLI: python3 state_backup.py --full --remote s3://orchestrator-backups/ --verify, (8) Hermes cron integration: hourly incremental, daily full.
+    _Files: ~/zion/projects/agent-orchestration/state_backup.py_
+  - [ ] Critical state files (execution log, workspace metadata, merge queue, config) are backed up
+    _Validation: check backup contents_
+  - [ ] Backups are versioned and retain at least 7 days of history
+    _Validation: list backup versions_
+  _~140 LOC_
+- [ ] **State reconstruction from external sources** -- Rebuild orchestrator state from GitHub Issues, git history, and workspace filesystem when local state is lost
+  - [ ] `p185.d2.t1` Create state reconstruction engine (depends: p185.d1.t1, p4.d1.t1)
+    > Create state_reconstruct.py: (1) reconstruct_from_github(repo, labels) -> task_queue: poll GitHub Issues API for all issues with orchestrator labels, determine status from issue state (open=in-progress/closed=complete), extract assignee, labels, timestamps, (2) reconstruct_from_git(repo, workdir_base) -> execution_history: walk git log for commits matching agent patterns (commit messages with task IDs, co-author tags), reconstruct execution log entries from commit metadata, (3) reconstruct_from_workspaces(workdir_base) -> workspace_metadata: scan workspace directories for metadata files, determine workspace status (has uncommitted changes = in-progress, clean = completed/abandoned), (4) reconcile(reconstructed, surviving) -> reconciled_state: for each task, compare reconstructed status with surviving status, flag conflicts (e.g., GitHub says closed but local says in-progress), resolution strategy: GitHub is authoritative for task status, git is authoritative for execution history, filesystem is authoritative for workspace state, (5) Generate ReconciliationReport: tasks_reconstructed, conflicts_found, conflicts_resolved, data_loss_estimate, confidence_score, (6) CLI: python3 state_reconstruct.py --repo owner/repo --workdir ~/zion/projects/agent-orchestration/workspaces --output reconciliation-report.md.
+    _Files: ~/zion/projects/agent-orchestration/state_reconstruct.py_
+  - [ ] Can reconstruct: task queue (from GitHub Issues), execution history (from git commits), workspace state (from filesystem)
+    _Validation: test with deleted state directory_
+  - [ ] Reconstructed state is validated against surviving state before replacing
+    _Validation: test with partially corrupted state'_
+  _~160 LOC_
+- [ ] **Orchestrator state validation and integrity checking** -- Verify orchestrator state consistency across all state files and detect corruption
+  - [ ] `p185.d3.t1` Create state integrity checker (depends: p185.d1.t1, p8.d1.t1)
+    > Create state_integrity.py: (1) Check execution_log.jsonl: every line is valid JSON, every entry references a workspace that exists, timestamps are monotonically increasing within a session, no duplicate entry IDs, (2) Check workspace_metadata: every tracked workspace has a corresponding directory, every workspace directory has a metadata file, workspace status is consistent with directory state (clean dir should not be "in-progress"), (3) Check merge_queue: every queued PR references a valid workspace, PR numbers are unique, no stale entries (PRs merged > 24h ago still in queue), (4) Check config files: orchestrator.yaml is valid YAML, role profiles reference valid toolsets, pipeline YAMLs pass schema validation, (5) Cross-reference checks: execution log task count matches workspace count, cost tracker totals are consistent with execution log entries, (6) IntegrityReport: per_file_status, issues_found (critical/warning/info), repair_suggestions, overall_health (healthy/degraded/corrupted), (7) Auto-repair option: for non-critical issues (stale merge queue entries, orphan workspace metadata), offer automatic repair, (8) CLI: python3 state_integrity.py --auto-repair --output integrity-report.md.
+    _Files: ~/zion/projects/agent-orchestration/state_integrity.py_
+  - [ ] Validates referential integrity (execution log references valid workspaces, merge queue references valid PRs)
+    _Validation: test with intentionally corrupted state_
+  - [ ] Detects and reports common corruption patterns (truncated JSONL, missing workspace dirs, inconsistent timestamps)
+    _Validation: test with corrupted files_
+  _~140 LOC_
+- [ ] **Disaster recovery tests** -- Test full disaster recovery scenarios: total state loss, partial corruption, and backup restoration
+  - [ ] `p185.d4.t1` Create test_disaster_recovery.py (depends: p185.d1.t1, p185.d2.t1, p185.d3.t1)
+    > Create test_disaster_recovery.py: (1) Backup: create state, run backup, verify backup contains all critical files, verify checksums match, (2) Backup restore: delete state, restore from backup, verify state matches original, (3) Full reconstruction: create state with 5 tasks (2 complete, 1 in-progress, 2 queued), delete entire state directory, reconstruct from GitHub Issues + git history + workspace filesystem, verify all 5 tasks recovered with correct status, (4) Partial corruption: corrupt execution_log.jsonl (truncate last line), corrupt workspace metadata (invalid JSON), run integrity checker, verify corruption detected, verify repair suggestions generated, (5) Reconciliation conflict: GitHub says issue is closed but local state says in-progress, verify conflict flagged, verify resolution uses GitHub as authoritative source, (6) Nuclear rebuild: simulate complete machine loss (no local state, no backups), reconstruct entirely from GitHub + git, verify orchestrator can resume operation, (7) Backup rotation: create 10 daily backups, verify retention policy keeps only 7, (8) Edge case: no remote backup configured -- verify backup falls back to local secondary path.
+    _Files: ~/zion/projects/agent-orchestration/test_disaster_recovery.py_
+  - [ ] Test file covers backup, reconstruction, integrity checking, and end-to-end disaster recovery
+    _Validation: python3 -m pytest test_disaster_recovery.py -v_
+  _~130 LOC_
+
+### Technical Notes
+
+The key architectural insight is that the orchestrator state can be reconstructed from three authoritative external sources: (1) GitHub Issues for task queue state (the issue tracker IS the control plane per Symphony), (2) git history for execution history (every agent action produces a commit), (3) workspace filesystem for in-progress work (uncommitted changes in workspaces). This means the orchestrator state is technically redundant -- it is a CACHE of truth derived from these external sources. Disaster recovery is therefore a RECONCILIATION problem, not a restoration problem. The backup system exists as an optimization (faster recovery, less data loss) but is not strictly necessary for eventual consistency. This is a strong architectural property that comes from treating the issue tracker as the control plane. The "nuclear option" (complete rebuild from external sources) should always work, making backups a performance optimization rather than a survival requirement.
+
+### Risks
+
+- GitHub API rate limits may slow reconstruction for large task histories -- paginate and cache aggressively
+- Git history may not contain all metadata needed for full state reconstruction -- accept some data loss for non-critical fields
+- Workspace filesystem may be on the same machine as the orchestrator -- if the machine is lost, workspace data is also lost (mitigate with git auto-commit)
+- Reconstruction from external sources is SLOWER than backup restore -- backups remain important for fast recovery
+- Conflict resolution (GitHub says closed, local says in-progress) requires clear priority rules -- document and enforce consistently
