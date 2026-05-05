@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/178 phases complete, 0 in progress
+**Progress:** 23/181 phases complete, 0 in progress
 
-**Deliverables:** 90/657 complete
+**Deliverables:** 90/669 complete
 
-**Tasks:** 90/681 complete
+**Tasks:** 90/693 complete
 
 ## Scope Summary
 
@@ -190,6 +190,9 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-176 Harness Gap Feedback Loop (Analyze Environment, Not Prompts) | PLANNED | 0/4 | 340 | 10 |
 | phase-177 Agent Output Sanitization Pipeline | PLANNED | 0/4 | 290 | 16 |
 | phase-178 Automated Changelog Generation and Semantic Versioning | PLANNED | 0/4 | 290 | 15 |
+| phase-179 Ticket Feasibility Pre-Assessment | PLANNED | 0/4 | 410 | 12 |
+| phase-180 Session Change Budget Enforcement | PLANNED | 0/4 | 360 | 13 |
+| phase-181 Agent Approach Recommendation Engine | PLANNED | 0/4 | 440 | 14 |
 
 ## Dependencies
 
@@ -803,6 +806,21 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-68 | phase-178 | soft | Release engineering from phase 68 provides the release pipeline that changelog generation extends |
 | phase-5 | phase-178 | soft | DAG executor from phase 5 is extended with CHANGELOG and TAG_VERSION node types |
 | phase-12 | phase-178 | soft | PR automation from phase 12 should enforce conventional commit format for changelog parsing |
+| phase-4 | phase-179 | soft | Feasibility gate integrates into the orchestrator poll-spawn loop from phase 4 |
+| phase-8 | phase-179 | soft | Feasibility assessment results should be logged to execution history from phase 8 |
+| phase-132 | phase-179 | soft | Ambiguity scoring (phase-132) checks task clarity; feasibility (phase-179) checks technical viability -- both gates should run, clarity first |
+| phase-10 | phase-179 | soft | Feasibility blocker patterns feed into garbage collection scanning from phase 10 |
+| phase-5 | phase-180 | soft | Change budget integrates into the DAG executor from phase 5 |
+| phase-6 | phase-180 | soft | Budget limits are role-specific, using role profiles from phase 6 |
+| phase-8 | phase-180 | soft | Budget exceeded events should be logged to execution history from phase 8 |
+| phase-64 | phase-180 | soft | OS-level sandboxing (phase-64) and application-level budgets (phase-180) are complementary safety layers |
+| phase-15 | phase-180 | soft | Safety policies (phase-15) define what operations need approval; budgets define how MUCH change is allowed |
+| phase-4 | phase-181 | soft | Recommendation engine integrates into the orchestrator worker selection from phase 4 |
+| phase-8 | phase-181 | soft | Approach outcomes are stored alongside execution history from phase 8 |
+| phase-6 | phase-181 | soft | Recommendations select between role profiles from phase 6 |
+| phase-28 | phase-181 | soft | Speculative execution (phase-28) is the fallback when recommendations have low confidence |
+| phase-29 | phase-181 | soft | A/B testing analytics (phase-29) validate recommendation accuracy over time |
+| phase-179 | phase-181 | soft | Feasibility assessment (phase-179) runs before approach recommendation |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -11106,3 +11124,180 @@ This phase assumes agents produce conventional commits (type(scope): description
 - Agents may not produce conventional commits -- need fallback to basic git log parsing
 - Breaking change detection is heuristic-based -- may miss implicit breaking changes
 - Changelog quality depends on commit message quality -- provide commit message templates in agent guides
+
+## [ ] phase-179: Ticket Feasibility Pre-Assessment (PLANNED)
+
+**Goal:** Evaluate whether an issue is technically feasible given the current codebase state before committing pipeline resources, preventing wasted agent-hours on impossible tasks
+
+The Harness Engineering research describes treating code as disposable: "when an agent failed, the team analyzed the environment to identify missing capabilities." But this reactive approach means agents burn tokens discovering that a task is infeasible. The research also mentions that in the Symphony model, engineers file speculative tickets without knowing if they are feasible. There is no phase that proactively evaluates feasibility BEFORE starting work. Phase 132 (Ambiguity Score) evaluates task clarity -- whether the description is well-written. Phase 119 (Preflight Doctor) validates environment health -- whether tools and APIs are available. Phase 171 (Agent Project Readiness) checks if a project is set up for agent work. None of these check whether the SPECIFIC TASK can be completed given the current codebase state. This phase fills that gap: before assigning an issue to a pipeline, scan the codebase to determine if the required modules, dependencies, APIs, and architecture exist to support the change. Auto-label issues as "feasible", "needs-prerequisites" (with a list of what is missing), or "infeasible" (fundamental blockers). This prevents the orchestrator from wasting tokens on tasks that will inevitably fail, directly applying the "attention is scarce" principle from the research.
+
+
+### Deliverables
+
+- [ ] **Feasibility assessor module** -- Python module that evaluates issue feasibility against current codebase state
+  - [ ] `p179.d1.t1` Create feasibility.py module
+    > Create feasibility.py: (1) assess_feasibility(issue, repo_path) -> FeasibilityResult, (2) FeasibilityResult: verdict (feasible/needs_prereqs/infeasible), confidence (0-1), blockers (list of missing prerequisites), suggestions (list of preparatory tasks), (3) Check dimensions: module_existence -- do the files/modules mentioned in the issue exist?, dependency_check -- are the libraries/packages referenced available in the project?, api_surface -- does the codebase expose the APIs the issue assumes?, test_infrastructure -- are there tests that would exercise the change?, (4) parse_issue_context(issue) -- extract from issue body: referenced files, mentioned libraries, assumed APIs, required permissions, (5) compare_against_codebase(repo_path, context) -- check each reference against actual codebase state, (6) generate_suggestions(blockers) -- for each missing prerequisite, suggest a preparatory issue, (7) CLI: python3 feasibility.py --issue NUMBER --repo OWNER/REPO [--json] [--suggest-prereqs]. If prerequisites are missing, optionally create GitHub Issues for them.
+    _Files: ~/zion/projects/agent-orchestration/feasibility.py_
+  - [ ] Assessor scans codebase for required modules, dependencies, and architectural prerequisites
+    _Validation: python3 feasibility.py --issue 42 --repo OWNER/REPO_
+  - [ ] Returns structured result: feasible / needs-prerequisites / infeasible with specific blockers
+    _Validation: inspect output format_
+  - [ ] Checks at least 4 feasibility dimensions: module existence, dependency availability, API surface, test infrastructure
+    _Validation: read module source_
+  _~150 LOC_
+- [ ] **Orchestrator feasibility gate integration** -- Wire feasibility assessment into the orchestrator poll-spawn loop as a pre-assignment gate
+  - [ ] `p179.d2.t1` Integrate feasibility gate into orchestrator (depends: p179.d1.t1, p4.d3.t1)
+    > Modify orchestrator.py: (1) After polling issues and before spawning workers, run feasibility.assess_feasibility() on each candidate issue, (2) Label results: add "feasible" label to ready issues, add "needs-prerequisites" with blocker comments to partial issues, add "infeasible" with explanation to blocked issues, (3) Only spawn workers for "feasible" issues, (4) Log feasibility results to execution history, (5) Config option to skip feasibility gate (for trusted repos or when speed is prioritized), (6) Track feasibility pass rate over time (metric for phase-44 health scorecard).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator runs feasibility check before spawning a worker
+    _Validation: check orchestrator log for feasibility assessment_
+  - [ ] Infeasible issues are labeled and skipped, not assigned
+    _Validation: test with an infeasible issue_
+  - [ ] Issues needing prerequisites are labeled with specific blockers
+    _Validation: test with a partially feasible issue_
+  _~60 LOC_
+- [ ] **Feasibility knowledge accumulation** -- Track feasibility assessment results over time to build a knowledge base of common blockers and prerequisite patterns
+  - [ ] `p179.d3.t1` Add feasibility history tracking (depends: p179.d1.t1)
+    > Extend feasibility.py: (1) Store each assessment result in ~/.orchestrator/state/feasibility-history.jsonl (issue, verdict, blockers, timestamp), (2) analyze_blocker_patterns(history) -- identify recurring blockers (e.g., "missing test infrastructure" appears in 30% of needs-prereqs), (3) suggest_project_improvements(patterns) -- recommend project changes that would improve feasibility rate (e.g., "add integration tests for module X to improve feasibility for X-related tasks"), (4) CLI: python3 feasibility.py --report [--days 30] to show feasibility statistics and blocker patterns, (5) Feed blocker patterns into the garbage collector (phase-10) as additional scan targets.
+    _Files: ~/zion/projects/agent-orchestration/feasibility.py_
+  - [ ] Historical feasibility results are stored and queryable
+    _Validation: query past assessments_
+  - [ ] Common blocker patterns are identified and reported
+    _Validation: run pattern analysis on historical data_
+  _~80 LOC_
+- [ ] **Feasibility tests** -- Test feasibility assessment with various codebase states and issue types
+  - [ ] `p179.d4.t1` Create test_feasibility.py (depends: p179.d1.t1, p179.d2.t1, p179.d3.t1)
+    > Test cases: (1) Feasible issue -- all referenced modules exist, all deps available, (2) Needs prerequisites -- main module exists but dependency is missing, (3) Infeasible -- core architecture doesn't support the change (e.g., request to add WebSocket support to a pure REST API with no WebSocket library), (4) Issue references non-existent file -- correctly detected as blocker, (5) Issue assumes API that doesn't exist -- correctly detected, (6) Partial feasibility -- some prerequisites met, some not, (7) Edge case: empty issue body -- returns needs-prereqs with "insufficient context", (8) Edge case: issue references external library not in requirements -- detected, (9) Integration: orchestrator skips infeasible issue, (10) Integration: orchestrator labels needs-prereqs issue correctly, (11) History tracking: assessment results are stored and retrievable, (12) Pattern analysis: recurring blockers are identified from history.
+    _Files: ~/zion/projects/agent-orchestration/test_feasibility.py_
+  - [ ] Test file covers feasible, needs-prereqs, and infeasible scenarios
+    _Validation: python3 -m pytest test_feasibility.py -v_
+  - [ ] Tests use mock codebases with controlled states (missing modules, missing deps, etc.)
+    _Validation: inspect test setup_
+  _~120 LOC_
+
+### Technical Notes
+
+Feasibility assessment is a heuristic, not a guarantee. An issue assessed as "feasible" may still fail during execution (agent gets stuck, approach is wrong). The value is in catching OBVIOUS infeasibility early (missing dependencies, wrong architecture) without burning agent tokens. Keep assessments fast (< 5 seconds per issue) since they run in the hot path before worker spawning. Use grep/file-existence checks rather than full codebase analysis.
+
+### Risks
+
+- False positives (marking feasible issues as infeasible) waste human time reviewing the assessment
+- False negatives (marking infeasible issues as feasible) waste agent tokens -- this is the safer failure mode
+- Feasibility checks add latency to the orchestrator loop -- keep them fast and cache results
+- New projects with minimal codebase may have low feasibility scores -- adjust thresholds per project maturity
+
+## [ ] phase-180: Session Change Budget Enforcement (PLANNED)
+
+**Goal:** Cap the amount of change an agent can make per session at the application level, preventing runaway agents from rewriting entire codebases in a single session
+
+The research describes Symphony's workspace isolation with "strict safety invariants" and the Dark Factory model where agents run autonomously with "0% human review." While phase-64 (Workspace Sandbox) provides OS-level isolation (filesystem restrictions, network policies, resource limits via cgroups/ulimit), and phase-70 (Backpressure) manages API rate limits, and phase-32 (Cost Tracking) enforces token budgets, none of these limit the APPLICATION-LEVEL scope of changes. An agent within a sandboxed workspace with available tokens and API capacity could still rewrite 500 files, delete critical modules, or create 100 new files in a single session. The research principle of "code is disposable" applies to individual implementations, not to the entire codebase at once. This phase adds per-session change budgets: maximum files modified, maximum lines added/removed, maximum new files created, and maximum directories affected. When a budget is approached, the agent is warned. When exceeded, the session is paused for review. This is the "blast radius limiter" that makes autonomous operation safe even without human review -- not by preventing all changes, but by bounding the impact of any single session.
+
+
+### Deliverables
+
+- [ ] **Change budget module** -- Track and enforce application-level change budgets per agent session
+  - [ ] `p180.d1.t1` Create change_budget.py module
+    > Create change_budget.py: (1) ChangeBudget class with config: max_files_modified (default: 20), max_lines_added (default: 2000), max_lines_removed (default: 1000), max_new_files (default: 10), max_directories_affected (default: 15), (2) Role-specific defaults: implementer (large budget), reviewer (0 modifications allowed -- read-only), tester (small budget), coordinator (0 modifications), (3) track_change(file_path, change_type, lines_added, lines_removed) -- update session counters, (4) check_budget() -> BudgetStatus (ok / warning / exceeded), (5) get_report() -> summary of changes so far, (6) reset() -- clear counters for new session, (7) BudgetStatus.warning triggers a context injection telling the agent to wrap up current work, (8) BudgetStatus.exceeded triggers a pause event that stops the agent and flags the session for review, (9) Config loaded from orchestrator.yaml budgets section, overridable per-role in roles/*.yaml, (10) Persist budget state to workspace so it survives orchestrator restarts.
+    _Files: ~/zion/projects/agent-orchestration/change_budget.py_
+  - [ ] Module tracks files modified, lines added/removed, new files, and directories affected per session
+    _Validation: simulate file changes and verify tracking_
+  - [ ] Budget is configurable per role (implementer gets larger budget than reviewer)
+    _Validation: read role budget configs_
+  - [ ] Exceeding budget triggers a pause event, not a silent failure
+    _Validation: test budget exceeded behavior_
+  _~130 LOC_
+- [ ] **Executor integration with change budget** -- Wire change budget tracking into the DAG executor so all agent file operations are budgeted
+  - [ ] `p180.d2.t1` Integrate change budget into DAG executor (depends: p180.d1.t1, p5.d2.t1)
+    > Modify executor.py: (1) Initialize ChangeBudget at pipeline start with role-specific limits, (2) After each AI node execution, diff workspace against pre-execution state using git diff --stat, (3) Parse diff output to extract: files changed, insertions, deletions, new files, (4) Feed diff results into change_budget.track_change(), (5) Before each AI node, check change_budget.check_budget(), (6) If warning: prepend budget status to AI node prompt ("Budget warning: you have modified 15/20 files. Wrap up current work."), (7) If exceeded: halt pipeline with BudgetExceededError, log to execution history, flag workspace for human review, (8) Bash nodes are exempt from budget tracking (they are deterministic gates), (9) Budget state is persisted in workspace metadata directory.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Executor tracks file changes across all nodes in a pipeline execution
+    _Validation: run pipeline that modifies files, check budget tracking_
+  - [ ] Budget warning is injected as context into AI nodes when threshold approached
+    _Validation: test with pipeline that approaches budget limit_
+  - [ ] Budget exceeded halts pipeline execution gracefully
+    _Validation: test with pipeline that exceeds budget_
+  _~80 LOC_
+- [ ] **Budget configuration and role defaults** -- Add budget configuration to orchestrator.yaml and role profiles with sensible defaults
+  - [ ] `p180.d3.t1` Add budget configuration to config files (depends: p180.d1.t1)
+    > Update config files: (1) orchestrator.yaml: add budgets section with global defaults and per-repo overrides, (2) roles/implementer.yaml: add budget override (large: 30 files, 5000 lines added, 3000 removed, 15 new files), (3) roles/reviewer.yaml: add budget override (zero modifications: 0 files, 0 lines -- reviewer is read-only), (4) roles/tester.yaml: add budget override (small: 10 files, 500 lines added), (5) roles/coordinator.yaml: add budget override (zero modifications -- coordinator only triages), (6) Validate config on load -- reject negative budgets, warn about very large budgets (> 100 files), (7) Document budget system in orchestrator.yaml comments.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.yaml, ~/zion/projects/agent-orchestration/roles/implementer.yaml, ~/zion/projects/agent-orchestration/roles/reviewer.yaml, ~/zion/projects/agent-orchestration/roles/tester.yaml, ~/zion/projects/agent-orchestration/roles/coordinator.yaml_
+  - [ ] orchestrator.yaml has a budgets section with global defaults
+    _Validation: read config file_
+  - [ ] Each role YAML can override budget limits
+    _Validation: read role files_
+  _~50 LOC_
+- [ ] **Change budget tests** -- Test budget tracking, warnings, enforcement, and role-specific defaults
+  - [ ] `p180.d4.t1` Create test_change_budget.py (depends: p180.d1.t1, p180.d2.t1, p180.d3.t1)
+    > Test cases: (1) Track single file modification correctly, (2) Track multiple files with lines added/removed, (3) Warning threshold triggers at 80% of budget, (4) Exceeded budget halts and returns error, (5) Role-specific defaults: implementer gets large budget, reviewer gets zero, (6) Budget reset clears counters, (7) Persist and restore budget state across restarts, (8) Config validation rejects negative budgets, (9) Executor integration: pipeline modifies files and budget is tracked, (10) Executor integration: budget warning injected into AI node prompt, (11) Executor integration: budget exceeded halts pipeline with proper error, (12) Edge case: zero-budget role (reviewer) blocks any file modification, (13) Edge case: very large single file change counts correctly against line budget.
+    _Files: ~/zion/projects/agent-orchestration/test_change_budget.py_
+  - [ ] Test file covers tracking, warning threshold, exceeded behavior, and role defaults
+    _Validation: python3 -m pytest test_change_budget.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+Change budgets complement rather than replace other safety mechanisms. OS sandboxing prevents accessing files outside the workspace. Approval gates prevent sensitive operations. Change budgets prevent excessive modification WITHIN the workspace. All three layers together create defense-in-depth for autonomous operation. Budgets are intentionally coarse-grained (file counts, line counts) rather than semantic (no "don't delete the auth module" rules) -- semantic rules belong in safety policies (phase-15). The budget system answers "how much did you change?" while safety policies answer "what did you change?
+
+### Risks
+
+- Budget thresholds may be too tight for legitimate large-scale refactors -- allow per-task budget overrides
+- Line counting from git diff may be inaccurate for generated files or whitespace changes -- normalize before counting
+- Budget tracking adds overhead to each pipeline step -- keep diff parsing lightweight
+- Agents may learn to work around budgets by making many small sessions -- this is actually desirable behavior (smaller, more focused changes)
+
+## [ ] phase-181: Agent Approach Recommendation Engine (PLANNED)
+
+**Goal:** Use historical execution data to predict the best approach (role, pipeline, strategy) for a given task type, avoiding the cost of parallel speculative execution
+
+The Harness Engineering research describes the Dark Factory approach of running "a hundred parallel Ralph Wiggum loops to explore different architectural approaches, only keeping the one that passes the most rigorous set of automated quality gates." Phase-28 (Speculative Execution) implements this by running multiple strategies in parallel. Phase-173 (Experiment Arena) manages the lifecycle of parallel experiments. However, running multiple strategies in parallel is expensive -- it multiplies token costs and workspace resources. The research also emphasizes that "the primary cost center shifts from implementation to verification and infrastructure." This phase addresses the cost side: by analyzing historical execution data (which approaches worked for which task types, which roles performed best on which issue categories, which pipeline templates had the highest success rate), the system can RECOMMEND the single best approach for a new task instead of running all approaches in parallel. This is the "learn from 100 experiments so next time you only need 1" optimization. It transforms the orchestrator from "try everything in parallel" to "predict the winner and run only that." Over time, as the recommendation engine accumulates more data, speculative execution (phase-28) becomes a fallback for novel task types rather than the default for everything.
+
+
+### Deliverables
+
+- [ ] **Approach history tracker** -- Record which approach (role, pipeline, strategy) was used for each task and the outcome
+  - [ ] `p181.d1.t1` Create approach_history.py module (depends: p8.d1.t1)
+    > Create approach_history.py: (1) record_outcome(task_type, approach, outcome, quality_scores) -- store execution result, (2) Approach: role (implementer/reviewer/etc), pipeline (standard/team/debug), strategy (conservative/aggressive/exploratory from phase-28), prompt_additions, (3) Outcome: status (success/failed/timeout), test_pass_rate, review_score, invariant_compliance, lines_changed, tokens_used, execution_time, (4) TaskType: derived from issue labels, title keywords, affected modules, (5) query_by_task_type(task_type) -> list of historical approaches and outcomes, (6) query_by_role(role) -> success rate and quality distribution, (7) query_by_pipeline(pipeline) -> success rate and quality distribution, (8) Storage: ~/.orchestrator/state/approach-history.jsonl with indexes for fast queries, (9) Prune old entries (keep last 1000 per task type).
+    _Files: ~/zion/projects/agent-orchestration/approach_history.py_
+  - [ ] Each pipeline execution records: task type, approach used, outcome (success/failure), quality scores
+    _Validation: check execution history entries_
+  - [ ] History is queryable by task type for pattern analysis
+    _Validation: query history for a specific issue label_
+  _~120 LOC_
+- [ ] **Approach recommendation engine** -- Predict the best approach for a new task based on historical success patterns
+  - [ ] `p181.d2.t1` Create approach_recommender.py module (depends: p181.d1.t1)
+    > Create approach_recommender.py: (1) recommend(task_type, candidates=None) -> list of (approach, score, confidence), (2) If candidates provided (from phase-28 strategy definitions), rank them by historical performance, (3) If no candidates, suggest the single best approach (role + pipeline), (4) Scoring: weighted combination of success_rate (0.4), avg_quality_score (0.3), avg_efficiency (tokens_used / quality, 0.2), recency_weight (recent outcomes matter more, 0.1), (5) Confidence: based on sample size -- < 5 historical examples = low confidence (recommend speculative execution), 5-20 = medium, > 20 = high, (6) Handle cold start: for task types with no history, return defaults with low confidence, (7) Periodic retraining: analyze approach_history weekly to detect shifts in optimal approaches (e.g., after a new role is added), (8) CLI: python3 approach_recommender.py --task-type bug --recommend [--top 3].
+    _Files: ~/zion/projects/agent-orchestration/approach_recommender.py_
+  - [ ] Engine returns a ranked list of recommended approaches for a given task type
+    _Validation: query recommendation for a known task type_
+  - [ ] Recommendations include confidence scores based on historical data volume
+    _Validation: inspect recommendation output_
+  - [ ] Low-confidence recommendations fall back to defaults (no speculative execution needed)
+    _Validation: test with novel task type (no history)'_
+  _~140 LOC_
+- [ ] **Orchestrator integration with recommendation engine** -- Wire approach recommendations into the orchestrator so it uses predicted best approach by default
+  - [ ] `p181.d3.t1` Integrate recommender into orchestrator (depends: p181.d2.t1, p4.d3.t1)
+    > Modify orchestrator.py: (1) After feasibility check (phase-179) and before worker spawn, query approach_recommender.recommend() for the issue's task type, (2) If confidence >= threshold (configurable, default: medium): use recommended role and pipeline for single-path execution, (3) If confidence < threshold: fall back to speculative execution (phase-28) with top-N recommended approaches as the strategies to compare, (4) After execution completes, call approach_history.record_outcome() to feed results back into the engine, (5) Log recommendation decisions to execution history, (6) Config: recommendation.confidence_threshold, recommendation.min_history (minimum history before using recommendations), recommendation.fallback_mode (speculative|default), (7) Expose recommendation rationale in the status dashboard (phase-27).
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Orchestrator queries recommendation engine before selecting role and pipeline for each issue
+    _Validation: check orchestrator log for recommendation query_
+  - [ ] Low-confidence recommendations trigger speculative execution (phase-28) instead of single-path
+    _Validation: test with novel task type_
+  _~70 LOC_
+- [ ] **Approach recommendation tests** -- Test history tracking, recommendation scoring, cold start handling, and orchestrator integration
+  - [ ] `p181.d4.t1` Create test_approach_recommender.py (depends: p181.d1.t1, p181.d2.t1, p181.d3.t1)
+    > Test cases: (1) Record outcome and retrieve by task type, (2) Recommendation ranks approaches by success rate, (3) Recommendation weights quality score and efficiency, (4) Recency weighting: recent outcomes influence score more, (5) Cold start: no history returns defaults with low confidence, (6) Low sample size (< 5) returns medium confidence, (7) High sample size (> 20) returns high confidence, (8) Confidence below threshold triggers speculative fallback, (9) Confidence above threshold uses single recommended approach, (10) Orchestrator queries recommender before spawning, (11) Orchestrator records outcome after completion, (12) Integration: novel task type falls back to speculative execution, (13) Integration: known task type uses recommended single approach, (14) Edge case: all approaches failed for a task type -- returns defaults with warning.
+    _Files: ~/zion/projects/agent-orchestration/test_approach_recommender.py_
+  - [ ] Test file covers tracking, scoring, cold start, confidence thresholds, and integration
+    _Validation: python3 -m pytest test_approach_recommender.py -v_
+  _~110 LOC_
+
+### Technical Notes
+
+The recommendation engine is essentially a simple statistical model, not an ML system. It uses weighted averages of historical success rates, quality scores, and efficiency metrics. No training pipeline, no model serving, no feature engineering. Keep it dead simple: a JSONL file, some aggregation functions, and a scoring formula. The value comes from having the data and acting on it, not from the sophistication of the prediction. Over time, if the system needs better predictions, it can be upgraded to use the pattern extraction engine (phase-135) or the self-improvement loop (phase-19) for more sophisticated analysis.
+
+### Risks
+
+- Cold start problem: new task types have no history -- mitigate with fallback to defaults or speculative execution
+- Concept drift: optimal approaches may change over time (e.g., after model upgrades) -- recency weighting helps but is not perfect
+- Task type classification may be too coarse (e.g., "bug" covers trivial typo fixes and complex race conditions) -- allow sub-classification
+- Recommendation engine may create a feedback loop where successful approaches are always chosen, preventing exploration of new approaches -- periodically inject random exploration
