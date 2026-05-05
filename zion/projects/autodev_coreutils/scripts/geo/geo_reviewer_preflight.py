@@ -14,7 +14,7 @@ Outputs structured data for the reviewer agent to consume.
 import os, sys, subprocess, re, time, json
 
 sys.path.insert(0, os.path.dirname(__file__))
-from geo_event_log import block, escalate, revert
+from geo_event_log import block, escalate, revert, test_gate
 
 PROJECT = os.path.expanduser("~/zion/projects/geometry_os/geometry_os")
 LOCK_PATH = "/tmp/geo_cargo_test.lock"
@@ -503,7 +503,29 @@ def main():
     elif not has_changes and stale:
         print("ACTION: RELEASE_STALE (reset stale in_progress claims)")
     else:
-        print("ACTION: NOTHING (clean tree, no drift)")
+        # Check if there are todo phases but no planned ones (pipeline stall)
+        import yaml as _yaml
+        _rpath = os.path.join(PROJECT, "roadmap_v2.yaml")
+        if os.path.exists(_rpath):
+            with open(_rpath) as _rf:
+                _rdata = _yaml.safe_load(_rf)
+            _all_phases = _rdata.get("phases", [])
+            _todo_count = sum(1 for p in _all_phases if isinstance(p, dict) and p.get("status") == "todo")
+            _planned_count = sum(1 for p in _all_phases if isinstance(p, dict) and p.get("status") == "planned")
+            if _todo_count > 0 and _planned_count == 0:
+                print(f"ACTION: PROMOTE_TODO ({_todo_count} todo phases, 0 planned -- promote some to unblock drafter)")
+                print(f"TODO_PHASES: {_todo_count}")
+            else:
+                print("ACTION: NOTHING (clean tree, no drift)")
+        else:
+            print("ACTION: NOTHING (clean tree, no drift)")
+
+    # Emit heartbeat so watchdog knows reviewer is alive (even when nothing to review)
+    try:
+        from geo_event_log import heartbeat
+        heartbeat("reviewer")
+    except ImportError:
+        pass  # older geo_event_log without heartbeat
 
     log("Preflight complete.")
 

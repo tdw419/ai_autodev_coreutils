@@ -162,9 +162,17 @@ def check_worker_last_run(worker_name, events):
                     return dt, minutes_ago(dt)
         return None, 9999
 
-    # Reviewer doesn't always emit events (only on revert/block).
-    # Use git log for reviewer-like commit patterns.
+    # Reviewer emits heartbeat events every run (even when nothing to review).
+    # Check event log first, fall back to git log.
     if worker_name == "reviewer":
+        # Primary: heartbeat event (always emitted)
+        # Secondary: action events (revert, block, escalate, commit)
+        for e in reversed(events):
+            if e.get("type") in ("heartbeat", "revert", "block", "escalate", "commit"):
+                dt = parse_iso(e.get("ts", ""))
+                if dt:
+                    return dt, minutes_ago(dt)
+        # Tertiary: git log for WIP commits
         try:
             r = subprocess.run(
                 ["git", "log", "-1", "--format=%ct", "--grep=WIP"],
@@ -177,12 +185,6 @@ def check_worker_last_run(worker_name, events):
                 return dt, minutes_ago(dt)
         except:
             pass
-        # Fallback: check event log for reviewer events
-        for e in reversed(events):
-            if e.get("type") in ("revert", "block", "escalate", "commit"):
-                dt = parse_iso(e.get("ts", ""))
-                if dt:
-                    return dt, minutes_ago(dt)
         return None, 9999
 
     # Auditor: use event log (if it ever emits), else git log for audit commits

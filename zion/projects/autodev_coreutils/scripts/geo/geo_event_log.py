@@ -101,6 +101,9 @@ def escalate(phase_id, reason, block_count):
 def skip(phase_id, worker_id, reason=""):
     append("skip", phase_id, worker_id=worker_id, reason=reason)
 
+def heartbeat(worker_id):
+    append("heartbeat", phase_id=None, worker_id=worker_id)
+
 def phase_done(phase_id, title=""):
     append("phase_done", phase_id, title=title)
 
