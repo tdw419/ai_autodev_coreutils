@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/185 phases complete, 0 in progress
+**Progress:** 23/190 phases complete, 0 in progress
 
-**Deliverables:** 90/685 complete
+**Deliverables:** 90/705 complete
 
-**Tasks:** 90/709 complete
+**Tasks:** 90/729 complete
 
 ## Scope Summary
 
@@ -197,6 +197,11 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-183 Agent Output Regression Detection | PLANNED | 0/4 | 540 | 10 |
 | phase-184 Pipeline Efficiency Analytics and Token Optimization | PLANNED | 0/4 | 550 | 12 |
 | phase-185 Orchestrator Disaster Recovery and Full State Reconciliation | PLANNED | 0/4 | 570 | 8 |
+| phase-186 Proactive Backlog Mining and Opportunity Detection | PLANNED | 0/4 | 430 | 10 |
+| phase-187 Agent Behavioral Consistency and Drift Detection | PLANNED | 0/4 | 440 | 10 |
+| phase-188 Forward-Looking Cost Projection and Capacity Planning | PLANNED | 0/4 | 380 | 10 |
+| phase-189 Multi-Agent Code Style Harmonization | PLANNED | 0/4 | 480 | 10 |
+| phase-190 Orchestrator Economic Efficiency and ROI Dashboard | PLANNED | 0/4 | 380 | 10 |
 
 ## Dependencies
 
@@ -851,6 +856,25 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-32 | phase-185 | soft | Cost tracking state from phase 32 must be preserved for financial continuity |
 | phase-4 | phase-185 | soft | Orchestrator from phase 4 is the system being recovered -- it must be able to start from reconstructed state |
 | phase-83 | phase-185 | soft | State persistence layer (phase 83) defines how state is stored; disaster recovery defines how it is backed up and reconstructed |
+| phase-103 | phase-186 | soft | Speculative issue filing builds on the issue filing CLI from phase-103 |
+| phase-17 | phase-186 | soft | Invariant checker from phase-17 provides the structural deviation detection used by the opportunity scanner |
+| phase-66 | phase-186 | soft | Scheduled maintenance from phase-66 provides the scheduling framework for the mining cron job |
+| phase-4 | phase-186 | soft | Filed issues flow into the orchestrator poller from phase-4 for processing |
+| phase-8 | phase-187 | soft | Behavioral fingerprinting reads execution logs from phase-8 |
+| phase-44 | phase-187 | soft | Drift metrics integrate into the health scorecard from phase-44 |
+| phase-22 | phase-187 | soft | Config change correlation requires the config watcher history from phase-22 |
+| phase-183 | phase-187 | soft | Output regression detection (phase-183) is complementary to behavioral drift -- both detect agent degradation but from different signals |
+| phase-32 | phase-188 | soft | Cost projection reads historical cost data from phase-32 |
+| phase-8 | phase-188 | soft | Execution logs from phase-8 provide per-task cost and duration data |
+| phase-106 | phase-188 | soft | Budget alerts use the notification system from phase-106 |
+| phase-59 | phase-188 | soft | Capacity report includes velocity metrics from phase-59 |
+| phase-5 | phase-189 | soft | Style check/fix nodes extend the DAG executor from phase-5 |
+| phase-17 | phase-189 | soft | Structural invariants from phase-17 check architecture; style harmonization checks presentation -- complementary layers |
+| phase-33 | phase-189 | soft | Application legibility from phase-33 checks understandability; style harmonization checks consistency -- both contribute to agent-legible code |
+| phase-32 | phase-190 | soft | ROI computation requires cost tracking data from phase-32 |
+| phase-59 | phase-190 | soft | Velocity metrics from phase-59 provide throughput data for efficiency computation |
+| phase-9 | phase-190 | soft | Review sensor scores from phase-9 provide quality signal for value computation |
+| phase-44 | phase-190 | soft | Economic efficiency integrates into the health scorecard from phase-44 |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -11558,3 +11582,269 @@ The key architectural insight is that the orchestrator state can be reconstructe
 - Workspace filesystem may be on the same machine as the orchestrator -- if the machine is lost, workspace data is also lost (mitigate with git auto-commit)
 - Reconstruction from external sources is SLOWER than backup restore -- backups remain important for fast recovery
 - Conflict resolution (GitHub says closed, local says in-progress) requires clear priority rules -- document and enforce consistently
+
+## [ ] phase-186: Proactive Backlog Mining and Opportunity Detection (PLANNED)
+
+**Goal:** Enable agents to proactively scan codebases for improvement opportunities and file speculative agent-ready issues, completing the Symphony "speculative ticket" workflow
+
+The OpenAI Symphony research emphasizes that in the orchestrated model, "engineers shift their role from supervising execution to filing speculative tickets and reviewing completed work." Phase-103 (Agent-Ready Issue Filing) provides a CLI for filing issues, and phase-26 (Mayor Pattern) decomposes existing issues into sub-tasks. However, neither addresses the INPUT side: where do speculative tickets come from? Currently, a human must identify opportunities and file them. This phase creates a proactive mining system that periodically scans target repos for improvement opportunities -- tech debt indicators (TODO/FIXME/HACK comments, deprecated API usage, missing error handling), test coverage gaps, documentation gaps, and structural drift from established patterns -- and automatically files them as agent-ready issues with appropriate labels, complexity estimates, and suggested approaches. This completes the full Symphony loop: the system not only processes work but generates it.
+
+
+### Deliverables
+
+- [ ] **Codebase opportunity scanner** -- Python module that scans a repo for improvement opportunities using static analysis and heuristics
+  - [ ] `p186.d1.t1` Create opportunity_scanner.py
+    > Create opportunity_scanner.py: (1) Scan for TODO/FIXME/HACK comments using regex, extract context and classify by type (bug, improvement, tech debt), (2) Scan for deprecated API usage using configurable pattern lists (e.g., deprecated stdlib calls, old framework patterns), (3) Detect missing test files: for each source file, check if corresponding test file exists (foo.py -> test_foo.py), (4) Detect docstring gaps: public functions/classes without docstrings, modules without module docstrings, (5) Cross-reference with invariants.yaml from phase-17 to detect structural deviations, (6) Output structured list: [{file, line, type, severity, description, suggested_fix}], (7) Support incremental scanning: only report opportunities not already filed as issues (track filed opportunity fingerprints in local state), (8) CLI: python3 opportunity_scanner.py /path/to/repo --types todo,deprecated,tests,docs,invariants --severity min=medium.
+    _Files: ~/zion/projects/agent-orchestration/opportunity_scanner.py_
+  - [ ] Scanner detects at least 5 opportunity types: TODO/FIXME comments, deprecated API usage, missing test files, docstring gaps, invariant deviations
+    _Validation: run scanner on test repo with known opportunities_
+  - [ ] Each opportunity includes: file path, line range, opportunity type, severity (low/med/high), suggested fix description
+    _Validation: check scanner output format_
+  _~150 LOC_
+- [ ] **Speculative issue filer with intelligent grouping** -- Convert scanner results into well-structured GitHub Issues with appropriate labels, complexity estimates, and batched filing
+  - [ ] `p186.d2.t1` Create speculative_filer.py (depends: p186.d1.t1, p103.d1.t1)
+    > Create speculative_filer.py: (1) Input: opportunity list from scanner, (2) Group related opportunities: same file, same type, same fix pattern -> single issue, (3) For each group, generate issue title, body (with file list, line references, suggested approach), labels (agent-ready, opportunity type, severity), (4) Estimate complexity from opportunity count and severity distribution (simple: 1-2 low items, medium: 3-5 mixed, complex: 6+ or any high), (5) Deduplication: before filing, check if open issue already covers this opportunity (fuzzy match on file+type), (6) Rate limiting: max N issues per scan run (configurable), max M issues per day (prevent flooding), (7) Filing via gh CLI, (8) Track filed opportunities in ~/.orchestrator/state/mined_opportunities.jsonl for incremental scanning, (9) CLI: python3 speculative_filer.py owner/repo --scanner-output opportunities.json --max-issues 5 --dry-run.
+    _Files: ~/zion/projects/agent-orchestration/speculative_filer.py_
+  - [ ] Can convert scanner output to GitHub Issues with agent-ready label and estimated complexity
+    _Validation: run filer with scanner output_
+  - [ ] Groups related opportunities into single issues to avoid noise (e.g., 10 missing docstrings -> 1 "Add missing docstrings" issue)
+    _Validation: check grouping logic_
+  _~130 LOC_
+- [ ] **Backlog mining cron job** -- Scheduled job that runs the full scan-file cycle periodically on configured repos
+  - [ ] `p186.d3.t1` Create backlog mining cron job (depends: p186.d1.t1, p186.d2.t1)
+    > Create Hermes cron job that runs weekly: (1) For each configured repo, run opportunity_scanner.py, (2) Filter to severity >= medium, (3) Run speculative_filer.py on filtered results, (4) Generate summary: opportunities_scanned, opportunities_new, issues_filed, issues_skipped (dup), issues_rate_limited, (5) Store summary in execution log, (6) Include in weekly maintenance report from phase-66.
+  - [ ] Cron job runs weekly on configured repos
+    _Validation: cronjob list_
+  - [ ] Includes summary report of opportunities found and issues filed
+    _Validation: check cron prompt_
+  _~30 LOC_
+- [ ] **Backlog mining tests** -- Tests for scanner, filer, and end-to-end mining pipeline
+  - [ ] `p186.d4.t1` Create test_backlog_mining.py (depends: p186.d1.t1, p186.d2.t1)
+    > Create test_backlog_mining.py: (1) Scanner: test each opportunity type detection with fixtures (file with TODOs, file with deprecated calls, file without test, file without docstrings), test incremental scanning (skip already-filed), (2) Filer: test grouping logic (2 TODOs in same file -> 1 issue), test deduplication (skip if matching open issue exists), test rate limiting (respect max-issues), test dry-run mode, (3) End-to-end: scan test repo, file issues (mocked gh), verify issue structure.
+    _Files: ~/zion/projects/agent-orchestration/test_backlog_mining.py_
+  - [ ] Test file covers scanner detection, filer grouping, deduplication, and rate limiting
+    _Validation: python3 -m pytest test_backlog_mining.py -v_
+  _~120 LOC_
+
+### Technical Notes
+
+The key insight from the research is that in the Symphony model, the issue tracker is not just a task sink but a task SOURCE. Engineers "file speculative tickets" and agents process them. This phase automates the speculative filing side, creating a closed loop where the system both generates and processes work. The grouping logic is critical -- filing 50 individual issues about missing docstrings is worse than filing 1 issue that says "Add docstrings to these 50 functions." Rate limiting prevents issue flooding on large codebases.
+
+### Risks
+
+- Scanner may produce too many low-value opportunities on large codebases -- severity filtering and rate limiting are essential
+- Auto-filed issues may not match human priorities -- consider a "review queue" where humans approve mined issues before they become agent-ready
+- Incremental scanning state may become stale -- need periodic full re-scan
+
+## [ ] phase-187: Agent Behavioral Consistency and Drift Detection (PLANNED)
+
+**Goal:** Track agent behavioral patterns over time and detect when agents drift from established approaches, indicating potential quality regression or configuration issues
+
+The Harness Engineering research emphasizes that the Dark Factory model achieves quality through "structural tests and custom linters" that enforce consistency. Phase-183 (Agent Output Regression Detection) tracks code quality regression -- whether produced code is getting worse. But a different and complementary problem exists: behavioral drift. Even if code quality stays high, agents may gradually change their approach patterns -- using different tool combinations, following different solution strategies, or diverging from established project conventions. This drift can be invisible to quality metrics but indicates underlying issues: model updates changing behavior, configuration corruption, or prompt template degradation. This phase creates a behavioral genetics system that fingerprints agent sessions (tool usage patterns, approach strategies, context consumption profiles) and detects statistically significant drift from established baselines.
+
+
+### Deliverables
+
+- [ ] **Agent session behavioral fingerprinting** -- Extract behavioral features from execution logs to create per-session fingerprints
+  - [ ] `p187.d1.t1` Create behavioral_fingerprinter.py (depends: p8.d1.t1)
+    > Create behavioral_fingerprinter.py: (1) Read execution logs from phase-8, (2) Extract features per session: tool_call_distribution (which tools used, in what order, how many times), prompt_context_size (input tokens estimated from context), iteration_count (loop iterations, retry attempts), error_recovery_pattern (how errors were handled: retry, skip, escalate), solution_approach_tags (heuristic classification: test-first, refactor-then-add, direct-fix, exploratory), duration_profile (time per pipeline stage), (3) Generate fingerprint: {session_id, timestamp, features: {...}, role, pipeline, repo, issue_type}, (4) Store fingerprints in ~/.orchestrator/state/behavioral_fingerprints.jsonl, (5) CLI: python3 behavioral_fingerprinter.py --from 2026-01-01 --to 2026-05-01 --role implementer.
+    _Files: ~/zion/projects/agent-orchestration/behavioral_fingerprinter.py_
+  - [ ] Fingerprint includes: tool usage distribution, prompt construction patterns, context window utilization, iteration count, error recovery patterns
+    _Validation: run fingerprinter on sample execution logs_
+  - [ ] Fingerprints are stored in a time-series format for trend analysis
+    _Validation: check fingerprint storage format_
+  _~120 LOC_
+- [ ] **Drift detection engine** -- Compare current behavioral fingerprints against historical baselines and flag significant deviations
+  - [ ] `p187.d2.t1` Create drift_detector.py (depends: p187.d1.t1)
+    > Create drift_detector.py: (1) Load fingerprint time series, group by role/pipeline/repo, (2) Compute baseline statistics per feature: mean, std_dev, rolling average (30-day window), (3) For each recent session, compute z-score per feature: (current - rolling_avg) / rolling_std, (4) Flag features with |z-score| > threshold (default 2.0, configurable), (5) Aggregate drift: per-session drift_score (sum of flagged feature z-scores), per-feature drift_trend (direction and magnitude over time), (6) Possible cause analysis: correlate drift with config changes (from phase-22), model updates (from phase-40), role profile changes (from phase-6), (7) DriftReport: {period, role, features_drifted, drift_severity, possible_causes, recommendations}, (8) CLI: python3 drift_detector.py --role implementer --period 30d --threshold 2.0, (9) Cron integration: weekly drift scan.
+    _Files: ~/zion/projects/agent-orchestration/drift_detector.py_
+  - [ ] Detects drift using statistical methods (z-score, moving average deviation) on behavioral features
+    _Validation: test with synthetic drift scenarios_
+  - [ ] Produces drift reports with affected features, severity, and possible causes
+    _Validation: check drift report format_
+  _~140 LOC_
+- [ ] **Behavioral consistency dashboard integration** -- Add behavioral drift metrics to the health scorecard and status views
+  - [ ] `p187.d3.t1` Integrate drift detection into health scorecard (depends: p187.d2.t1, p44.d1.t1)
+    > Add behavioral consistency score to health scorecard (phase-44): (1) Compute overall behavioral_consistency score (0-100) from drift_detector results, (2) Include in health scorecard aggregation, (3) Add "Behavioral Drift" section to status.sh showing recent drift alerts, (4) Include drift data in weekly health report cron from phase-14.
+    _Files: ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Health scorecard includes behavioral consistency as a signal
+    _Validation: check health scorecard output_
+  _~50 LOC_
+- [ ] **Behavioral drift tests** -- Tests for fingerprinting, drift detection, and dashboard integration
+  - [ ] `p187.d4.t1` Create test_behavioral_drift.py (depends: p187.d1.t1, p187.d2.t1)
+    > Create test_behavioral_drift.py: (1) Fingerprinter: create synthetic execution logs with known feature distributions, verify fingerprint extraction accuracy, (2) Baseline: compute baseline from stable fingerprint series, verify statistics, (3) Drift detection: inject gradual drift (tool usage shift, iteration count change), verify detection with appropriate lag, test threshold sensitivity, (4) Cause correlation: create fingerprint series with known config change point, verify correlation detection, (5) Edge cases: insufficient data for baseline (< 10 sessions), all features stable (no false positives), sudden large drift vs gradual drift.
+    _Files: ~/zion/projects/agent-orchestration/test_behavioral_drift.py_
+  - [ ] Test file covers fingerprint extraction, baseline computation, drift detection, and cause correlation
+    _Validation: python3 -m pytest test_behavioral_drift.py -v_
+  _~130 LOC_
+
+### Technical Notes
+
+Behavioral drift is the "canary in the coal mine" for agent quality. Before code quality regresses (phase-183), agent behavior often drifts -- using different tools, taking different numbers of iterations, or following different solution strategies. Early drift detection allows intervention before quality is affected. The key challenge is establishing reliable baselines: need at least 30 sessions per role/pipeline before drift detection becomes meaningful. Until then, the system should only collect fingerprints without alerting.
+
+### Risks
+
+- Small sample sizes may produce unreliable baselines -- require minimum data threshold before enabling alerts
+- Legitimate changes (new tools, updated role profiles) may trigger false positive drift alerts -- need change-aware baseline adjustment
+- Behavioral features are heuristic approximations -- some drift may be invisible to the chosen features
+
+## [ ] phase-188: Forward-Looking Cost Projection and Capacity Planning (PLANNED)
+
+**Goal:** Predict future token costs and completion timelines based on backlog state and historical per-task averages, enabling proactive budget management
+
+The Harness Engineering research describes operations at "over one billion output tokens per day" with "$2,000 to $3,000 daily" spend. Phase-32 (Token Cost Tracking) provides historical cost accounting, and phase-48 (Cost Optimization) optimizes model routing. But both are backward-looking: they tell you what you spent, not what you will spend. In a production orchestrator managing dozens of agents across multiple repos, forward-looking cost projection is essential for budget planning: "Given our current backlog of 47 issues and historical average of $2.30 per issue, we expect to spend $108 this week." This phase adds cost projection capabilities: per-task cost estimation from historical data, backlog-level cost forecasting, budget alerting when projected spend exceeds thresholds, and timeline estimation based on throughput rates.
+
+
+### Deliverables
+
+- [ ] **Cost projection engine** -- Predict future costs based on historical per-task averages and current backlog state
+  - [ ] `p188.d1.t1` Create cost_projection.py (depends: p32.d1.t1, p8.d1.t1, p4.d1.t1)
+    > Create cost_projection.py: (1) Read cost tracking data from phase-32 and execution logs from phase-8, (2) Compute historical averages: avg_cost_per_task (overall, by role, by pipeline, by repo, by issue_label), avg_duration_per_task (same breakdowns), avg_tokens_per_task (same breakdowns), (3) Compute throughput: tasks_completed_per_day (7-day, 30-day rolling), (4) Read current backlog from poller (phase-4): count of open agent-ready issues by label/type, (5) Project costs: backlog_count * avg_cost_per_task = projected_cost, with confidence interval based on historical variance, (6) Project timeline: backlog_count / throughput = projected_completion_days, (7) Support projection periods: next_week, next_month, next_quarter, (8) Output: {period, projected_cost, cost_ci_low, cost_ci_high, projected_tasks, projected_timeline_days, assumptions: {avg_cost, throughput, backlog_size}}, (9) CLI: python3 cost_projection.py --period month --by role,repo --confidence 0.95.
+    _Files: ~/zion/projects/agent-orchestration/cost_projection.py_
+  - [ ] Computes per-task average cost by task type, role, and pipeline from historical execution logs
+    _Validation: run projection on historical data_
+  - [ ] Generates weekly/monthly cost forecasts with confidence intervals
+    _Validation: check forecast output_
+  _~130 LOC_
+- [ ] **Budget alerting and threshold management** -- Alert when projected costs approach or exceed configured budget thresholds
+  - [ ] `p188.d2.t1` Create budget_alerter.py (depends: p188.d1.t1, p106.d1.t1)
+    > Create budget_alerter.py: (1) Budget config in orchestrator.yaml: budgets: {daily: {limit: 100, warn_at: 80}, weekly: {limit: 500, warn_at: 400}, monthly: {limit: 2000, warn_at: 1600}}, (2) On each orchestrator loop iteration, check cumulative cost for current period against budget, (3) Alert levels: OK (under warn_at), WARNING (between warn_at and limit), CRITICAL (over limit), (4) WARNING: log warning, include in health check, CRITICAL: trigger notification (phase-106), optionally pause new task spawning, (5) Projected budget check: compare projected cost (from cost_projection.py) against remaining budget for period, alert if projected to exceed, (6) Budget report: current spend, projected total, remaining budget, burn rate, days until exhaustion at current rate, (7) CLI: python3 budget_alerter.py --check --report.
+    _Files: ~/zion/projects/agent-orchestration/budget_alerter.py_
+  - [ ] Supports daily, weekly, and monthly budget thresholds with configurable alert levels (warning, critical)
+    _Validation: configure thresholds, trigger alerts_
+  - [ ] Integrates with the notification system from phase-106
+    _Validation: check alert delivery_
+  _~100 LOC_
+- [ ] **Capacity planning report** -- Generate periodic capacity planning reports for orchestrator operators
+  - [ ] `p188.d3.t1` Create capacity report cron job (depends: p188.d1.t1, p188.d2.t1, p59.d1.t1)
+    > Create weekly cron job that generates capacity planning report: (1) Cost summary: actual vs projected, trend (up/down/stable), (2) Throughput summary: tasks/day, trend, by role, (3) Backlog status: total open, by priority/label, estimated completion date, (4) Efficiency metrics: cost per successful PR (from phase-59), tokens per task, average task duration, (5) Capacity recommendation: "At current throughput (X tasks/day), backlog will clear in Y days. Consider scaling to Z concurrent agents to meet deadline." (6) Anomaly detection: flag any week that deviates significantly from trend, (7) Store report in execution log, optionally post to notification channel.
+  - [ ] Weekly report includes: cost projection, throughput trend, backlog burn-down, capacity recommendations
+    _Validation: generate report, check content_
+  _~40 LOC_
+- [ ] **Cost projection tests** -- Tests for projection engine, budget alerting, and capacity reporting
+  - [ ] `p188.d4.t1` Create test_cost_projection.py (depends: p188.d1.t1, p188.d2.t1)
+    > Create test_cost_projection.py: (1) Projection: create synthetic cost history with known averages, verify projection accuracy, test confidence interval computation, test projection by role/repo breakdowns, (2) Budget alerting: set thresholds, simulate spend progression through OK -> WARNING -> CRITICAL, verify alert timing, test projected budget alert (projected to exceed), (3) Edge cases: no historical data (insufficient for projection), zero backlog (zero projected cost), single outlier task (robustness to outliers), (4) Capacity report: verify report includes all required sections with plausible data.
+    _Files: ~/zion/projects/agent-orchestration/test_cost_projection.py_
+  - [ ] Test file covers average computation, forecasting, budget threshold checks, and report generation
+    _Validation: python3 -m pytest test_cost_projection.py -v_
+  _~110 LOC_
+
+### Technical Notes
+
+The research mentions "$2-3K daily" operations. While Hermes is unlikely to reach that scale immediately, having cost projection infrastructure in place from the start is valuable. The projection model is intentionally simple (historical average * backlog count) rather than a sophisticated ML model. The research also emphasizes that "code is free, but attention is scarce" -- cost projection helps operators manage the scarce resource (budget) while maximizing the abundant resource (agent labor). Confidence intervals are important because historical averages have high variance when sample sizes are small.
+
+### Risks
+
+- Historical averages may be unreliable with small sample sizes -- require minimum data threshold and wide confidence intervals
+- Task complexity is not uniform -- a "feature" issue may cost 10x a "bugfix" issue; projection by issue label helps but is approximate
+- Model pricing changes may invalidate historical averages -- detect and flag pricing changes
+
+## [ ] phase-189: Multi-Agent Code Style Harmonization (PLANNED)
+
+**Goal:** Ensure code produced by different agents across multiple sessions maintains consistent style, making multi-agent output indistinguishable from single-author code
+
+The Gas Town research describes 20-30 concurrent Claude Code instances working on the same codebase. The Harness Engineering research emphasizes "rigid architecture" with consistent patterns. When multiple agents work on the same codebase, each may produce subtly different code styles: different naming conventions, comment styles, import ordering, error handling patterns, or formatting preferences. Even if each agent follows AI_GUIDE.md, interpretation differences accumulate. Phase-17 (Structural Invariants) checks architecture, and phase-33 (Application Legibility) checks understandability, but neither specifically addresses cross-agent style consistency. This phase creates a style harmonization system that: (1) establishes a style baseline from the existing codebase, (2) checks new agent output against the baseline, (3) auto-fixes common style inconsistencies, and (4) tracks style consistency metrics over time.
+
+
+### Deliverables
+
+- [ ] **Codebase style baseline extraction** -- Extract coding style patterns from the existing codebase to establish a "project fingerprint"
+  - [ ] `p189.d1.t1` Create style_baseline.py
+    > Create style_baseline.py: (1) Scan codebase files by language (Python, JS/TS, Go), (2) Extract naming patterns: function_names (snake_case/camelCase ratio), variable_names, class_names, constant_names (UPPER_SNAKE), (3) Extract import patterns: ordering (stdlib, third-party, local), grouping style, wildcard usage, (4) Extract comment patterns: inline comment frequency, docstring format (Google/Numpy/Sphinx), comment density (comments per 100 LOC), (5) Extract error handling patterns: try/except usage, error message format, custom exception patterns, (6) Extract formatting patterns: line length distribution, blank line usage, trailing whitespace, indentation style, (7) Output style_profile.yaml: {language, file_count, loc_total, patterns: {naming: {...}, imports: {...}, comments: {...}, errors: {...}, formatting: {...}}, confidence_scores: per_pattern}, (8) CLI: python3 style_baseline.py /path/to/repo --output style_profile.yaml --languages python,javascript.
+    _Files: ~/zion/projects/agent-orchestration/style_baseline.py_
+  - [ ] Extracts patterns for: naming conventions (snake_case, camelCase), import ordering, comment style, error handling patterns, docstring format
+    _Validation: run on test codebase with known style_
+  - [ ] Produces a machine-readable style profile that can be used for comparison
+    _Validation: check style profile output format_
+  _~140 LOC_
+- [ ] **Style consistency checker** -- Check new code (git diffs) against the established style baseline and report deviations
+  - [ ] `p189.d2.t1` Create style_checker.py (depends: p189.d1.t1, p5.d1.t1)
+    > Create style_checker.py: (1) Input: git diff (new/modified code) + style_profile.yaml, (2) For each changed file, extract style features from new code, (3) Compare against baseline: naming deviations (e.g., new function uses camelCase when baseline is snake_case), import ordering deviations, comment style deviations, error handling deviations, (4) Classify deviations: info (minor preference), warning (clear deviation from baseline), error (contradicts documented convention in AI_GUIDE.md), (5) Generate StyleReport: {files_checked, deviations_found, deviations_by_type, deviations_by_severity, style_consistency_score (0-100)}, (6) Add STYLE_CHECK node type to dag.py: runs style_checker.py on git diff, fails pipeline if error-level deviations found, (7) CLI: python3 style_checker.py --diff <(git diff) --profile style_profile.yaml --fail-on error.
+    _Files: ~/zion/projects/agent-orchestration/style_checker.py, ~/zion/projects/agent-orchestration/dag.py, ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Compares new code against baseline and reports style deviations with severity levels
+    _Validation: create style deviation, run checker, verify detection_
+  - [ ] Integrates as a pipeline node type (STYLE_CHECK) for use in DAG pipelines
+    _Validation: create pipeline with STYLE_CHECK node, execute it_
+  _~120 LOC_
+- [ ] **Auto-fix style harmonization** -- Automatically fix common style deviations to harmonize agent output
+  - [ ] `p189.d3.t1` Create style_autofix.py (depends: p189.d2.t1)
+    > Create style_autofix.py: (1) Input: StyleReport from style_checker.py, (2) For fixable deviations: naming (rename functions/variables using AST manipulation), imports (reorder using existing tools like isort if available, or manual reordering), formatting (apply black/autopep8 for Python, prettier for JS if available), (3) For non-fixable deviations: generate suggestions in StyleReport, (4) Safety: always create git stash or backup before modifying, support --dry-run to preview changes, (5) Integration with executor: add STYLE_FIX node type that runs auto-fix after STYLE_CHECK, (6) CLI: python3 style_autofix.py --report style_report.json --dry-run.
+    _Files: ~/zion/projects/agent-orchestration/style_autofix.py_
+  - [ ] Can auto-fix at least 3 deviation types: naming, import ordering, and formatting
+    _Validation: create deviations, run auto-fix, verify corrections_
+  - [ ] Auto-fix is non-destructive: creates backup or uses dry-run mode
+    _Validation: test with dry-run flag_
+  _~100 LOC_
+- [ ] **Style harmonization tests and pipeline integration** -- Tests for style baseline, checker, auto-fix, and integration into standard pipeline
+  - [ ] `p189.d4.t1` Create test_style_harmonization.py (depends: p189.d1.t1, p189.d2.t1, p189.d3.t1)
+    > Create test_style_harmonization.py: (1) Baseline: create test codebase with consistent style, extract baseline, verify profile accuracy, (2) Checker: create files with known style deviations (camelCase function, wrong import order, missing docstrings), run checker, verify all deviations detected with correct severity, (3) Auto-fix: run auto-fix on deviated files, verify corrections applied correctly, verify non-deviant code unchanged, test dry-run, (4) Pipeline: create pipeline YAML with STYLE_CHECK and STYLE_FIX nodes, execute on test diff, verify pipeline behavior, (5) Edge cases: empty diff (no deviations), mixed-language codebase, file too short for reliable analysis (< 10 LOC).
+    _Files: ~/zion/projects/agent-orchestration/test_style_harmonization.py_
+  - [ ] Test file covers baseline extraction, deviation detection, auto-fix, and pipeline integration
+    _Validation: python3 -m pytest test_style_harmonization.py -v_
+  - [ ] Standard pipeline includes STYLE_CHECK node after implementation
+    _Validation: check standard-pipeline.yaml_
+  _~120 LOC_
+
+### Technical Notes
+
+The research explicitly states that Gas Town runs "20-30 Claude Code instances working concurrently on the same codebase." At this scale, style consistency becomes a real problem: different agents interpret AI_GUIDE.md differently, use different idioms, and produce code that looks like it was written by different people. Style harmonization makes multi-agent output look like single-author code, which is critical for codebase maintainability. The baseline extraction approach is preferred over rule-based linting because it captures the ACTUAL style of the codebase, not an idealized style guide. Auto-fix should be conservative -- only fix deviations where the correct form is unambiguous (naming, imports, formatting). Ambiguous deviations (comment style, error handling approach) should be flagged but not auto-fixed.
+
+### Risks
+
+- Style baseline may be noisy on codebases with mixed styles from before orchestrator adoption -- consider baseline generation from orchestrator-produced code only
+- AST-based auto-fix may break code in edge cases -- always run tests after auto-fix
+- Style preferences evolve over time -- baseline should be periodically refreshed
+
+## [ ] phase-190: Orchestrator Economic Efficiency and ROI Dashboard (PLANNED)
+
+**Goal:** Create a comprehensive economic model for the orchestrator that measures cost efficiency, value delivered, and return on investment for autonomous development
+
+The Harness Engineering research reports "10x increase in development velocity" and "500% increase in landed pull requests." Phase-59 (PR Velocity Metrics) tracks throughput, and phase-32 tracks costs, but neither combines them into an economic efficiency model. The missing piece is ROI: is the orchestrator delivering value that justifies its cost? This phase creates an economic efficiency dashboard that answers: (1) Cost efficiency: how much does each successful PR cost? How does this compare to human-only development? (2) Value metrics: lines of code produced per dollar, test coverage added per session, issues resolved per day. (3) Trend analysis: is efficiency improving or degrading over time? (4) Investment optimization: which repos/pipelines/roles deliver the best ROI? Where should we invest more agent capacity? This transforms the orchestrator from a cost center into a measurable value center.
+
+
+### Deliverables
+
+- [ ] **Economic efficiency data collector** -- Aggregate cost, output, and quality data into a unified efficiency dataset
+  - [ ] `p190.d1.t1` Create efficiency_collector.py (depends: p32.d1.t1, p8.d1.t1, p9.d1.t1, p59.d1.t1)
+    > Create efficiency_collector.py: (1) Aggregate data from: cost_tracker (phase-32), execution_log (phase-8), review_sensor (phase-9), velocity_metrics (phase-59), git history (commit counts, LOC changes), (2) Per-session efficiency: {session_id, cost, duration, loc_added, loc_removed, files_changed, tests_added, review_score, pr_merged (bool)}, (3) Per-period aggregates (daily, weekly, monthly): total_cost, total_prs_merged, total_loc_added, avg_cost_per_pr, avg_review_score, pr_merge_rate (merged / total), throughput (prs/day), (4) Efficiency ratios: cost_per_successful_pr, loc_per_dollar, tests_per_session, value_index (weighted composite of: merge_rate * review_score * throughput), (5) Store in ~/.orchestrator/state/efficiency_data.jsonl, (6) CLI: python3 efficiency_collector.py --period weekly --from 2026-01-01 --output report.md.
+    _Files: ~/zion/projects/agent-orchestration/efficiency_collector.py_
+  - [ ] Collects: cost per task, output per task (LOC, files changed, tests added), quality per task (review score, test pass rate)
+    _Validation: run collector on historical data_
+  - [ ] Computes composite efficiency metrics: cost_per_successful_pr, loc_per_dollar, value_per_session
+    _Validation: check computed metrics_
+  _~120 LOC_
+- [ ] **ROI computation and comparison model** -- Compute orchestrator ROI by comparing agent output cost against estimated human-equivalent cost
+  - [ ] `p190.d2.t1` Create roi_model.py (depends: p190.d1.t1)
+    > Create roi_model.py: (1) Human cost model: configurable hourly_rate (default $75/hr), avg_hours_per_pr (default 4hr for medium task), overhead_multiplier (1.5x for code review, testing, revision), (2) Per-PR human equivalent cost: hours * rate * overhead, (3) Per-period ROI: (human_cost_for_same_output - agent_cost) / agent_cost, (4) Break-even analysis: how many PRs per month needed to break even on orchestrator infrastructure costs, (5) ROI by dimension: per_repo (which repos get best ROI), per_role (which agent roles are most cost-effective), per_pipeline (which pipelines deliver best value), (6) Sensitivity analysis: ROI at different human cost rates, different agent cost rates, different throughput levels, (7) Output: ROIReport with summary, breakdowns, trends, recommendations, (8) CLI: python3 roi_model.py --period monthly --human-rate 75 --break-even.
+    _Files: ~/zion/projects/agent-orchestration/roi_model.py_
+  - [ ] Computes ROI: (human_equivalent_cost - agent_cost) / agent_cost, with configurable human cost assumptions
+    _Validation: verify ROI computation with sample data_
+  - [ ] Supports per-repo, per-role, and per-pipeline ROI breakdowns
+    _Validation: check breakdown outputs_
+  _~110 LOC_
+- [ ] **Economic efficiency dashboard and reporting** -- Add economic efficiency metrics to the status view and create periodic ROI reports
+  - [ ] `p190.d3.t1` Integrate efficiency metrics and create ROI reporting cron (depends: p190.d1.t1, p190.d2.t1, p44.d1.t1)
+    > (1) Add economic section to status.sh: cost/PR (7-day avg), ROI (30-day), throughput (7-day avg), trend indicators (up/down/stable), (2) Create monthly cron job: run efficiency_collector + roi_model, generate ROI report with: executive summary, detailed metrics, month-over-month trends, recommendations for optimization, (3) Include efficiency metrics in health scorecard (phase-44) as an economic health signal, (4) Optionally post monthly ROI summary to notification channel.
+    _Files: ~/zion/projects/agent-orchestration/status.sh_
+  - [ ] Status view includes economic efficiency summary (cost/PR, ROI, throughput)
+    _Validation: check status.sh output_
+  - [ ] Monthly ROI report is generated automatically via cron
+    _Validation: check cron job_
+  _~50 LOC_
+- [ ] **Economic efficiency tests** -- Tests for efficiency collection, ROI computation, and reporting
+  - [ ] `p190.d4.t1` Create test_economic_efficiency.py (depends: p190.d1.t1, p190.d2.t1)
+    > Create test_economic_efficiency.py: (1) Efficiency collector: create synthetic cost/execution/review data, verify aggregation accuracy, verify efficiency ratio computation, (2) ROI model: compute ROI with known inputs, verify against manual calculation, test sensitivity analysis (vary rates, verify proportional changes), test break-even computation, (3) Edge cases: zero PRs merged (avoid division by zero), zero cost (free tier), very high human cost rate (extreme ROI), single data point (insufficient for trends), (4) Dashboard: verify status section renders with plausible data.
+    _Files: ~/zion/projects/agent-orchestration/test_economic_efficiency.py_
+  - [ ] Test file covers efficiency aggregation, ROI computation, sensitivity analysis, and break-even calculation
+    _Validation: python3 -m pytest test_economic_efficiency.py -v_
+  _~100 LOC_
+
+### Technical Notes
+
+The research specifically calls out "500% increase in landed pull requests" and "10x increase in development velocity" as key metrics. These are economic efficiency metrics, not just technical metrics. The ROI model is deliberately simple: it compares the cost of agent-produced PRs against estimated human-equivalent cost. This is an approximation, but it answers the fundamental question: "Is this orchestrator worth running?" The human cost assumptions are configurable because they vary enormously by organization, region, and seniority level. The break-even analysis is particularly valuable for organizations deciding whether to invest in orchestration infrastructure.
+
+### Risks
+
+- Human-equivalent cost estimates are inherently approximate -- document assumptions clearly and present as ranges, not exact figures
+- LOC-based metrics can be gamed (verbose code scores higher) -- supplement with quality signals (review scores, test coverage)
+- ROI may be negative in early stages when infrastructure costs are high and throughput is low -- trend analysis is more meaningful than point-in-time ROI
