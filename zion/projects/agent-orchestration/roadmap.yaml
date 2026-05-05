@@ -17099,6 +17099,510 @@ phases:
   - 'Strategy reset adds significant prompt overhead -- keep reset context concise'
   scope_lines_total: 740
   test_target: 10
+- id: 'phase-134'
+  title: 'Policy-as-Agent: Autonomous Governance Enforcement'
+  status: planned
+  goal: 'Deploy autonomous governance agents that proactively monitor agent output for compliance violations, detect misconfigurations, and auto-remediate without human intervention'
+  description: |-
+    The "AI Project Management Architectures" research describes a "Policy-as-Agent"
+    paradigm where intelligent, autonomous agents are embedded directly into the system
+    to enforce governance rules in real-time. These agents proactively monitor
+    configurations, detect misconfigurations, and even generate pull requests to
+    remediate issues, all without human intervention. The same research emphasizes
+    "Verifiable AI" -- making agent decisions transparent, auditable, and traceable
+    via Architectural Decision Records (ADRs) as an immutable log of key decisions.
+    Phase 45 (WORKFLOW.md Engine) loads static runtime policies but doesn't enforce
+    them autonomously. Phase 49 (Feedback Loop) categorizes human feedback but doesn't
+    generate autonomous governance actions. Phase 85 (Audit Trail) logs actions but
+    doesn't proactively detect violations. Phase 126 (Secret Leak Detection) scans
+    output for one specific violation type (credential leaks) but is not a general
+    governance framework. Phase 134 closes this gap by implementing: (1) a general
+    Policy-as-Agent engine that runs governance rules as autonomous agents, (2)
+    real-time violation detection across agent output (code, commits, PRs, configs),
+    (3) auto-remediation via PR generation for fixable violations, (4) an ADR
+    subsystem that records all governance decisions for auditability, (5) compliance
+    scoring per project/agent/phase.
+  deliverables:
+  - name: Policy engine core
+    description: 'Create policy_engine.py with rule definition, evaluation, and violation detection'
+    status: planned
+    acceptance_criteria:
+    - description: Can define governance rules in YAML and evaluate agent output against them
+      validation: 'define 3 rules (no secrets, no TODO comments, test coverage > 80%), run against sample output, verify violations detected'
+      met: false
+    - description: Rules can target different output types (commits, PRs, generated code, configs)
+      validation: 'define rules for each type, verify each is evaluated against its target'
+      met: false
+    tasks:
+    - id: p134.d1.t1
+      title: Create policy_engine.py
+      status: planned
+      description: |-
+        Create policy_engine.py: (1) PolicyRule dataclass: id, name, description,
+        severity (info/warning/error/critical), target_type (commit/pr/code/config),
+        check_function (callable or string reference), remediation (optional callable),
+        (2) PolicyEngine class: load_rules(rules_dir: Path) -> list[PolicyRule],
+        evaluate(target_type: str, content: str, context: dict) -> list[Violation],
+        (3) Violation dataclass: rule_id, severity, message, location (file:line),
+        suggested_fix, auto_remailable (bool), (4) built-in checkers:
+        NoHardcodedSecretsChecker (extends phase 126), NoDebugStatementsChecker,
+        TestCoverageChecker, ImportSanityChecker, DocumentationCurrencyChecker,
+        (5) rules loaded from governance/rules/*.yaml with format: name, target_type,
+        severity, check (builtin or custom module path), params.
+      files:
+      - '~/zion/projects/agent-orchestration/policy_engine.py'
+      - '~/zion/projects/agent-orchestration/governance/rules/'
+    scope_lines: 200
+    scope_files:
+    - '~/zion/projects/agent-orchestration/policy_engine.py'
+  - name: Auto-remediation via PR generation
+    description: 'Automatically generate PRs to fix policy violations when auto_remailable is true'
+    status: planned
+    acceptance_criteria:
+    - description: Can generate a PR that fixes a detected violation
+      validation: 'detect a TODO comment violation, generate PR that removes it, verify PR created via gh CLI'
+      met: false
+    - description: PRs are labeled with governance metadata for tracking
+      validation: 'verify PR has labels: auto-remediation, policy-violation, and the specific rule name'
+      met: false
+    tasks:
+    - id: p134.d2.t1
+      title: Create remediation.py
+      status: planned
+      description: |-
+        Create remediation.py: (1) RemediationEngine class that takes Violations and
+        generates remediation actions, (2) for each violation with auto_remiable=true,
+        apply the suggested_fix to the target file, (3) create a branch named
+        "policy-fix/<rule-id>-<timestamp>", commit the fix, open a PR via gh CLI,
+        (4) PR description includes: violation details, rule that was violated, fix
+        applied, (5) rate-limit remediation PRs to max N per hour per project to
+        avoid spam, (6) track remediation outcomes (accepted/reverted/ignored) in
+        governance/remediation_log.yaml for compliance reporting.
+      files:
+      - '~/zion/projects/agent-orchestration/remediation.py'
+      dependencies:
+      - p134.d1.t1
+    scope_lines: 180
+    scope_files:
+    - '~/zion/projects/agent-orchestration/remediation.py'
+  - name: ADR subsystem for governance auditability
+    description: 'Record all governance decisions and policy changes as Architectural Decision Records'
+    status: planned
+    acceptance_criteria:
+    - description: Every governance action is recorded as an ADR with full context
+      validation: 'trigger a violation detection, verify ADR created in governance/adr/ with decision context'
+      met: false
+    tasks:
+    - id: p134.d3.t1
+      title: Create adr_tracker.py
+      status: planned
+      description: |-
+        Create adr_tracker.py: (1) ADRRecord dataclass: id, title, status (proposed/
+        accepted/deprecated/superseded), context (why this decision), decision (what
+        was decided), consequences (impact), metadata (rule_id, agent_id, timestamp),
+        (2) ADRArchive class: record_decision(title, context, decision, consequences,
+        metadata) -> str, (3) store ADRs in governance/adr/NNNN-title.md following
+        the ADR format (Status, Context, Decision, Consequences), (4) integrate with
+        PolicyEngine: every violation detection and remediation generates an ADR entry,
+        (5) adr_summary() -> str: produce a compliance report summarizing all governance
+        decisions, violation trends, and remediation success rates.
+      files:
+      - '~/zion/projects/agent-orchestration/adr_tracker.py'
+      dependencies:
+      - p134.d1.t1
+    scope_lines: 150
+    scope_files:
+    - '~/zion/projects/agent-orchestration/adr_tracker.py'
+  - name: Policy engine integration with orchestrator and tests
+    description: 'Integrate policy engine into the orchestrator pipeline and add comprehensive tests'
+    status: planned
+    acceptance_criteria:
+    - description: Policy checks run automatically after each agent execution step
+      validation: 'run orchestrator in test mode, verify policy engine evaluates after each step'
+      met: false
+    tasks:
+    - id: p134.d4.t1
+      title: Integrate policy engine and create tests
+      status: planned
+      description: |-
+        Update orchestrator.py and create test_policy_engine.py: (1) add
+        policy_engine.evaluate() call as a PostToolUse hook in the DAG executor,
+        (2) violations with severity >= error block progress (similar to phase 67
+        pre-PR gate), (3) violations with severity < error are logged but don't block,
+        (4) create test_policy_engine.py: test rule loading, test violation detection
+        for each built-in checker, test auto-remediation PR creation (mock gh CLI),
+        test ADR recording, test integration with orchestrator pipeline.
+      files:
+      - '~/zion/projects/agent-orchestration/orchestrator.py'
+      - '~/zion/projects/agent-orchestration/test_policy_engine.py'
+      dependencies:
+      - p134.d2.t1
+      - p134.d3.t1
+    scope_lines: 160
+    scope_files:
+    - '~/zion/projects/agent-orchestration/orchestrator.py'
+    - '~/zion/projects/agent-orchestration/test_policy_engine.py'
+  dependencies:
+  - source: 'phase-45'
+    target: 'phase-134'
+    type: soft
+    reason: 'WORKFLOW.md Engine loads static policies; Policy-as-Agent extends this with autonomous enforcement'
+  - source: 'phase-85'
+    target: 'phase-134'
+    type: soft
+    reason: 'Audit Trail logs agent actions; Policy-as-Agent adds proactive violation detection to the audit surface'
+  - source: 'phase-126'
+    target: 'phase-134'
+    type: soft
+    reason: 'Secret Leak Detection is a specialized policy; Policy-as-Agent generalizes this into a framework'
+  - source: 'phase-67'
+    target: 'phase-134'
+    type: soft
+    reason: 'Pre-PR verification gate blocks on failing checks; Policy-as-Agent provides the violation detection that feeds these gates'
+  technical_notes: |-
+    The Policy-as-Agent pattern is the "active governance" complement to the existing
+    "passive governance" (WORKFLOW.md policies, audit trail logging). The key distinction
+    is autonomy: existing governance requires agents to follow rules by reading policy
+    files; Policy-as-Agent has dedicated agents that actively monitor and enforce rules.
+    This implements the research's recommendation that "as the architecture becomes more
+    decentralized, the system for policy and governance becomes more centralized and
+    automated." The ADR subsystem provides the "Verifiable AI" component: every
+    governance decision is traceable to a specific rule, violation, and remediation
+    action. The rate limiting on remediation PRs is critical -- without it, a misconfigured
+    rule could flood a repository with auto-generated PRs. The built-in checkers cover
+    the most common violations; the custom module path in rules YAML allows teams to
+    add domain-specific checkers without modifying the engine.
+  risks:
+  - 'Auto-remediation could make incorrect fixes that pass lint but change semantics -- always require human review for semantic changes'
+  - 'Rate limiting on remediation PRs could delay fixing critical violations -- implement bypass for severity=critical'
+  - 'Policy rules could conflict (e.g., "no TODOs" vs "document all limitations") -- need rule precedence and conflict detection'
+  - 'ADR storage could grow large -- implement archival for superseded decisions'
+  - 'Governance agents add latency to every execution step -- make policy evaluation async for non-blocking rules'
+  - 'Overly strict policies could paralyze agent productivity in dark factory mode -- implement per-project policy strictness levels'
+  scope_lines_total: 690
+  test_target: 10
+- id: 'phase-135'
+  title: 'Pattern Extraction Engine for Cross-Project Architectural Memory'
+  status: planned
+  goal: 'Implement systematic extraction of architectural patterns (not implementation details) from codebases, distilling them into reusable essence records for cross-project knowledge transfer'
+  description: |-
+    The "Extracting Code Patterns, Not Code" research describes a disciplined approach
+    to software maintenance that prioritizes the capture of ideas over artifacts. The
+    method follows a five-step protocol: (1) Documentation-First Analysis -- scan docs
+    before code to understand intent, (2) Categorization and Filtering -- identify
+    extractable categories (Architectural Patterns, Interfaces, Algorithms, Validation
+    Logic, Naming Conventions) while filtering out ecosystem-bound details, (3)
+    Distillation to Essence -- reduce each pattern to a three-part record (Rule, Why,
+    How to Apply), (4) Cognitive Integration and Memory Persistence -- save essence
+    records to a formal memory system as searchable references, (5) Sanitization and
+    Cleanup -- remove the external source code, keeping only the distilled patterns.
+    Phase 93 (Cross-Project Memory) stores execution knowledge in a vector store.
+    Phase 47 (Knowledge Extraction) extracts session knowledge but focuses on task
+    execution patterns, not architectural patterns. Phase 55 (agent.md Generator)
+    detects tech stacks but doesn't extract architectural patterns. Phase 135 closes
+    this gap by implementing the full pattern extraction protocol: scanning project
+    documentation and code, categorizing findings, distilling to essence records,
+    persisting to the knowledge base, and making patterns searchable across projects.
+  deliverables:
+  - name: Pattern extraction core
+    description: 'Create pattern_extractor.py implementing the five-step extraction protocol'
+    status: planned
+    acceptance_criteria:
+    - description: Can scan a project's docs and code to extract architectural patterns
+      validation: 'run against ~/zion/projects/agent-orchestration/, verify patterns extracted and distilled'
+      met: false
+    - description: Extracted patterns follow the Rule/Why/How-to-Apply essence format
+      validation: 'inspect output, verify each pattern has Rule, Why, and How to Apply fields'
+      met: false
+    tasks:
+    - id: p135.d1.t1
+      title: Create pattern_extractor.py
+      status: planned
+      description: |-
+        Create pattern_extractor.py: (1) PatternRecord dataclass: id, name, category
+        (architectural_pattern/interface/algorithm/validation_logic/naming_convention),
+        rule (one-sentence summary), why (motivation), how_to_apply (trigger context),
+        source_project, source_files (list), confidence (0.0-1.0), extracted_at,
+        (2) PatternExtractor class: scan_project(project_path: Path) -> list[PatternRecord],
+        (3) Step 1 - Documentation-First Analysis: read README.md, ARCHITECTURE.md,
+        docs/*.md to understand project intent before examining code, (4) Step 2 -
+        Categorization: analyze code files and classify findings into the 5 extractable
+        categories, filtering out package configs, lock files, .env files, (5) Step 3 -
+        Distillation: for each finding, generate Rule (one sentence), Why (problem it
+        solves), How to Apply (when to use it), (6) Step 4 - Persistence: save
+        PatternRecords to knowledge/patterns/<project_slug>.yaml, (7) Step 5 - Cleanup
+        is manual (the research emphasizes this as a psychological commitment to patterns
+        over code).
+      files:
+      - '~/zion/projects/agent-orchestration/pattern_extractor.py'
+      - '~/zion/projects/agent-orchestration/knowledge/patterns/'
+    scope_lines: 220
+    scope_files:
+    - '~/zion/projects/agent-orchestration/pattern_extractor.py'
+  - name: Pattern search and cross-project retrieval
+    description: 'Enable searching extracted patterns across projects for knowledge transfer'
+    status: planned
+    acceptance_criteria:
+    - description: Can search patterns by category, keyword, or semantic similarity
+      validation: 'extract patterns from 2 projects, search for "error handling", verify relevant patterns returned'
+      met: false
+    tasks:
+    - id: p135.d2.t1
+      title: Create pattern_search.py
+      status: planned
+      description: |-
+        Create pattern_search.py: (1) PatternSearch class with index of all extracted
+        patterns from knowledge/patterns/*.yaml, (2) search(query: str, category: str
+        | None, project: str | None, limit: int = 10) -> list[PatternRecord]: keyword
+        search across Rule, Why, and How to Apply fields, (3) search_by_category(
+        category: str) -> list[PatternRecord]: filter by extractable category, (4)
+        similar_patterns(pattern_id: str, threshold: float = 0.7) -> list[
+        PatternRecord]: find patterns with similar descriptions using simple text
+        similarity (no ML dependency -- use set intersection of significant words), (5)
+        format_pattern(pattern: PatternRecord) -> str: render as a concise reference
+        card suitable for injecting into agent context, (6) integration with phase 93
+        (Cross-Project Memory): patterns are indexed alongside execution knowledge for
+        unified retrieval.
+      files:
+      - '~/zion/projects/agent-orchestration/pattern_search.py'
+      dependencies:
+      - p135.d1.t1
+    scope_lines: 160
+    scope_files:
+    - '~/zion/projects/agent-orchestration/pattern_search.py'
+  - name: Pattern extraction integration and tests
+    description: 'Integrate pattern extraction into the orchestrator lifecycle and add tests'
+    status: planned
+    acceptance_criteria:
+    - description: Pattern extraction runs on project onboarding and periodically thereafter
+      validation: 'trigger onboarding, verify patterns extracted and stored'
+      met: false
+    tasks:
+    - id: p135.d3.t1
+      title: Integrate and create test_pattern_extractor.py
+      status: planned
+      description: |-
+        Update onboard.py and create test_pattern_extractor.py: (1) add
+        pattern_extractor.scan_project() call at the end of the onboarding flow (after
+        phase 55 agent.md generation), (2) add periodic re-extraction in garbage
+        collector (phase 66) -- re-scan monthly to capture new patterns, (3) create
+        test_pattern_extractor.py: test documentation-first analysis on a mock project
+        with README and code, test categorization filtering (verify package.json and
+        .env are excluded), test distillation format (Rule/Why/How), test pattern search
+        (keyword, category, similarity), test cross-project retrieval.
+      files:
+      - '~/zion/projects/agent-orchestration/onboard.py'
+      - '~/zion/projects/agent-orchestration/test_pattern_extractor.py'
+      dependencies:
+      - p135.d2.t1
+    scope_lines: 140
+    scope_files:
+    - '~/zion/projects/agent-orchestration/onboard.py'
+    - '~/zion/projects/agent-orchestration/test_pattern_extractor.py'
+  dependencies:
+  - source: 'phase-93'
+    target: 'phase-135'
+    type: soft
+    reason: 'Cross-Project Memory stores execution knowledge; Pattern Extraction adds architectural pattern knowledge to the same store'
+  - source: 'phase-47'
+    target: 'phase-135'
+    type: soft
+    reason: 'Knowledge Extraction captures task patterns; Pattern Extraction captures architectural patterns -- complementary knowledge types'
+  - source: 'phase-55'
+    target: 'phase-135'
+    type: soft
+    reason: 'agent.md Generator detects tech stacks during onboarding; Pattern Extraction runs after onboarding to capture architectural patterns'
+  technical_notes: |-
+    The Pattern Extraction Engine implements the research's core thesis: "the patterns
+    are the true value, not the code itself." The five-step protocol is designed to
+    strip away "accidental complexity" (framework choices, syntax, environment configs)
+    and preserve "essential complexity" (architectural decisions, interface contracts,
+    validation logic). The key design decision is that extraction is heuristic-based,
+    not LLM-based, to keep it fast and deterministic. The distillation step (Rule/Why/
+    How) produces concise records that fit within agent context budgets -- a single
+    pattern is ~50 tokens, so 10 relevant patterns add only ~500 tokens. The text
+    similarity search uses word overlap rather than embeddings to avoid the 80MB
+    sentence-transformers dependency (phase 93 risk). The research emphasizes that
+    "cleanup" (Step 5) is a deliberate psychological act -- the orchestrator skips this
+    step since it never clones external code, but the principle informs the design:
+    patterns are stored independently of source code, so they remain useful even if
+    the original project is deleted.
+  risks:
+  - 'Heuristic extraction may miss subtle architectural patterns that require semantic understanding'
+  - 'Pattern records could become stale as projects evolve -- periodic re-extraction mitigates this'
+  - 'Cross-project pattern search could surface patterns from proprietary projects -- enforce per-project visibility'
+  - 'Too many low-quality patterns could dilute search results -- implement confidence threshold filtering'
+  - 'Distillation to Rule/Why/How may lose important nuance -- include source_files reference for manual deep-dive'
+  scope_lines_total: 520
+  test_target: 10
+- id: 'phase-136'
+  title: 'Recursive Session Chaining with Sliding Window Context and Out-of-Band Advisor'
+  status: planned
+  goal: 'Implement a three-stage recursive orchestration loop (extraction, injection, termination) that spans long-running tasks across multiple agent sessions with automatic context compaction'
+  description: |-
+    The "Automating Claude CLI with Bash" research describes a sophisticated recursive
+    wrapper framework for managing long-running agentic tasks across multiple sessions.
+    The framework uses a three-stage lifecycle: (1) Extraction -- pull the latest
+    relevant context from JSONL session history using jq-based sliding window, (2)
+    Injection -- combine extracted context with new instructions and spawn a fresh
+    agent session in headless mode, (3) Termination -- monitor for completion events
+    (success, error, hang) and manage the transition to the next session. The research
+    also describes an "Out-of-Band Advisor" pattern: when a session enters cognitive
+    deadlock (blocked multiple times without progress), invoke an external, often larger,
+    model to analyze the full transcript and provide a "hint" that breaks the loop.
+    Phase 97 (Session Chaining) chains sessions with context marshaling but doesn't
+    implement the full extraction-injection-termination loop with sliding window context
+    pruning or JSONL DAG traversal. Phase 65 (Stop Hooks) intercepts agent termination
+    but doesn't implement the recursive restart cycle. Phase 116 (Stagnation Circuit
+    Breaker) detects stalled commits but doesn't implement the Out-of-Band Advisor's
+    escalation to a larger model. Phase 136 closes these gaps by implementing: (1) a
+    recursive session manager that automatically chains sessions for tasks exceeding
+    single-session limits, (2) sliding window context extraction from JSONL history,
+    (3) event-driven termination detection with hang recovery, (4) an Out-of-Band
+    Advisor that escalates to a more capable model when sessions stall.
+  deliverables:
+  - name: Recursive session manager core
+    description: 'Create session_chain.py implementing the extraction-injection-termination lifecycle'
+    status: planned
+    acceptance_criteria:
+    - description: Can chain multiple sessions automatically for a long-running task
+      validation: 'define a task requiring 3 sessions, verify chain executes all 3 with context passing'
+      met: false
+    - description: Context is extracted using a sliding window from session history
+      validation: 'verify only last N messages are extracted, not full history'
+      met: false
+    tasks:
+    - id: p136.d1.t1
+      title: Create session_chain.py
+      status: planned
+      description: |-
+        Create session_chain.py: (1) SessionChain class: task_id, max_sessions (default
+        10), window_size (default 5 messages), timeout_per_session (default 300s),
+        (2) Stage 1 - Extraction: extract_context(session_id: str, window_size: int)
+        -> list[dict]: parse JSONL history, filter for user/assistant roles, return
+        last N messages as context list, (3) implement summary extraction: if history
+        exceeds token budget, generate a one-paragraph summary of earlier messages and
+        keep only the last window verbatim, (4) Stage 2 - Injection: inject_context(
+        context: list[dict], instruction: str) -> str: combine extracted context with
+        new instruction into a formatted prompt: "Previous context:\n{context}\n\nNew
+        instruction: {instruction}", (5) Stage 3 - Termination: monitor_session(
+        session_id: str) -> SessionResult: poll for completion events, detect success
+        (subtype: success), error (subtype: error), or hang (no output for timeout),
+        (6) chain.run(task_id, initial_instruction) -> ChainResult: execute the full
+        loop -- extract, inject, spawn, monitor, repeat until task complete or max
+        sessions reached, (7) persist chain state in chains/<task_id>/chain_state.yaml:
+        session history, context summaries, current attempt number.
+      files:
+      - '~/zion/projects/agent-orchestration/session_chain.py'
+      - '~/zion/projects/agent-orchestration/chains/'
+    scope_lines: 240
+    scope_files:
+    - '~/zion/projects/agent-orchestration/session_chain.py'
+  - name: Out-of-Band Advisor for cognitive deadlock
+    description: 'Escalate to a larger model when sessions enter cognitive deadlock'
+    status: planned
+    acceptance_criteria:
+    - description: When a session is blocked 3+ times without progress, an advisor model is consulted
+      validation: 'simulate 3 blocked sessions, verify advisor consulted and hint injected'
+      met: false
+    tasks:
+    - id: p136.d2.t1
+      title: Create oob_advisor.py
+      status: planned
+      description: |-
+        Create oob_advisor.py: (1) OOBDvisor class: advisor_model (default: larger/
+        more capable model), max_stalls_before_escalation (default 3), (2)
+        should_escalate(session_history: list[dict]) -> bool: detect cognitive deadlock
+        by checking if the last N sessions produced identical or near-identical output
+        without making progress on the task, (3) generate_hint(task_description: str,
+        stuck_context: str, full_transcript: str) -> str: send the full transcript to
+        the advisor model with the prompt "Analyze this agent's execution transcript. It
+        has been stuck on the same task for N attempts without progress. Identify the
+        root cause and suggest a specific, actionable hint to break the deadlock.", (4)
+        inject_hint(session_chain: SessionChain, hint: str): add the advisor's hint as
+        a system-level message at the start of the next session's context, (5) log all
+        escalations to the execution history with the hint, the advisor's analysis, and
+        whether the hint helped (tracked by comparing subsequent session outcomes).
+      files:
+      - '~/zion/projects/agent-orchestration/oob_advisor.py'
+      dependencies:
+      - p136.d1.t1
+    scope_lines: 180
+    scope_files:
+    - '~/zion/projects/agent-orchestration/oob_advisor.py'
+  - name: Session chain integration with orchestrator and tests
+    description: 'Integrate session chaining into the orchestrator and add comprehensive tests'
+    status: planned
+    acceptance_criteria:
+    - description: The orchestrator uses session chaining for tasks that exceed single-session token budgets
+      validation: 'configure a task with low token budget, verify it chains across sessions automatically'
+      met: false
+    tasks:
+    - id: p136.d3.t1
+      title: Integrate session chain and create tests
+      status: planned
+      description: |-
+        Update orchestrator.py and create test_session_chain.py: (1) add session_chain
+        as an alternative execution mode in the DAG executor -- when a task's estimated
+        tokens exceed the single-session budget (from phase 20), automatically use
+        session chaining, (2) integrate OOBDvisor: after each session in the chain,
+        check should_escalate() and inject hints if needed, (3) add chain status to the
+        --status output: current chain length, total tokens used, advisor interventions,
+        (4) create test_session_chain.py: test context extraction with sliding window,
+        test injection format, test termination detection (success, error, hang timeout),
+        test chain execution across 3 mock sessions, test advisor escalation trigger,
+        test hint injection, test chain state persistence and recovery.
+      files:
+      - '~/zion/projects/agent-orchestration/orchestrator.py'
+      - '~/zion/projects/agent-orchestration/test_session_chain.py'
+      dependencies:
+      - p136.d2.t1
+    scope_lines: 160
+    scope_files:
+    - '~/zion/projects/agent-orchestration/orchestrator.py'
+    - '~/zion/projects/agent-orchestration/test_session_chain.py'
+  dependencies:
+  - source: 'phase-97'
+    target: 'phase-136'
+    type: soft
+    reason: 'Session Chaining provides basic context marshaling; Recursive Session Chain adds sliding window, event-driven termination, and advisor'
+  - source: 'phase-20'
+    target: 'phase-136'
+    type: soft
+    reason: 'Context Budget calculates token limits; Session Chain uses these limits to decide when to chain'
+  - source: 'phase-116'
+    target: 'phase-136'
+    type: soft
+    reason: 'Stagnation Circuit Breaker detects commit stalls; Out-of-Band Advisor extends this with model escalation'
+  - source: 'phase-65'
+    target: 'phase-136'
+    type: soft
+    reason: 'Stop Hooks intercept termination; Session Chain manages the post-termination lifecycle (restart or escalate)'
+  technical_notes: |-
+    The Recursive Session Chain is the "Thin Agent" architecture from the research: the
+    agent model is a stateless worker and the session chain is the orchestrator. The
+    sliding window extraction prevents context bloat -- a common failure mode where
+    resubmitting full history on each restart exponentially increases token usage. The
+    summary extraction (condense older messages, keep recent verbatim) is the "smart
+    compaction" strategy that balances context fidelity with token efficiency. The
+    Out-of-Band Advisor is the most novel component: it implements the research's
+    observation that "when a session enters cognitive deadlock, invoke an external, often
+    larger, model to analyze the full transcript." This is NOT the same as the Stagnation
+    Circuit Breaker (phase 116) which detects stalls but doesn't diagnose them. The
+    advisor provides a root cause analysis and a specific hint, making it a diagnostic
+    tool rather than just a detector. The chain_state.yaml provides crash recovery: if
+    the orchestrator itself crashes, it can resume from the last completed session in
+    the chain. The max_sessions limit prevents runaway chains -- the research warns
+    about "unbounded agentic loops" and this is the guardrail.
+  risks:
+  - 'Sliding window may lose critical context from earlier sessions -- summary extraction mitigates but cannot eliminate this'
+  - 'Out-of-Band Advisor uses a larger (more expensive) model -- only escalate after confirmed deadlock, not on first failure'
+  - 'Session chain state files could become corrupted on crash -- use atomic writes and backup before update'
+  - 'Hang detection timeout is environment-dependent -- make configurable per task type'
+  - 'Advisor hints may not always help -- track hint effectiveness and stop escalating if advisor success rate drops below threshold'
+  - 'Chaining across sessions adds latency (process spawn + context extraction) -- only chain when single-session budget is exceeded'
+  scope_lines_total: 580
+  test_target: 10
 global_risks:
 - 'Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change'
 - 'delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)'
@@ -17371,8 +17875,8 @@ meta:
   author: Hermes Agent
   created: '2026-04-30'
   source_doc: ~/zion/docs/research/OpenAI Symphony_ Agent Orchestration Explained.md
-  phases_total: 128
-  estimated_weeks: '135-165'
+  phases_total: 136
+  estimated_weeks: '140-170'
   updated: '2026-05-04'
   phases_added:
   - 13
@@ -17491,6 +17995,14 @@ meta:
   - 126
   - 127
   - 128
+  - 129
+  - 130
+  - 131
+  - 132
+  - 133
+  - 134
+  - 135
+  - 136
   phases_added_from: 'Phase 59-64: Six new phases derived from gap analysis of the research document against the existing 58-phase roadmap. Phase 59 (PR Velocity Metrics) addresses the "500% PR increase"
     claim with a dedicated ROI measurement layer -- the research opens with this metric but no phase measured it. Phase 60 (Human-Agent Workflow Optimization) builds tooling for the "from coder to architect"
     transformation described in the research, optimizing the human bottleneck (ticket filing, PR review queues, triage). Phase 61 (Agent Quality Regression Testing) creates a benchmarking framework to catch
@@ -17707,4 +18219,4 @@ meta:
     fresh strategy based on failure analysis, and (2) an Experiment Tree (tree.yaml) that tracks
     branching logic allowing the agent to jump between successful states. Phase 116 (Stagnation
     Circuit Breaker) detects commit stalls but does NOT force strategy reset or track experiment
-    branches. Phase 133 closes this gap.
+    branches. Phase 133 closes this gap. Phase 134-136: Three new phases derived from an eighteenth gap analysis pass focused on three research documents not previously analyzed: (1) "AI Project Management Architectures_" (284 lines), describing Policy-as-Agent governance, Verifiable AI via ADRs, hybrid cloud/local architecture, and prompt injection defense; (2) "Extracting Code Patterns, Not Code" (294 lines), describing the five-step pattern extraction protocol (Documentation-First Analysis, Categorization, Distillation to Essence, Memory Persistence, Sanitization) and the Rule/Why/How-to-Apply essence format; (3) "Automating Claude CLI with Bash" (206 lines), describing the three-stage recursive wrapper lifecycle (Extraction, Injection, Termination), sliding window context extraction from JSONL history, and the Out-of-Band Advisor pattern for cognitive deadlock. Previous seventeen passes achieved 100% concept coverage against the primary Symphony research doc and 21 supplementary sources. This pass analyzed these 3 additional sources and identified 3 genuinely new concepts not covered by any of the 133 existing phases: (A) Policy-as-Agent and Verifiable AI -- the AI Project Management Architectures research describes "Policy-as-Agent" where autonomous governance agents proactively monitor configurations, detect misconfigurations, and generate remediation PRs in real-time, plus "Verifiable AI" via Architectural Decision Records (ADRs) that make all agent decisions auditable and traceable. Phase 45 (WORKFLOW.md Engine) loads static policies but doesn't enforce them autonomously. Phase 85 (Audit Trail) logs actions but doesn't proactively detect violations. Phase 126 (Secret Leak Detection) scans for one violation type but is not a general framework. Phase 134 closes this gap with a general Policy-as-Agent engine, auto-remediation via PRs, and an ADR subsystem. (B) Pattern Extraction Engine -- the "Extracting Code Patterns, Not Code" research describes a systematic protocol for extracting architectural patterns (not implementation details) from codebases and distilling them into concise "Rule, Why, How to Apply" essence records. Phase 93 (Cross-Project Memory) stores execution knowledge. Phase 47 (Knowledge Extraction) extracts task patterns. But NO phase implements the systematic pattern extraction protocol with documentation-first analysis, categorical filtering, or essence distillation. Phase 135 closes this gap. (C) Recursive Session Chaining with Out-of-Band Advisor -- the "Automating Claude CLI with Bash" research describes a three-stage recursive orchestration loop (extraction of JSONL history via sliding window, injection into fresh headless sessions, event-driven termination with hang detection) plus an "Out-of-Band Advisor" that escalates to a larger model when sessions enter cognitive deadlock. Phase 97 (Session Chaining) provides basic context marshaling but lacks sliding window extraction, JSONL DAG traversal, event-driven termination, and the Out-of-Band Advisor. Phase 136 closes this gap.'
