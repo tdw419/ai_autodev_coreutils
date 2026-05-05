@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/136 phases complete, 0 in progress
+**Progress:** 23/149 phases complete, 0 in progress
 
-**Deliverables:** 90/537 complete
+**Deliverables:** 90/581 complete
 
-**Tasks:** 90/537 complete
+**Tasks:** 90/586 complete
 
 ## Scope Summary
 
@@ -148,6 +148,19 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-134 Policy-as-Agent: Autonomous Governance Enforcement | PLANNED | 0/4 | 690 | 10 |
 | phase-135 Pattern Extraction Engine for Cross-Project Architectural Memory | PLANNED | 0/3 | 520 | 10 |
 | phase-136 Recursive Session Chaining with Sliding Window Context and Out-of-Band Advisor | PLANNED | 0/3 | 580 | 10 |
+| phase-137 Agent-Driven TDD Pipeline Enforcement (Red-Green-Refactor) | PLANNED | 0/4 | 290 | 8 |
+| phase-138 Signature-Based Loop Detection and Prevention | PLANNED | 0/4 | 290 | 10 |
+| phase-139 Mission Briefing Generator for Session Handoff | PLANNED | 0/3 | 220 | 6 |
+| phase-140 Neurosymbolic Guardrails and Dirty Bit State Tracking | PLANNED | 0/3 | 210 | 8 |
+| phase-141 Blackboard Architecture for Multi-Agent Coordination | PLANNED | 0/4 | 330 | 10 |
+| phase-142 Adaptive Quality Throttling and Budget-Aware Model Fallback | PLANNED | 0/4 | 250 | 8 |
+| phase-143 Recursive Self-Aggregation and Multi-Candidate Solution Consensus | PLANNED | 0/4 | 340 | 8 |
+| phase-144 Transaction Closure and Commitment Lifecycle Manager | PLANNED | 0/3 | 270 | 8 |
+| phase-145 Stale Claim Stealing and Task Reclamation | PLANNED | 0/3 | 240 | 10 |
+| phase-146 Fencing Tokens and Zombie Write Prevention | PLANNED | 0/3 | 210 | 10 |
+| phase-147 Roadmap Metadata Auditor and State Consistency Checker | PLANNED | 0/3 | 250 | 10 |
+| phase-148 Auto-Replenish Oracle for Roadmap Gap Detection | PLANNED | 0/3 | 270 | 8 |
+| phase-149 Resource-Contended Test Lock and Execution Scheduling | PLANNED | 0/3 | 230 | 8 |
 
 ## Dependencies
 
@@ -635,6 +648,45 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-20 | phase-136 | soft | Context Budget calculates token limits; Session Chain uses these limits to decide when to chain |
 | phase-116 | phase-136 | soft | Stagnation Circuit Breaker detects commit stalls; Out-of-Band Advisor extends this with model escalation |
 | phase-65 | phase-136 | soft | Stop Hooks intercept termination; Session Chain manages the post-termination lifecycle (restart or escalate) |
+| phase-5 | phase-137 | soft | TDD template extends the DAG executor from phase 5 with a specialized pipeline |
+| phase-5 | phase-138 | soft | Loop detection monitors tool calls in the DAG executor |
+| phase-116 | phase-138 | soft | Complements commit-based stagnation detection with tool-level loop detection |
+| phase-97 | phase-139 | soft | Session chaining provides the handoff mechanism; this phase adds structured briefing generation |
+| phase-20 | phase-139 | soft | Context budgeting ensures briefings fit within token limits |
+| phase-8 | phase-139 | soft | Execution history provides the data for briefing generation |
+| phase-5 | phase-140 | soft | Dirty bit enforcement adds a new gate type to the DAG executor |
+| phase-15 | phase-140 | soft | Neurosymbolic guardrails complement the existing safety policy system |
+| phase-30 | phase-141 | soft | Blackboard architecture extends the shared state system from phase 30 with structured coordination |
+| phase-4 | phase-141 | soft | Control unit routing modifies the orchestrator poller-spawner from phase 4 |
+| phase-32 | phase-142 | soft | Budget throttling builds on the cost tracking data from phase 32 |
+| phase-40 | phase-142 | soft | Model tier selection extends the multi-model backend abstraction from phase 40 |
+| phase-20 | phase-142 | soft | Context budget data feeds into the budget-aware selection |
+| phase-5 | phase-143 | soft | AGGREGATE node type extends the DAG executor from phase 5 |
+| phase-28 | phase-143 | soft | RSA is an evolution of speculative execution that adds aggregation |
+| phase-32 | phase-143 | soft | RSA multiplies costs -- budget enforcement from phase 32 is critical |
+| phase-5 | phase-144 | soft | Transaction closure tracks commitments created during DAG pipeline execution |
+| phase-15 | phase-144 | soft | Safety approval gates create the authorization entries in the receipt graph |
+| phase-85 | phase-144 | soft | All commitment state changes must be logged to the audit trail |
+| phase-4 | phase-145 | soft | Lease tracking modifies the poller-spawner loop from phase 4 |
+| phase-8 | phase-145 | soft | Handoff context reads from execution history created by phase 8 |
+| phase-14 | phase-145 | soft | Health monitor can proactively detect stale claims before TTL expires |
+| phase-116 | phase-145 | soft | Stagnation circuit breaker detects commit stalls; stale claim stealing handles the recovery |
+| phase-5 | phase-146 | soft | Fencing tokens validate writes during DAG pipeline execution |
+| phase-83 | phase-146 | soft | State persistence layer provides the storage for fencing token state |
+| phase-145 | phase-146 | soft | Stale claim stealing increments fencing tokens, making this phase complementary |
+| phase-85 | phase-146 | soft | All token rejections must be logged to the audit trail |
+| phase-8 | phase-147 | soft | Auditor reads execution history from phase 8 for event cross-referencing |
+| phase-19 | phase-147 | soft | Self-improvement analysis benefits from stability index and block patterns |
+| phase-25 | phase-147 | soft | Resilience recovery should trigger a re-audit to verify state consistency |
+| phase-71 | phase-147 | soft | Config validation ensures orchestrator config is valid; roadmap auditor ensures roadmap metadata is valid |
+| phase-4 | phase-148 | soft | Poller detects when no planned phases remain, triggering replenishment |
+| phase-24 | phase-148 | soft | Onboarding bootstrap generates initial config; replenish sustains ongoing development |
+| phase-26 | phase-148 | soft | Work decomposition breaks down large phases; Oracle generates new high-level phases |
+| phase-41 | phase-148 | soft | Intelligent scheduling prioritizes existing tasks; replenish creates new ones |
+| phase-5 | phase-149 | soft | Resource locking wraps Bash node execution in the DAG executor |
+| phase-64 | phase-149 | soft | Workspace sandboxing provides OS isolation; resource locking provides resource contention management |
+| phase-70 | phase-149 | soft | Backpressure manages API rate limits; resource locking manages system resource limits |
+| phase-72 | phase-149 | soft | Resource lock metrics are exposed via the telemetry pipeline |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -8586,125 +8638,776 @@ about "unbounded agentic loops" and this is the guardrail.
 - Advisor hints may not always help -- track hint effectiveness and stop escalating if advisor success rate drops below threshold
 - Chaining across sessions adds latency (process spawn + context extraction) -- only chain when single-session budget is exceeded
 
-## Global Risks
+## [ ] phase-137: Agent-Driven TDD Pipeline Enforcement (Red-Green-Refactor) (PLANNED)
 
-- Symphony/Gas Town/Archon are all rapidly evolving -- this roadmap may need updates as those projects change
-- delegate_task sessions are synchronous and bounded by parent turn -- long-running orchestrator tasks need careful design (background terminals or chained cron)
-- GitHub Issues as control plane requires a public or accessible repo -- private repo token management adds complexity
-- Token costs for autonomous loops can escalate quickly (Symphony team uses 1B tokens/day) -- need cost awareness in the orchestrator
-- Speculative execution (phase 28) can multiply costs if not carefully budgeted
-- Inter-agent coordination (phase 30) adds complexity that may not be needed at low concurrency levels
-- Dark factory mode (phase 35) should only be enabled for well-tested projects with comprehensive safety gates
-- Token budget enforcement (phase 32) relies on estimates -- actual costs may differ significantly
-- Code quality metrics (phase 87) could slow down PR workflow if analysis takes too long -- keep analysis fast (<10s per PR)
-- Documentation sync (phase 88) auto-fix could alter intended docs -- always require human review for prose changes
-- Release automation (phase 89) should gate major version bumps behind human approval to prevent premature breaking releases
-- Agent profiling (phase 90) recommendations are only as good as the execution history -- sparse data means low-confidence recommendations
-- Web dashboard (phase 91) could expose sensitive orchestrator state -- authentication is critical for non-localhost access
-- WebSocket connections (phase 91) could accumulate on long-running servers -- implement heartbeat and cleanup
-- Dashboard server (phase 91) adds FastAPI/uvicorn as a runtime dependency -- keep it optional
-- Mock agent (phase 92) behavior may not match real agent behavior -- focus on testing orchestrator logic, not agent quality
-- Dry-run traces (phase 92) could be large for complex pipelines -- implement truncation
-- sentence-transformers (phase 93) adds an 80MB dependency -- make it optional, fall back to keyword search
-- Vector store (phase 93) could grow large -- implement size limits and automatic compaction
-- Cross-project memory (phase 93) could leak proprietary patterns between repos -- per-project isolation is essential
-- Ensemble review (phase 94) uses N times more tokens than single review -- cost-aware selection is essential
-- Synthesis quality (phase 94) depends on reviewer agreement -- high conflict rates indicate poorly calibrated perspectives
-- Auto-remediation (phase 95) could make things worse (kill wrong worker, reset wrong workspace) -- extensive testing required
-- Remediation rate limits (phase 95) could prevent fixing legitimate issues during outage storms
-- Workspace reset (phase 95) could lose uncommitted work -- always checkpoint before remediation
-- agent.md validator (phase 96) may reject useful but non-standard agent.md formats as the spec evolves
-- agent.md auto-fix (phase 96) could alter intended content -- always show diff before applying
-- Task size estimation (phase 97) may be inaccurate -- conservative defaults with learning from historical data
-- Context marshaling (phase 97) could lose critical information between sessions -- prioritize task description and last session outcome
-- Chain state files (phase 97) could grow large -- implement retention/archival for completed chains
-- Webhook server (phase 37) requires network exposure -- needs security review for production use
-- Cross-project knowledge (phase 38) could leak proprietary patterns between repos -- need per-repo knowledge isolation controls
-- Browser automation (phase 39) requires Chrome/Chromium -- adds a heavy runtime dependency and may not work in all CI environments
-- Multi-model routing (phase 40) could route complex tasks to underpowered models if scoring is wrong -- need conservative defaults
-- Priority scheduling (phase 41) could starve complex tasks if urgency weights favor simple fast completions -- need starvation prevention
-- External observability (phase 42) could expose sensitive data from logs -- need PII/secrets filtering before injecting into agent context
-- Automated refactoring (phase 43) could make incorrect fixes that pass tests but change semantics -- always require human review for refactoring PRs
-- Health scorecard (phase 44) KPIs may not capture what matters initially -- need iteration based on real usage patterns
-- WORKFLOW.md format (phase 45) may evolve as Symphony matures -- parser needs version tolerance
-- Per-project WORKFLOW.md files (phase 45) could conflict with orchestrator.yaml global settings -- need clear precedence rules
-- Symphony-to-Hermes translation (phase 45) may lose information for Symphony features with no Hermes equivalent
-- Semantic principle checks (phase 46) are expensive and inconsistent -- use sparingly, only for high-value principles
-- Too many principles (phase 46) creates noise -- start with 10-15 and grow slowly
-- Principle evolution (phase 46) could drift from original intent -- human review required for all new principles
-- Knowledge extraction quality (phase 47) depends on session summary -- poorly summarized sessions add noise
-- Knowledge base (phase 47) could grow large -- need retention policies and pruning
-- Injecting past knowledge (phase 47) into prompts adds context tokens -- must respect budget limits
-- Knowledge relevance scoring (phase 47) may be inaccurate for novel tasks -- don't let stale knowledge mislead
-- Aggressive cost optimization (phase 48) could reduce quality -- always measure success rate impact
-- Model tier recommendations (phase 48) require sufficient historical data (50+ runs per task type)
-- Parameter tuning (phase 48) could make some edge cases worse while improving the average case
-- Feedback categorization (phase 49) may be inaccurate -- need human validation of categories
-- Auto-generated suggestions (phase 49) could conflict with existing rules -- need deduplication
-- Reviewer comments may be subjective or wrong -- the system should not blindly follow all feedback
-- Fault injection (phase 50) could leak into production if safe-mode is disabled -- always use test workspaces
-- Resilience scoring (phase 50) may not capture all failure modes -- supplement with manual testing
-- Chaos tests (phase 50) may be flaky if they depend on timing -- use deterministic fault injection where possible
-- Distributed locking (phase 51) adds latency to every issue assignment
-- Stale locks (phase 51) could prevent work from being picked up -- TTL expiry handles this but adds delay
-- Federation status (phase 51) could become a bottleneck if too many instances publish frequently
-- Work stealing (phase 51) could cause thrashing if instances constantly redistribute work
-- No consensus protocol (phase 51) -- federation is eventually consistent, not strongly consistent
-- agent.md generator (phase 55) may produce inaccurate tech stack detection for unusual project layouts
-- Generated agent.md files (phase 55) need human review before production use
-- Symphony spec compliance (phase 56) may break if Symphony spec changes -- needs version tolerance
-- Linear API adapter (phase 56) requires separate auth token and has rate limits
-- Skill composition (phase 57) could create conflicting prompts that confuse agents
-- No centralized skill registry (phase 57) means discovery depends on documentation
-- Session recordings (phase 58) could expose secrets in agent context -- redaction essential
-- Forensic analysis (phase 58) heuristics may produce false positives -- treat as suggestions
-- Velocity metrics (phase 59) depend on GitHub API availability and rate limits
-- Cost-per-PR attribution (phase 59) is imprecise -- execution logs may not map 1:1 to PRs
-- Human workflow auto-classification (phase 60) may mislabel issues -- require human confirmation
-- Benchmark tasks (phase 61) may not represent real-world complexity -- include diverse task types
-- Benchmark execution (phase 61) uses real tokens -- run weekly not per-commit to control costs
-- Prompt library centralization (phase 62) could conflict with per-repo customization -- support overrides
-- REST API (phase 63) exposes internal orchestrator state -- authentication is critical
-- Webhook receiver (phase 63) requires network exposure -- needs firewall rules and TLS
-- LD_PRELOAD sandboxing (phase 64) may not work with statically-linked binaries
-- Overly restrictive sandboxing (phase 64) could break legitimate agent operations (pip, git)
-- Stop hooks (phase 65) could false-positive on completion tags -- use specific tag formats
-- Maintenance automation (phase 66) auto-filing issues could spam repos with findings
-- Pre-PR verification gate (phase 67) could block legitimate PRs if checks too strict
-- Agent identity (phase 68) profiling could create unfair task distribution over time
-- Integration tests (phase 69) mock-based approach may miss real-world GitHub API quirks
-- Backpressure (phase 70) could cause work starvation if rate limits are sustained for long periods
-- Circuit breaker (phase 70) recovery timeout misconfiguration could leave APIs permanently blocked
-- Config validation (phase 71) schemas may not cover all config edge cases as the system evolves
-- Config migration (phase 71) bugs could corrupt production configs -- always backup before migrating
-- Metrics pipeline (phase 72) high-cardinality labels could explode Prometheus storage costs
-- Metrics HTTP server (phase 72) exposes internal orchestrator state -- require auth for non-localhost access
-- Workspace checkpoints (phase 73) could consume significant disk space on large workspaces
-- Checkpoint restore (phase 73) during active writes could corrupt workspace state -- file locking is critical
-- Plugin system (phase 81) extensibility could be exploited -- audit trail captures all plugin activity
-- Context seeding (phase 82) could leak proprietary code patterns into prompts -- audit trail tracks what was injected
-- State migration (phase 83) could corrupt data -- always backup before migrating
-- Capability gap detection (phase 84) could create unnecessary tools -- require human review before acting on suggestions
-- Audit log (phase 85) could grow very large -- implement rotation/archival for old entries
-- Feature flags (phase 86) could enable risky behaviors -- audit trail tracks all flag evaluations and rollbacks
-- Speculative ticket filing (phase 103) could create too many low-quality issues -- require dry-run review first
-- Governance reports (phase 104) aggregate from many data sources -- a bug in one source could corrupt the entire report
-- Defect capsule vector search (phase 120) adds indexing overhead on every failure -- keep embedding generation async
-- Code manifest (phase 121) may become stale if not regenerated after edits -- trigger regeneration on file change events
-- Tool-use hooks (phase 122) intercepting every tool call adds latency -- make hooks optional and fast (<10ms)
-- Template input validation (phase 123) could reject valid inputs if schema is too strict -- allow schema overrides
-- Dynamic secrets (phase 124) adds Vault/secret store as a runtime dependency -- make file-based backend the default
-- Artifact repository (phase 125) could consume significant disk space -- implement retention policies
-- Secret scanner (phase 126) false positives could block legitimate commits -- allow-list and SKIP env var mitigate this
-- Prompt Compiler integration (phase 127) adds coupling to external tool -- document as optional, fall back to inline prompts if unavailable
-- Spec-driven workflow (phase 128) adds latency before implementation -- support skipping spec phase for simple tasks
-- {'id': 'phase-137', 'title': 'Agent-Driven TDD Pipeline Enforcement (Red-Green-Refactor)', 'status': 'planned', 'goal': 'Implement a DAG-level TDD enforcement pipeline where the orchestrator requires agents to write failing tests before implementation, then implement minimum code to pass, then audit and refactor', 'description': 'The "AI Workflow Orchestration and Improvement" research (216 lines, 19 citations) describes\nan Agent-Driven TDD cycle as a concrete goalpost system for autonomous agents. The orchestrator\nenforces three phases: Red (generate and run failing test), Green (implement minimum code to pass),\nRefactor (audit and optimize). This is fundamentally different from phase 7 (testing individual\nmodules) because it enforces test-first ORDERING in the agent pipeline itself, not just running\ntests after the fact. The research emphasizes that "the agent cannot diagnose failure based on a\ngeneric Test Failed message" -- the orchestrator must feed the ReflectorAgent the full stack trace,\nassertion failure, and relevant code context.\n', 'deliverables': [{'name': 'TDD enforcement DAG template', 'description': 'Create a red_green_refactor.yaml pipeline template that enforces test-first ordering', 'status': 'planned', 'acceptance_criteria': [{'description': 'Template has three mandatory stages: test generation, implementation, refactoring', 'validation': 'read YAML template'}, {'description': 'Implementation stage receives test failure output as context', 'validation': 'check template variable passing'}], 'tasks': [{'id': 'p137.d1.t1', 'title': 'Create TDD pipeline template', 'status': 'planned', 'description': 'Create red_green_refactor.yaml with three sequential stages. Stage 1 (Red): AI node generates unit test from spec, Bash node runs test (expects failure). Stage 2 (Green): AI node receives test output + spec, generates minimal implementation. Stage 3 (Refactor): AI node reviews code for elegance, Bash node re-runs all tests.', 'files': ['~/zion/projects/agent-orchestration/pipelines/red_green_refactor.yaml']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/pipelines/red_green_refactor.yaml']}, {'name': 'TDD context injection for test failures', 'description': 'Ensure that when tests fail in the Green stage, the full stack trace and assertion output is injected into the implementation agent prompt', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test failure output is captured and passed to the next AI node', 'validation': 'check executor context passing'}, {'description': 'Includes assertion failure message, not just exit code', 'validation': 'inspect prompt template'}], 'tasks': [{'id': 'p137.d2.t1', 'title': 'Implement TDD context injection', 'status': 'planned', 'description': 'Modify the executor to capture structured test output (stdout, stderr, exit code, assertion messages) from Bash nodes and inject it into subsequent AI node prompts as structured context for the ReflectorAgent pattern.', 'dependencies': ['p137.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/executor.py']}], 'scope_lines': 60, 'scope_files': ['~/zion/projects/agent-orchestration/executor.py']}, {'name': 'TDD pipeline integration tests', 'description': 'Tests verifying the TDD pipeline enforces ordering correctly', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test verifies Red stage failure does not skip Green stage', 'validation': 'run tests'}, {'description': 'Test verifies Green stage success triggers Refactor stage', 'validation': 'run tests'}], 'tasks': [{'id': 'p137.d3.t1', 'title': 'Write TDD pipeline tests', 'status': 'planned', 'description': 'Write tests that validate: (1) Red stage runs first, (2) Green stage receives test output, (3) Refactor stage runs after Green succeeds, (4) full regression runs after Refactor.', 'dependencies': ['p137.d1.t1', 'p137.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/test_tdd_pipeline.py']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/test_tdd_pipeline.py']}, {'name': 'Pre-execution file backup and rollback', 'description': 'Before any implementation stage modifies files, automatically snapshot target files for rollback on test failure', 'status': 'planned', 'acceptance_criteria': [{'description': 'Files are backed up before modification', 'validation': 'check backup logic'}, {'description': 'Rollback restores files on test failure', 'validation': 'test rollback scenario'}], 'tasks': [{'id': 'p137.d4.t1', 'title': 'Implement file backup and rollback for TDD stages', 'status': 'planned', 'description': 'Add pre-execution backup to the executor: before AI nodes modify files in the Green stage, snapshot affected files. If the subsequent test run fails, restore from backup. Log failure details to episodic memory for the reflection prompt.', 'dependencies': ['p137.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/executor.py']}], 'scope_lines': 70, 'scope_files': ['~/zion/projects/agent-orchestration/executor.py']}], 'dependencies': [{'source': 'phase-5', 'target': 'phase-137', 'type': 'soft', 'reason': 'TDD template extends the DAG executor from phase 5 with a specialized pipeline'}], 'technical_notes': 'The research emphasizes "transactional execution" -- code generation and execution should be atomic, verifiable transactions. This aligns with the keep-or-revert pattern already in Hermes.', 'risks': ['TDD enforcement may add latency for simple tasks -- make it a template option, not mandatory for all pipelines'], 'scope_lines_total': 290, 'test_target': 8}
-- {'id': 'phase-138', 'title': 'Signature-Based Loop Detection and Prevention', 'status': 'planned', 'goal': 'Detect agent loops by monitoring tool call SIGNATURES (function name + normalized arguments) rather than relying on plan-level deduplication', 'description': 'The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations) describes\nthree loop detection heuristics: duplicate-chain detection, no-progress heuristic, and critically,\nsignature-based detection where the controller monitors the sequence of tool CALLS (not plans).\nThe research states that "comparing the last N tool call signatures (function name + normalized\narguments) is more effective than analyzing the LLM\'s natural language plans, as it catches loops\nthat plan-level deduplication misses." Phase 116 detects commit stagnation but only monitors\ngit state, not tool call patterns. Phase 50 does chaos testing but not real-time loop detection.\n', 'deliverables': [{'name': 'Tool call signature tracker', 'description': 'Module that records function name + normalized arguments for every tool call in a sliding window', 'status': 'planned', 'acceptance_criteria': [{'description': 'Captures tool call signatures with timestamp and normalized args', 'validation': 'inspect tracker output'}, {'description': 'Maintains configurable sliding window (default N=10 calls)', 'validation': 'check window parameter'}], 'tasks': [{'id': 'p138.d1.t1', 'title': 'Create tool call signature tracker', 'status': 'planned', 'description': 'Create signature_tracker.py that: (1) intercepts tool calls from the executor, (2) normalizes arguments (strip values, keep types and structure), (3) stores signatures in a ring buffer of size N, (4) exposes a check_loop() method that compares recent signatures.', 'files': ['~/zion/projects/agent-orchestration/signature_tracker.py']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/signature_tracker.py']}, {'name': 'Loop detection and soft/hard stop', 'description': 'Detect repeated tool call patterns and trigger soft warnings or hard stops', 'status': 'planned', 'acceptance_criteria': [{'description': 'Detects exact signature repetition (same function + args 3+ times)', 'validation': 'test with loop scenario'}, {'description': 'Triggers soft warning at 3 repetitions, hard stop at 5', 'validation': 'check threshold config'}], 'tasks': [{'id': 'p138.d2.t1', 'title': 'Implement loop detection logic', 'status': 'planned', 'description': 'Implement detection: (1) exact match -- same function + same normalized args, (2) pattern match -- same function with cycling args (e.g., retry with different values but same pattern), (3) configurable thresholds for soft/hard stop. On soft stop, inject a "you may be looping" warning. On hard stop, terminate the agent session.', 'dependencies': ['p138.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/signature_tracker.py']}], 'scope_lines': 90, 'scope_files': ['~/zion/projects/agent-orchestration/signature_tracker.py']}, {'name': 'Executor integration', 'description': 'Wire signature tracker into the executor so all tool calls are monitored', 'status': 'planned', 'acceptance_criteria': [{'description': 'All Bash and AI node tool calls pass through tracker', 'validation': 'check executor code'}, {'description': 'Loop detection result is logged to execution history', 'validation': 'check log output'}], 'tasks': [{'id': 'p138.d3.t1', 'title': 'Integrate tracker with executor', 'status': 'planned', 'description': 'Hook the signature tracker into executor.py: before each Bash/AI node execution, record the tool call. After execution, check for loops. If loop detected, log to execution_history and trigger appropriate stop level.', 'dependencies': ['p138.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/executor.py']}], 'scope_lines': 40, 'scope_files': ['~/zion/projects/agent-orchestration/executor.py']}, {'name': 'Loop detection tests', 'description': 'Tests for various loop detection scenarios', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test detects exact repetition loops', 'validation': 'run tests'}, {'description': 'Test detects cyclic argument patterns', 'validation': 'run tests'}], 'tasks': [{'id': 'p138.d4.t1', 'title': 'Write loop detection tests', 'status': 'planned', 'description': 'Test cases: (1) no loop -- 10 different calls, (2) exact repetition -- same call 5 times, (3) cycling args -- same function with rotating values, (4) soft then hard stop escalation, (5) window boundary behavior.', 'dependencies': ['p138.d3.t1'], 'files': ['~/zion/projects/agent-orchestration/test_signature_tracker.py']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/test_signature_tracker.py']}], 'dependencies': [{'source': 'phase-5', 'target': 'phase-138', 'type': 'soft', 'reason': 'Loop detection monitors tool calls in the DAG executor'}, {'source': 'phase-116', 'target': 'phase-138', 'type': 'soft', 'reason': 'Complements commit-based stagnation detection with tool-level loop detection'}], 'technical_notes': 'The research emphasizes that plan-level dedup misses loops where the agent generates "novel" natural language plans but makes identical tool calls. This is the key insight -- monitor actions, not intentions.', 'risks': ['False positives on legitimate retry patterns (e.g., running the same test command after fixing code) -- exclude common safe-repeat patterns'], 'scope_lines_total': 290, 'test_target': 10}
-- {'id': 'phase-139', 'title': 'Mission Briefing Generator for Session Handoff', 'status': 'planned', 'goal': 'Generate structured "Mission Briefing" documents when handing off between agent sessions, capturing the delta between current state and ultimate goal', 'description': 'The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations) describes\na structured handoff lifecycle: session termination, state capture, judgment phase, context assembly\n(Mission Briefing), and initialization. The Mission Briefing is a "Goldilocks zone" of context:\nenough to be informed but not so much that the agent becomes distracted. The research specifies\nit should include: current state, recent failures, immediate task goal, and the delta between\nwhere we are and where we need to be. Phase 97 (Session Chaining) marshals context between\nsessions but does not generate a structured briefing document with the specific delta analysis.\n', 'deliverables': [{'name': 'Mission briefing schema and generator', 'description': 'Structured schema for mission briefings with auto-generation from execution state', 'status': 'planned', 'acceptance_criteria': [{'description': 'Schema includes: goal, current state, delta analysis, recent failures, next action', 'validation': 'read schema definition'}, {'description': 'Generator reads execution history and workspace state to produce briefing', 'validation': 'test with mock data'}], 'tasks': [{'id': 'p139.d1.t1', 'title': 'Create mission briefing generator', 'status': 'planned', 'description': 'Create briefing_generator.py with: (1) MissionBriefing dataclass with fields: ultimate_goal, current_phase, completed_steps, remaining_steps, recent_failures (last 5), workspace_state_summary, delta_analysis (what changed since last session), next_action_recommendation. (2) generate() method that reads execution_history and workspace state to populate the briefing. (3) format_for_prompt() that renders the briefing as a concise prompt section.', 'files': ['~/zion/projects/agent-orchestration/briefing_generator.py']}], 'scope_lines': 100, 'scope_files': ['~/zion/projects/agent-orchestration/briefing_generator.py']}, {'name': 'Briefing injection into session start', 'description': 'Automatically inject mission briefing when a new agent session starts for a continued task', 'status': 'planned', 'acceptance_criteria': [{'description': 'New sessions receive briefing as initial context', 'validation': 'check session initialization'}, {'description': 'Briefing is kept concise (under 500 tokens)', 'validation': 'check token budget'}], 'tasks': [{'id': 'p139.d2.t1', 'title': 'Integrate briefing with spawner', 'status': 'planned', 'description': 'Modify spawner.py: when spawning a worker for a task that has previous session history, call briefing_generator.generate() and inject the formatted briefing into the initial prompt before the task description. Ensure the briefing fits within the context budget from phase 20.', 'dependencies': ['p139.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/spawner.py']}], 'scope_lines': 50, 'scope_files': ['~/zion/projects/agent-orchestration/spawner.py']}, {'name': 'Briefing quality validation', 'description': 'Tests verifying briefing quality and completeness', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test verifies all required fields are populated', 'validation': 'run tests'}, {'description': 'Test verifies delta analysis correctly identifies state changes', 'validation': 'run tests'}], 'tasks': [{'id': 'p139.d3.t1', 'title': 'Write briefing generator tests', 'status': 'planned', 'description': 'Test cases: (1) fresh task (no history) produces minimal briefing, (2) continued task produces full delta analysis, (3) failed task includes failure context, (4) token budget is respected.', 'dependencies': ['p139.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/test_briefing_generator.py']}], 'scope_lines': 70, 'scope_files': ['~/zion/projects/agent-orchestration/test_briefing_generator.py']}], 'dependencies': [{'source': 'phase-97', 'target': 'phase-139', 'type': 'soft', 'reason': 'Session chaining provides the handoff mechanism; this phase adds structured briefing generation'}, {'source': 'phase-20', 'target': 'phase-139', 'type': 'soft', 'reason': 'Context budgeting ensures briefings fit within token limits'}, {'source': 'phase-8', 'target': 'phase-139', 'type': 'soft', 'reason': 'Execution history provides the data for briefing generation'}], 'technical_notes': 'The research describes the "Goldilocks zone" -- too little context and the agent is lost, too much and it is distracted. The briefing must be aggressively compressed while preserving actionable information.', 'risks': ['Briefing generation adds latency to session start -- cache briefings and only regenerate when state changes'], 'scope_lines_total': 220, 'test_target': 6}
-- {'id': 'phase-140', 'title': 'Neurosymbolic Guardrails and Dirty Bit State Tracking', 'status': 'planned', 'goal': 'Implement deterministic dirty-bit checks that prevent agents from claiming task completion if they have modified code but not verified the changes', 'description': 'The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations) describes\n"Neurosymbolic Guardrails" that combine probabilistic LLM reasoning with deterministic validation.\nA key pattern is the "Dirty Bit" check: the agent cannot finish a task if it has modified code but\nhas not called the test_execution tool. This prevents "hallucinated success" where the agent\nclaims completion without verification. Phase 15 has safety policies but they are based on task\ntype and approval gates, not on runtime state tracking of whether verification has occurred.\nPhase 67 (Pre-PR Gate) checks at the PR level but not at the task level during execution.\n', 'deliverables': [{'name': 'Dirty bit state tracker', 'description': 'Track whether agent sessions have pending unverified modifications', 'status': 'planned', 'acceptance_criteria': [{'description': 'Sets dirty bit when files are modified', 'validation': 'test file modification tracking'}, {'description': 'Clears dirty bit only after test execution succeeds', 'validation': 'test verification flow'}], 'tasks': [{'id': 'p140.d1.t1', 'title': 'Create dirty bit tracker', 'status': 'planned', 'description': 'Create dirty_bit.py with: (1) DirtyBitTracker class that monitors file modifications in the workspace, (2) set_dirty(reason) when AI node writes/modifies files, (3) clear_dirty() only after Bash node runs tests with exit code 0, (4) is_dirty() check that can be used as a gate condition, (5) get_dirty_files() to list unverified modifications.', 'files': ['~/zion/projects/agent-orchestration/dirty_bit.py']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/dirty_bit.py']}, {'name': 'Dirty bit enforcement in DAG executor', 'description': 'Add a dirty bit check as a gate condition before task completion nodes', 'status': 'planned', 'acceptance_criteria': [{'description': 'Task cannot complete if dirty bit is set', 'validation': 'test gate behavior'}, {'description': 'Agent receives warning about unverified changes when attempting to finish', 'validation': 'check warning message'}], 'tasks': [{'id': 'p140.d2.t1', 'title': 'Integrate dirty bit with executor', 'status': 'planned', 'description': 'Modify executor.py: after each AI node that modifies files, set the dirty bit. Before any task completion or PR creation node, check is_dirty(). If dirty, inject a warning into the next AI node prompt: "You have modified N files but have not verified them. Run tests before completing." Add a VERIFY node type that clears the dirty bit.', 'dependencies': ['p140.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/executor.py', '~/zion/projects/agent-orchestration/dag.py']}], 'scope_lines': 70, 'scope_files': ['~/zion/projects/agent-orchestration/executor.py', '~/zion/projects/agent-orchestration/dag.py']}, {'name': 'Dirty bit tests', 'description': 'Tests for dirty bit tracking and enforcement', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test verifies dirty bit prevents premature completion', 'validation': 'run tests'}, {'description': 'Test verifies dirty bit clears after successful tests', 'validation': 'run tests'}], 'tasks': [{'id': 'p140.d3.t1', 'title': 'Write dirty bit tests', 'status': 'planned', 'description': 'Test cases: (1) file modification sets dirty bit, (2) test success clears dirty bit, (3) test failure keeps dirty bit set, (4) dirty bit blocks completion node, (5) warning is injected into prompt.', 'dependencies': ['p140.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/test_dirty_bit.py']}], 'scope_lines': 60, 'scope_files': ['~/zion/projects/agent-orchestration/test_dirty_bit.py']}], 'dependencies': [{'source': 'phase-5', 'target': 'phase-140', 'type': 'soft', 'reason': 'Dirty bit enforcement adds a new gate type to the DAG executor'}, {'source': 'phase-15', 'target': 'phase-140', 'type': 'soft', 'reason': 'Neurosymbolic guardrails complement the existing safety policy system'}], 'technical_notes': 'The research emphasizes that this is "INFRASTRUCTURAL enforcement, not prompt-based instruction." The dirty bit is a deterministic check that runs outside the LLM reasoning loop.', 'risks': ['Dirty bit tracking may have false positives from read-only operations -- only track write operations', 'Agents may learn to work around by not declaring file modifications -- integrate at the executor level, not the agent level'], 'scope_lines_total': 210, 'test_target': 8}
-- {'id': 'phase-141', 'title': 'Blackboard Architecture for Multi-Agent Coordination', 'status': 'planned', 'goal': 'Implement a shared-memory blackboard system where agents post hypotheses and partial solutions, with a control unit routing work based on content', 'description': 'The "Managing AI Agents with MCP" research (272 lines, 39 citations) describes the Blackboard-based\nLLM Multi-Agent System (LbMAS) where diverse agents interact through a shared memory medium.\nA "Control Unit" (the orchestrator) dynamically selects which agent should act based on the\nblackboard content. This differs from Phase 30 (Shared State) which provides simple key-value\nstate sharing. The blackboard pattern includes: public and private spaces, critic and conflict-resolver\nagents, and majority voting for consensus. The research notes this "significantly reduces\nper-agent prompt lengths" since agents only process relevant blackboard updates.\n', 'deliverables': [{'name': 'Blackboard shared memory system', 'description': 'Shared memory medium with public/private spaces and topic-based subscriptions', 'status': 'planned', 'acceptance_criteria': [{'description': 'Agents can post messages to public and private blackboard spaces', 'validation': 'test posting and retrieval'}, {'description': 'Messages are tagged with topic, agent_id, timestamp, and content', 'validation': 'check message schema'}], 'tasks': [{'id': 'p141.d1.t1', 'title': 'Create blackboard system', 'status': 'planned', 'description': 'Create blackboard.py with: (1) Blackboard class with public and private namespaces, (2) post(agent_id, namespace, topic, content) method, (3) query(namespace, topic, since_timestamp) for selective retrieval, (4) subscribe(topic, callback) for push-based updates, (5) conflict_detect() that identifies contradictory posts on the same topic.', 'files': ['~/zion/projects/agent-orchestration/blackboard.py']}], 'scope_lines': 100, 'scope_files': ['~/zion/projects/agent-orchestration/blackboard.py']}, {'name': 'Control unit routing logic', 'description': 'Orchestrator component that selects which agent acts next based on blackboard content', 'status': 'planned', 'acceptance_criteria': [{'description': 'Routes tasks to agents based on blackboard state', 'validation': 'test routing decisions'}, {'description': 'Prevents agents from working on conflicting tasks simultaneously', 'validation': 'test conflict resolution'}], 'tasks': [{'id': 'p141.d2.t1', 'title': 'Implement control unit router', 'status': 'planned', 'description': 'Create control_unit.py: (1) analyzes blackboard content to determine next action, (2) routes work to the most appropriate agent based on capability matching, (3) detects conflicts (two agents targeting the same files), (4) implements simple voting for consensus when multiple agents propose solutions to the same topic.', 'dependencies': ['p141.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/control_unit.py']}], 'scope_lines': 90, 'scope_files': ['~/zion/projects/agent-orchestration/control_unit.py']}, {'name': 'Blackboard integration with orchestrator', 'description': 'Wire blackboard into the orchestrator loop for multi-agent coordination', 'status': 'planned', 'acceptance_criteria': [{'description': 'Worker agents read from and write to the blackboard', 'validation': 'check integration code'}, {'description': 'Control unit influences task assignment decisions', 'validation': 'test assignment flow'}], 'tasks': [{'id': 'p141.d3.t1', 'title': 'Integrate blackboard with orchestrator', 'status': 'planned', 'description': 'Modify orchestrator.py: (1) initialize blackboard on startup, (2) after each worker completion, post results to blackboard, (3) before assigning new tasks, query blackboard for conflicts and relevant context, (4) use control unit for routing decisions when multiple workers are available.', 'dependencies': ['p141.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/orchestrator.py']}], 'scope_lines': 60, 'scope_files': ['~/zion/projects/agent-orchestration/orchestrator.py']}, {'name': 'Blackboard tests', 'description': 'Tests for blackboard system, routing, and integration', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test verifies public/private space isolation', 'validation': 'run tests'}, {'description': 'Test verifies conflict detection works', 'validation': 'run tests'}], 'tasks': [{'id': 'p141.d4.t1', 'title': 'Write blackboard tests', 'status': 'planned', 'description': 'Test cases: (1) post/retrieve from public and private spaces, (2) topic-based filtering, (3) conflict detection between agents, (4) control unit routing decisions, (5) integration with orchestrator task assignment.', 'dependencies': ['p141.d3.t1'], 'files': ['~/zion/projects/agent-orchestration/test_blackboard.py']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/test_blackboard.py']}], 'dependencies': [{'source': 'phase-30', 'target': 'phase-141', 'type': 'soft', 'reason': 'Blackboard architecture extends the shared state system from phase 30 with structured coordination'}, {'source': 'phase-4', 'target': 'phase-141', 'type': 'soft', 'reason': 'Control unit routing modifies the orchestrator poller-spawner from phase 4'}], 'technical_notes': 'The research emphasizes token savings: "agents only need to process relevant blackboard updates, leading to substantial token savings." This is a key benefit over broadcast-style coordination.', 'risks': ['Blackboard adds complexity to the orchestrator -- start with optional opt-in per task type', 'Conflict resolution may slow down parallel execution -- set timeouts on conflict waits'], 'scope_lines_total': 330, 'test_target': 10}
-- {'id': 'phase-142', 'title': 'Adaptive Quality Throttling and Budget-Aware Model Fallback', 'status': 'planned', 'goal': 'Automatically switch agents from expensive to cheaper models when approaching token budget limits, preserving quality for critical steps', 'description': 'The "Managing AI Agents with MCP" research (272 lines, 39 citations) describes "Adaptive\nComputational Budgeting" where agents are assigned token budgets and the system enforces limits\nthrough "Quality Throttling." When an agent approaches its token ceiling, it is forced to switch\nfrom a high-parameter model (e.g., GPT-4o) to a cost-effective model (e.g., Claude Haiku) for\nremaining steps. Phase 40 routes by task type, Phase 32 tracks costs, and Phase 20 manages\ncontext budgets -- but no phase implements dynamic model switching based on remaining budget\nduring an active task.\n', 'deliverables': [{'name': 'Budget-aware model tier selector', 'description': 'Module that selects model tier based on remaining budget and task criticality', 'status': 'planned', 'acceptance_criteria': [{'description': 'Returns primary model when budget is above 70%', 'validation': 'test threshold behavior'}, {'description': 'Returns fallback model when budget drops below 30%', 'validation': 'test threshold behavior'}], 'tasks': [{'id': 'p142.d1.t1', 'title': 'Create budget-aware model selector', 'status': 'planned', 'description': 'Create budget_selector.py with: (1) ModelTier enum (premium, standard, economy), (2) select_model(remaining_budget, total_budget, task_criticality) that returns appropriate tier, (3) configurable thresholds (default: premium >70%, standard 30-70%, economy <30%), (4) critical tasks always get at least standard tier.', 'files': ['~/zion/projects/agent-orchestration/budget_selector.py']}], 'scope_lines': 70, 'scope_files': ['~/zion/projects/agent-orchestration/budget_selector.py']}, {'name': 'Per-task token budget enforcement', 'description': 'Assign and track token budgets per task, enforcing limits during execution', 'status': 'planned', 'acceptance_criteria': [{'description': 'Tasks start with allocated token budget', 'validation': 'check budget allocation'}, {'description': 'Budget decreases as tokens are consumed', 'validation': 'check tracking logic'}], 'tasks': [{'id': 'p142.d2.t1', 'title': 'Implement per-task budget tracking', 'status': 'planned', 'description': 'Create task_budget.py with: (1) TaskBudget class tracking allocated, consumed, and remaining tokens per task, (2) consume(tokens) method that checks limits and triggers throttling, (3) integration with cost_tracker.py from phase 32 for actual token counting.', 'dependencies': ['p142.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/task_budget.py']}], 'scope_lines': 60, 'scope_files': ['~/zion/projects/agent-orchestration/task_budget.py']}, {'name': 'Executor integration for dynamic model switching', 'description': 'Wire budget selector into executor so AI nodes use appropriate model tier', 'status': 'planned', 'acceptance_criteria': [{'description': 'AI nodes receive model tier from budget selector', 'validation': 'check executor code'}, {'description': 'Model tier is logged to execution history', 'validation': 'check log output'}], 'tasks': [{'id': 'p142.d3.t1', 'title': 'Integrate budget selector with executor', 'status': 'planned', 'description': 'Modify executor.py: before each AI node execution, call budget_selector.select_model() with remaining task budget. Pass the selected model tier to the delegate_task call. Log model tier transitions to execution_history.', 'dependencies': ['p142.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/executor.py']}], 'scope_lines': 50, 'scope_files': ['~/zion/projects/agent-orchestration/executor.py']}, {'name': 'Budget throttling tests', 'description': 'Tests for budget tracking and model selection', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test verifies model downgrade at budget threshold', 'validation': 'run tests'}, {'description': 'Test verifies critical tasks maintain minimum tier', 'validation': 'run tests'}], 'tasks': [{'id': 'p142.d4.t1', 'title': 'Write budget throttling tests', 'status': 'planned', 'description': 'Test cases: (1) full budget uses premium model, (2) depleting budget triggers standard tier, (3) near-empty budget triggers economy tier, (4) critical task gets standard even at low budget, (5) budget tracking integrates with cost_tracker.', 'dependencies': ['p142.d3.t1'], 'files': ['~/zion/projects/agent-orchestration/test_budget_selector.py']}], 'scope_lines': 70, 'scope_files': ['~/zion/projects/agent-orchestration/test_budget_selector.py']}], 'dependencies': [{'source': 'phase-32', 'target': 'phase-142', 'type': 'soft', 'reason': 'Budget throttling builds on the cost tracking data from phase 32'}, {'source': 'phase-40', 'target': 'phase-142', 'type': 'soft', 'reason': 'Model tier selection extends the multi-model backend abstraction from phase 40'}, {'source': 'phase-20', 'target': 'phase-142', 'type': 'soft', 'reason': 'Context budget data feeds into the budget-aware selection'}], 'technical_notes': 'The research describes a weighted multi-factor cost formula combining tokens, API calls, and latency. Start with token-only budgeting and extend later.', 'risks': ['Model switching mid-task may cause quality inconsistency -- log tier transitions for post-hoc analysis', 'Economy model may produce unusable output for complex tasks -- ensure minimum tier for critical steps'], 'scope_lines_total': 250, 'test_target': 8}
-- {'id': 'phase-143', 'title': 'Recursive Self-Aggregation and Multi-Candidate Solution Consensus', 'status': 'planned', 'goal': 'Implement a system that maintains multiple candidate solutions, iteratively aggregates the best parts of each, and produces a consensus solution higher quality than any individual candidate', 'description': 'The "Recursive LLM Planning for Agents" research (248 lines, 51 citations) describes Recursive\nSelf-Aggregation (RSA) where N candidate solutions are maintained and iteratively refined over T\nsteps. The key insight is "aggregation-aware" processing: a reasoning trace with an incorrect final\nanswer may still contain correct intermediate steps that can be "rescued" and combined with other\ncorrect fragments. Phase 28 (Speculative Execution) runs parallel explorations but each is\nindependent -- there is no aggregation step. Phase 94 (Ensemble Review) has multiple reviewers\nbut for review, not solution generation. RSA is fundamentally different: it bootstraps from\npartially correct solutions to produce a better consensus.\n', 'deliverables': [{'name': 'Multi-candidate solution manager', 'description': 'Maintain a population of N candidate solutions with metadata tracking', 'status': 'planned', 'acceptance_criteria': [{'description': 'Supports configurable population size (default N=3)', 'validation': 'check config'}, {'description': 'Tracks quality score and provenance for each candidate', 'validation': 'check metadata schema'}], 'tasks': [{'id': 'p143.d1.t1', 'title': 'Create candidate solution manager', 'status': 'planned', 'description': 'Create solution_pool.py with: (1) CandidateSolution dataclass (id, content, quality_score, generation_step, parent_ids), (2) SolutionPool class managing population of N candidates, (3) add_candidate() with quality scoring, (4) select_for_aggregation(K) that picks K diverse high-quality candidates, (5) get_best() returning the highest-scoring solution.', 'files': ['~/zion/projects/agent-orchestration/solution_pool.py']}], 'scope_lines': 90, 'scope_files': ['~/zion/projects/agent-orchestration/solution_pool.py']}, {'name': 'Aggregation engine', 'description': 'Aggregate multiple candidate solutions into an improved consensus', 'status': 'planned', 'acceptance_criteria': [{'description': 'Combines correct parts from multiple candidates', 'validation': 'test with mock solutions'}, {'description': 'Produces single output superior to any individual input', 'validation': 'quality comparison test'}], 'tasks': [{'id': 'p143.d2.t1', 'title': 'Create aggregation engine', 'status': 'planned', 'description': 'Create aggregator.py with: (1) aggregate(candidates, task_description) that sends K candidates to an LLM with instruction to extract correct intermediate steps and combine into an improved solution, (2) quality_score(solution, test_results) that scores output based on test pass rate and code quality metrics, (3) iterate(pool, task, T_steps) that runs T rounds of selection-aggregation-scoring.', 'dependencies': ['p143.d1.t1'], 'files': ['~/zion/projects/agent-orchestration/aggregator.py']}], 'scope_lines': 100, 'scope_files': ['~/zion/projects/agent-orchestration/aggregator.py']}, {'name': 'RSA DAG node type', 'description': 'Add an AGGREGATE node type to the DAG executor for multi-candidate consensus', 'status': 'planned', 'acceptance_criteria': [{'description': 'AGGREGATE node runs N parallel AI nodes then aggregates', 'validation': 'test DAG execution'}, {'description': 'Produces consensus solution after T refinement rounds', 'validation': 'check output quality'}], 'tasks': [{'id': 'p143.d3.t1', 'title': 'Add AGGREGATE node type to DAG', 'status': 'planned', 'description': 'Extend dag.py with AGGREGATE node type: (1) spawns N parallel AI nodes with the same task, (2) collects all outputs into SolutionPool, (3) runs T rounds of aggregation via aggregator.py, (4) outputs the best-scoring solution. Config params: population_size (N), aggregation_rounds (T), aggregation_subset_size (K).', 'dependencies': ['p143.d2.t1'], 'files': ['~/zion/projects/agent-orchestration/dag.py']}], 'scope_lines': 70, 'scope_files': ['~/zion/projects/agent-orchestration/dag.py']}, {'name': 'RSA tests', 'description': 'Tests for solution pool, aggregation, and DAG integration', 'status': 'planned', 'acceptance_criteria': [{'description': 'Test verifies aggregation improves over individual candidates', 'validation': 'run tests'}, {'description': 'Test verifies AGGREGATE node in DAG pipeline', 'validation': 'run tests'}], 'tasks': [{'id': 'p143.d4.t1', 'title': 'Write RSA tests', 'status': 'planned', 'description': 'Test cases: (1) solution pool add/retrieve/best, (2) aggregation combines partial solutions, (3) quality scoring ranks correctly, (4) AGGREGATE node executes full RSA cycle, (5) DAG with AGGREGATE node completes end-to-end.', 'dependencies': ['p143.d3.t1'], 'files': ['~/zion/projects/agent-orchestration/test_aggregator.py']}], 'scope_lines': 80, 'scope_files': ['~/zion/projects/agent-orchestration/test_aggregator.py']}], 'dependencies': [{'source': 'phase-5', 'target': 'phase-143', 'type': 'soft', 'reason': 'AGGREGATE node type extends the DAG executor from phase 5'}, {'source': 'phase-28', 'target': 'phase-143', 'type': 'soft', 'reason': 'RSA is an evolution of speculative execution that adds aggregation'}, {'source': 'phase-32', 'target': 'phase-143', 'type': 'soft', 'reason': 'RSA multiplies costs -- budget enforcement from phase 32 is critical'}], 'technical_notes': 'The research notes that RSA allows "relatively small models (Qwen3-4B) to match state-of-the-art reasoning models" through aggregation. This is a cost optimization strategy, not just a quality improvement.', 'risks': ['RSA requires N*T LLM calls -- significant cost increase for complex tasks', 'Aggregation quality depends on the aggregator model -- use the same model as candidates for consistency'], 'scope_lines_total': 340, 'test_target': 8}
+**Goal:** Implement a DAG-level TDD enforcement pipeline where the orchestrator requires agents to write failing tests before implementation, then implement minimum code to pass, then audit and refactor
+
+The "AI Workflow Orchestration and Improvement" research (216 lines, 19 citations) describes
+an Agent-Driven TDD cycle as a concrete goalpost system for autonomous agents. The orchestrator
+enforces three phases: Red (generate and run failing test), Green (implement minimum code to pass),
+Refactor (audit and optimize). This is fundamentally different from phase 7 (testing individual
+modules) because it enforces test-first ORDERING in the agent pipeline itself, not just running
+tests after the fact. The research emphasizes that "the agent cannot diagnose failure based on a
+generic Test Failed message" -- the orchestrator must feed the ReflectorAgent the full stack trace,
+assertion failure, and relevant code context.
+
+
+### Deliverables
+
+- [ ] **TDD enforcement DAG template** -- Create a red_green_refactor.yaml pipeline template that enforces test-first ordering
+  - [ ] `p137.d1.t1` Create TDD pipeline template
+    > Create red_green_refactor.yaml with three sequential stages. Stage 1 (Red): AI node generates unit test from spec, Bash node runs test (expects failure). Stage 2 (Green): AI node receives test output + spec, generates minimal implementation. Stage 3 (Refactor): AI node reviews code for elegance, Bash node re-runs all tests.
+    _Files: ~/zion/projects/agent-orchestration/pipelines/red_green_refactor.yaml_
+  - [ ] Template has three mandatory stages: test generation, implementation, refactoring
+    _Validation: read YAML template_
+  - [ ] Implementation stage receives test failure output as context
+    _Validation: check template variable passing_
+  _~80 LOC_
+- [ ] **TDD context injection for test failures** -- Ensure that when tests fail in the Green stage, the full stack trace and assertion output is injected into the implementation agent prompt
+  - [ ] `p137.d2.t1` Implement TDD context injection (depends: p137.d1.t1)
+    > Modify the executor to capture structured test output (stdout, stderr, exit code, assertion messages) from Bash nodes and inject it into subsequent AI node prompts as structured context for the ReflectorAgent pattern.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Test failure output is captured and passed to the next AI node
+    _Validation: check executor context passing_
+  - [ ] Includes assertion failure message, not just exit code
+    _Validation: inspect prompt template_
+  _~60 LOC_
+- [ ] **TDD pipeline integration tests** -- Tests verifying the TDD pipeline enforces ordering correctly
+  - [ ] `p137.d3.t1` Write TDD pipeline tests (depends: p137.d1.t1, p137.d2.t1)
+    > Write tests that validate: (1) Red stage runs first, (2) Green stage receives test output, (3) Refactor stage runs after Green succeeds, (4) full regression runs after Refactor.
+    _Files: ~/zion/projects/agent-orchestration/test_tdd_pipeline.py_
+  - [ ] Test verifies Red stage failure does not skip Green stage
+    _Validation: run tests_
+  - [ ] Test verifies Green stage success triggers Refactor stage
+    _Validation: run tests_
+  _~80 LOC_
+- [ ] **Pre-execution file backup and rollback** -- Before any implementation stage modifies files, automatically snapshot target files for rollback on test failure
+  - [ ] `p137.d4.t1` Implement file backup and rollback for TDD stages (depends: p137.d2.t1)
+    > Add pre-execution backup to the executor: before AI nodes modify files in the Green stage, snapshot affected files. If the subsequent test run fails, restore from backup. Log failure details to episodic memory for the reflection prompt.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] Files are backed up before modification
+    _Validation: check backup logic_
+  - [ ] Rollback restores files on test failure
+    _Validation: test rollback scenario_
+  _~70 LOC_
+
+### Technical Notes
+
+The research emphasizes "transactional execution" -- code generation and execution should be atomic, verifiable transactions. This aligns with the keep-or-revert pattern already in Hermes.
+
+### Risks
+
+- TDD enforcement may add latency for simple tasks -- make it a template option, not mandatory for all pipelines
+
+## [ ] phase-138: Signature-Based Loop Detection and Prevention (PLANNED)
+
+**Goal:** Detect agent loops by monitoring tool call SIGNATURES (function name + normalized arguments) rather than relying on plan-level deduplication
+
+The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations) describes
+three loop detection heuristics: duplicate-chain detection, no-progress heuristic, and critically,
+signature-based detection where the controller monitors the sequence of tool CALLS (not plans).
+The research states that "comparing the last N tool call signatures (function name + normalized
+arguments) is more effective than analyzing the LLM's natural language plans, as it catches loops
+that plan-level deduplication misses." Phase 116 detects commit stagnation but only monitors
+git state, not tool call patterns. Phase 50 does chaos testing but not real-time loop detection.
+
+
+### Deliverables
+
+- [ ] **Tool call signature tracker** -- Module that records function name + normalized arguments for every tool call in a sliding window
+  - [ ] `p138.d1.t1` Create tool call signature tracker
+    > Create signature_tracker.py that: (1) intercepts tool calls from the executor, (2) normalizes arguments (strip values, keep types and structure), (3) stores signatures in a ring buffer of size N, (4) exposes a check_loop() method that compares recent signatures.
+    _Files: ~/zion/projects/agent-orchestration/signature_tracker.py_
+  - [ ] Captures tool call signatures with timestamp and normalized args
+    _Validation: inspect tracker output_
+  - [ ] Maintains configurable sliding window (default N=10 calls)
+    _Validation: check window parameter_
+  _~80 LOC_
+- [ ] **Loop detection and soft/hard stop** -- Detect repeated tool call patterns and trigger soft warnings or hard stops
+  - [ ] `p138.d2.t1` Implement loop detection logic (depends: p138.d1.t1)
+    > Implement detection: (1) exact match -- same function + same normalized args, (2) pattern match -- same function with cycling args (e.g., retry with different values but same pattern), (3) configurable thresholds for soft/hard stop. On soft stop, inject a "you may be looping" warning. On hard stop, terminate the agent session.
+    _Files: ~/zion/projects/agent-orchestration/signature_tracker.py_
+  - [ ] Detects exact signature repetition (same function + args 3+ times)
+    _Validation: test with loop scenario_
+  - [ ] Triggers soft warning at 3 repetitions, hard stop at 5
+    _Validation: check threshold config_
+  _~90 LOC_
+- [ ] **Executor integration** -- Wire signature tracker into the executor so all tool calls are monitored
+  - [ ] `p138.d3.t1` Integrate tracker with executor (depends: p138.d2.t1)
+    > Hook the signature tracker into executor.py: before each Bash/AI node execution, record the tool call. After execution, check for loops. If loop detected, log to execution_history and trigger appropriate stop level.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] All Bash and AI node tool calls pass through tracker
+    _Validation: check executor code_
+  - [ ] Loop detection result is logged to execution history
+    _Validation: check log output_
+  _~40 LOC_
+- [ ] **Loop detection tests** -- Tests for various loop detection scenarios
+  - [ ] `p138.d4.t1` Write loop detection tests (depends: p138.d3.t1)
+    > Test cases: (1) no loop -- 10 different calls, (2) exact repetition -- same call 5 times, (3) cycling args -- same function with rotating values, (4) soft then hard stop escalation, (5) window boundary behavior.
+    _Files: ~/zion/projects/agent-orchestration/test_signature_tracker.py_
+  - [ ] Test detects exact repetition loops
+    _Validation: run tests_
+  - [ ] Test detects cyclic argument patterns
+    _Validation: run tests_
+  _~80 LOC_
+
+### Technical Notes
+
+The research emphasizes that plan-level dedup misses loops where the agent generates "novel" natural language plans but makes identical tool calls. This is the key insight -- monitor actions, not intentions.
+
+### Risks
+
+- False positives on legitimate retry patterns (e.g., running the same test command after fixing code) -- exclude common safe-repeat patterns
+
+## [ ] phase-139: Mission Briefing Generator for Session Handoff (PLANNED)
+
+**Goal:** Generate structured "Mission Briefing" documents when handing off between agent sessions, capturing the delta between current state and ultimate goal
+
+The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations) describes
+a structured handoff lifecycle: session termination, state capture, judgment phase, context assembly
+(Mission Briefing), and initialization. The Mission Briefing is a "Goldilocks zone" of context:
+enough to be informed but not so much that the agent becomes distracted. The research specifies
+it should include: current state, recent failures, immediate task goal, and the delta between
+where we are and where we need to be. Phase 97 (Session Chaining) marshals context between
+sessions but does not generate a structured briefing document with the specific delta analysis.
+
+
+### Deliverables
+
+- [ ] **Mission briefing schema and generator** -- Structured schema for mission briefings with auto-generation from execution state
+  - [ ] `p139.d1.t1` Create mission briefing generator
+    > Create briefing_generator.py with: (1) MissionBriefing dataclass with fields: ultimate_goal, current_phase, completed_steps, remaining_steps, recent_failures (last 5), workspace_state_summary, delta_analysis (what changed since last session), next_action_recommendation. (2) generate() method that reads execution_history and workspace state to populate the briefing. (3) format_for_prompt() that renders the briefing as a concise prompt section.
+    _Files: ~/zion/projects/agent-orchestration/briefing_generator.py_
+  - [ ] Schema includes: goal, current state, delta analysis, recent failures, next action
+    _Validation: read schema definition_
+  - [ ] Generator reads execution history and workspace state to produce briefing
+    _Validation: test with mock data_
+  _~100 LOC_
+- [ ] **Briefing injection into session start** -- Automatically inject mission briefing when a new agent session starts for a continued task
+  - [ ] `p139.d2.t1` Integrate briefing with spawner (depends: p139.d1.t1)
+    > Modify spawner.py: when spawning a worker for a task that has previous session history, call briefing_generator.generate() and inject the formatted briefing into the initial prompt before the task description. Ensure the briefing fits within the context budget from phase 20.
+    _Files: ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] New sessions receive briefing as initial context
+    _Validation: check session initialization_
+  - [ ] Briefing is kept concise (under 500 tokens)
+    _Validation: check token budget_
+  _~50 LOC_
+- [ ] **Briefing quality validation** -- Tests verifying briefing quality and completeness
+  - [ ] `p139.d3.t1` Write briefing generator tests (depends: p139.d1.t1)
+    > Test cases: (1) fresh task (no history) produces minimal briefing, (2) continued task produces full delta analysis, (3) failed task includes failure context, (4) token budget is respected.
+    _Files: ~/zion/projects/agent-orchestration/test_briefing_generator.py_
+  - [ ] Test verifies all required fields are populated
+    _Validation: run tests_
+  - [ ] Test verifies delta analysis correctly identifies state changes
+    _Validation: run tests_
+  _~70 LOC_
+
+### Technical Notes
+
+The research describes the "Goldilocks zone" -- too little context and the agent is lost, too much and it is distracted. The briefing must be aggressively compressed while preserving actionable information.
+
+### Risks
+
+- Briefing generation adds latency to session start -- cache briefings and only regenerate when state changes
+
+## [ ] phase-140: Neurosymbolic Guardrails and Dirty Bit State Tracking (PLANNED)
+
+**Goal:** Implement deterministic dirty-bit checks that prevent agents from claiming task completion if they have modified code but not verified the changes
+
+The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations) describes
+"Neurosymbolic Guardrails" that combine probabilistic LLM reasoning with deterministic validation.
+A key pattern is the "Dirty Bit" check: the agent cannot finish a task if it has modified code but
+has not called the test_execution tool. This prevents "hallucinated success" where the agent
+claims completion without verification. Phase 15 has safety policies but they are based on task
+type and approval gates, not on runtime state tracking of whether verification has occurred.
+Phase 67 (Pre-PR Gate) checks at the PR level but not at the task level during execution.
+
+
+### Deliverables
+
+- [ ] **Dirty bit state tracker** -- Track whether agent sessions have pending unverified modifications
+  - [ ] `p140.d1.t1` Create dirty bit tracker
+    > Create dirty_bit.py with: (1) DirtyBitTracker class that monitors file modifications in the workspace, (2) set_dirty(reason) when AI node writes/modifies files, (3) clear_dirty() only after Bash node runs tests with exit code 0, (4) is_dirty() check that can be used as a gate condition, (5) get_dirty_files() to list unverified modifications.
+    _Files: ~/zion/projects/agent-orchestration/dirty_bit.py_
+  - [ ] Sets dirty bit when files are modified
+    _Validation: test file modification tracking_
+  - [ ] Clears dirty bit only after test execution succeeds
+    _Validation: test verification flow_
+  _~80 LOC_
+- [ ] **Dirty bit enforcement in DAG executor** -- Add a dirty bit check as a gate condition before task completion nodes
+  - [ ] `p140.d2.t1` Integrate dirty bit with executor (depends: p140.d1.t1)
+    > Modify executor.py: after each AI node that modifies files, set the dirty bit. Before any task completion or PR creation node, check is_dirty(). If dirty, inject a warning into the next AI node prompt: "You have modified N files but have not verified them. Run tests before completing." Add a VERIFY node type that clears the dirty bit.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/dag.py_
+  - [ ] Task cannot complete if dirty bit is set
+    _Validation: test gate behavior_
+  - [ ] Agent receives warning about unverified changes when attempting to finish
+    _Validation: check warning message_
+  _~70 LOC_
+- [ ] **Dirty bit tests** -- Tests for dirty bit tracking and enforcement
+  - [ ] `p140.d3.t1` Write dirty bit tests (depends: p140.d2.t1)
+    > Test cases: (1) file modification sets dirty bit, (2) test success clears dirty bit, (3) test failure keeps dirty bit set, (4) dirty bit blocks completion node, (5) warning is injected into prompt.
+    _Files: ~/zion/projects/agent-orchestration/test_dirty_bit.py_
+  - [ ] Test verifies dirty bit prevents premature completion
+    _Validation: run tests_
+  - [ ] Test verifies dirty bit clears after successful tests
+    _Validation: run tests_
+  _~60 LOC_
+
+### Technical Notes
+
+The research emphasizes that this is "INFRASTRUCTURAL enforcement, not prompt-based instruction." The dirty bit is a deterministic check that runs outside the LLM reasoning loop.
+
+### Risks
+
+- Dirty bit tracking may have false positives from read-only operations -- only track write operations
+- Agents may learn to work around by not declaring file modifications -- integrate at the executor level, not the agent level
+
+## [ ] phase-141: Blackboard Architecture for Multi-Agent Coordination (PLANNED)
+
+**Goal:** Implement a shared-memory blackboard system where agents post hypotheses and partial solutions, with a control unit routing work based on content
+
+The "Managing AI Agents with MCP" research (272 lines, 39 citations) describes the Blackboard-based
+LLM Multi-Agent System (LbMAS) where diverse agents interact through a shared memory medium.
+A "Control Unit" (the orchestrator) dynamically selects which agent should act based on the
+blackboard content. This differs from Phase 30 (Shared State) which provides simple key-value
+state sharing. The blackboard pattern includes: public and private spaces, critic and conflict-resolver
+agents, and majority voting for consensus. The research notes this "significantly reduces
+per-agent prompt lengths" since agents only process relevant blackboard updates.
+
+
+### Deliverables
+
+- [ ] **Blackboard shared memory system** -- Shared memory medium with public/private spaces and topic-based subscriptions
+  - [ ] `p141.d1.t1` Create blackboard system
+    > Create blackboard.py with: (1) Blackboard class with public and private namespaces, (2) post(agent_id, namespace, topic, content) method, (3) query(namespace, topic, since_timestamp) for selective retrieval, (4) subscribe(topic, callback) for push-based updates, (5) conflict_detect() that identifies contradictory posts on the same topic.
+    _Files: ~/zion/projects/agent-orchestration/blackboard.py_
+  - [ ] Agents can post messages to public and private blackboard spaces
+    _Validation: test posting and retrieval_
+  - [ ] Messages are tagged with topic, agent_id, timestamp, and content
+    _Validation: check message schema_
+  _~100 LOC_
+- [ ] **Control unit routing logic** -- Orchestrator component that selects which agent acts next based on blackboard content
+  - [ ] `p141.d2.t1` Implement control unit router (depends: p141.d1.t1)
+    > Create control_unit.py: (1) analyzes blackboard content to determine next action, (2) routes work to the most appropriate agent based on capability matching, (3) detects conflicts (two agents targeting the same files), (4) implements simple voting for consensus when multiple agents propose solutions to the same topic.
+    _Files: ~/zion/projects/agent-orchestration/control_unit.py_
+  - [ ] Routes tasks to agents based on blackboard state
+    _Validation: test routing decisions_
+  - [ ] Prevents agents from working on conflicting tasks simultaneously
+    _Validation: test conflict resolution_
+  _~90 LOC_
+- [ ] **Blackboard integration with orchestrator** -- Wire blackboard into the orchestrator loop for multi-agent coordination
+  - [ ] `p141.d3.t1` Integrate blackboard with orchestrator (depends: p141.d2.t1)
+    > Modify orchestrator.py: (1) initialize blackboard on startup, (2) after each worker completion, post results to blackboard, (3) before assigning new tasks, query blackboard for conflicts and relevant context, (4) use control unit for routing decisions when multiple workers are available.
+    _Files: ~/zion/projects/agent-orchestration/orchestrator.py_
+  - [ ] Worker agents read from and write to the blackboard
+    _Validation: check integration code_
+  - [ ] Control unit influences task assignment decisions
+    _Validation: test assignment flow_
+  _~60 LOC_
+- [ ] **Blackboard tests** -- Tests for blackboard system, routing, and integration
+  - [ ] `p141.d4.t1` Write blackboard tests (depends: p141.d3.t1)
+    > Test cases: (1) post/retrieve from public and private spaces, (2) topic-based filtering, (3) conflict detection between agents, (4) control unit routing decisions, (5) integration with orchestrator task assignment.
+    _Files: ~/zion/projects/agent-orchestration/test_blackboard.py_
+  - [ ] Test verifies public/private space isolation
+    _Validation: run tests_
+  - [ ] Test verifies conflict detection works
+    _Validation: run tests_
+  _~80 LOC_
+
+### Technical Notes
+
+The research emphasizes token savings: "agents only need to process relevant blackboard updates, leading to substantial token savings." This is a key benefit over broadcast-style coordination.
+
+### Risks
+
+- Blackboard adds complexity to the orchestrator -- start with optional opt-in per task type
+- Conflict resolution may slow down parallel execution -- set timeouts on conflict waits
+
+## [ ] phase-142: Adaptive Quality Throttling and Budget-Aware Model Fallback (PLANNED)
+
+**Goal:** Automatically switch agents from expensive to cheaper models when approaching token budget limits, preserving quality for critical steps
+
+The "Managing AI Agents with MCP" research (272 lines, 39 citations) describes "Adaptive
+Computational Budgeting" where agents are assigned token budgets and the system enforces limits
+through "Quality Throttling." When an agent approaches its token ceiling, it is forced to switch
+from a high-parameter model (e.g., GPT-4o) to a cost-effective model (e.g., Claude Haiku) for
+remaining steps. Phase 40 routes by task type, Phase 32 tracks costs, and Phase 20 manages
+context budgets -- but no phase implements dynamic model switching based on remaining budget
+during an active task.
+
+
+### Deliverables
+
+- [ ] **Budget-aware model tier selector** -- Module that selects model tier based on remaining budget and task criticality
+  - [ ] `p142.d1.t1` Create budget-aware model selector
+    > Create budget_selector.py with: (1) ModelTier enum (premium, standard, economy), (2) select_model(remaining_budget, total_budget, task_criticality) that returns appropriate tier, (3) configurable thresholds (default: premium >70%, standard 30-70%, economy <30%), (4) critical tasks always get at least standard tier.
+    _Files: ~/zion/projects/agent-orchestration/budget_selector.py_
+  - [ ] Returns primary model when budget is above 70%
+    _Validation: test threshold behavior_
+  - [ ] Returns fallback model when budget drops below 30%
+    _Validation: test threshold behavior_
+  _~70 LOC_
+- [ ] **Per-task token budget enforcement** -- Assign and track token budgets per task, enforcing limits during execution
+  - [ ] `p142.d2.t1` Implement per-task budget tracking (depends: p142.d1.t1)
+    > Create task_budget.py with: (1) TaskBudget class tracking allocated, consumed, and remaining tokens per task, (2) consume(tokens) method that checks limits and triggers throttling, (3) integration with cost_tracker.py from phase 32 for actual token counting.
+    _Files: ~/zion/projects/agent-orchestration/task_budget.py_
+  - [ ] Tasks start with allocated token budget
+    _Validation: check budget allocation_
+  - [ ] Budget decreases as tokens are consumed
+    _Validation: check tracking logic_
+  _~60 LOC_
+- [ ] **Executor integration for dynamic model switching** -- Wire budget selector into executor so AI nodes use appropriate model tier
+  - [ ] `p142.d3.t1` Integrate budget selector with executor (depends: p142.d2.t1)
+    > Modify executor.py: before each AI node execution, call budget_selector.select_model() with remaining task budget. Pass the selected model tier to the delegate_task call. Log model tier transitions to execution_history.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] AI nodes receive model tier from budget selector
+    _Validation: check executor code_
+  - [ ] Model tier is logged to execution history
+    _Validation: check log output_
+  _~50 LOC_
+- [ ] **Budget throttling tests** -- Tests for budget tracking and model selection
+  - [ ] `p142.d4.t1` Write budget throttling tests (depends: p142.d3.t1)
+    > Test cases: (1) full budget uses premium model, (2) depleting budget triggers standard tier, (3) near-empty budget triggers economy tier, (4) critical task gets standard even at low budget, (5) budget tracking integrates with cost_tracker.
+    _Files: ~/zion/projects/agent-orchestration/test_budget_selector.py_
+  - [ ] Test verifies model downgrade at budget threshold
+    _Validation: run tests_
+  - [ ] Test verifies critical tasks maintain minimum tier
+    _Validation: run tests_
+  _~70 LOC_
+
+### Technical Notes
+
+The research describes a weighted multi-factor cost formula combining tokens, API calls, and latency. Start with token-only budgeting and extend later.
+
+### Risks
+
+- Model switching mid-task may cause quality inconsistency -- log tier transitions for post-hoc analysis
+- Economy model may produce unusable output for complex tasks -- ensure minimum tier for critical steps
+
+## [ ] phase-143: Recursive Self-Aggregation and Multi-Candidate Solution Consensus (PLANNED)
+
+**Goal:** Implement a system that maintains multiple candidate solutions, iteratively aggregates the best parts of each, and produces a consensus solution higher quality than any individual candidate
+
+The "Recursive LLM Planning for Agents" research (248 lines, 51 citations) describes Recursive
+Self-Aggregation (RSA) where N candidate solutions are maintained and iteratively refined over T
+steps. The key insight is "aggregation-aware" processing: a reasoning trace with an incorrect final
+answer may still contain correct intermediate steps that can be "rescued" and combined with other
+correct fragments. Phase 28 (Speculative Execution) runs parallel explorations but each is
+independent -- there is no aggregation step. Phase 94 (Ensemble Review) has multiple reviewers
+but for review, not solution generation. RSA is fundamentally different: it bootstraps from
+partially correct solutions to produce a better consensus.
+
+
+### Deliverables
+
+- [ ] **Multi-candidate solution manager** -- Maintain a population of N candidate solutions with metadata tracking
+  - [ ] `p143.d1.t1` Create candidate solution manager
+    > Create solution_pool.py with: (1) CandidateSolution dataclass (id, content, quality_score, generation_step, parent_ids), (2) SolutionPool class managing population of N candidates, (3) add_candidate() with quality scoring, (4) select_for_aggregation(K) that picks K diverse high-quality candidates, (5) get_best() returning the highest-scoring solution.
+    _Files: ~/zion/projects/agent-orchestration/solution_pool.py_
+  - [ ] Supports configurable population size (default N=3)
+    _Validation: check config_
+  - [ ] Tracks quality score and provenance for each candidate
+    _Validation: check metadata schema_
+  _~90 LOC_
+- [ ] **Aggregation engine** -- Aggregate multiple candidate solutions into an improved consensus
+  - [ ] `p143.d2.t1` Create aggregation engine (depends: p143.d1.t1)
+    > Create aggregator.py with: (1) aggregate(candidates, task_description) that sends K candidates to an LLM with instruction to extract correct intermediate steps and combine into an improved solution, (2) quality_score(solution, test_results) that scores output based on test pass rate and code quality metrics, (3) iterate(pool, task, T_steps) that runs T rounds of selection-aggregation-scoring.
+    _Files: ~/zion/projects/agent-orchestration/aggregator.py_
+  - [ ] Combines correct parts from multiple candidates
+    _Validation: test with mock solutions_
+  - [ ] Produces single output superior to any individual input
+    _Validation: quality comparison test_
+  _~100 LOC_
+- [ ] **RSA DAG node type** -- Add an AGGREGATE node type to the DAG executor for multi-candidate consensus
+  - [ ] `p143.d3.t1` Add AGGREGATE node type to DAG (depends: p143.d2.t1)
+    > Extend dag.py with AGGREGATE node type: (1) spawns N parallel AI nodes with the same task, (2) collects all outputs into SolutionPool, (3) runs T rounds of aggregation via aggregator.py, (4) outputs the best-scoring solution. Config params: population_size (N), aggregation_rounds (T), aggregation_subset_size (K).
+    _Files: ~/zion/projects/agent-orchestration/dag.py_
+  - [ ] AGGREGATE node runs N parallel AI nodes then aggregates
+    _Validation: test DAG execution_
+  - [ ] Produces consensus solution after T refinement rounds
+    _Validation: check output quality_
+  _~70 LOC_
+- [ ] **RSA tests** -- Tests for solution pool, aggregation, and DAG integration
+  - [ ] `p143.d4.t1` Write RSA tests (depends: p143.d3.t1)
+    > Test cases: (1) solution pool add/retrieve/best, (2) aggregation combines partial solutions, (3) quality scoring ranks correctly, (4) AGGREGATE node executes full RSA cycle, (5) DAG with AGGREGATE node completes end-to-end.
+    _Files: ~/zion/projects/agent-orchestration/test_aggregator.py_
+  - [ ] Test verifies aggregation improves over individual candidates
+    _Validation: run tests_
+  - [ ] Test verifies AGGREGATE node in DAG pipeline
+    _Validation: run tests_
+  _~80 LOC_
+
+### Technical Notes
+
+The research notes that RSA allows "relatively small models (Qwen3-4B) to match state-of-the-art reasoning models" through aggregation. This is a cost optimization strategy, not just a quality improvement.
+
+### Risks
+
+- RSA requires N*T LLM calls -- significant cost increase for complex tasks
+- Aggregation quality depends on the aggregator model -- use the same model as candidates for consistency
+
+## [ ] phase-144: Transaction Closure and Commitment Lifecycle Manager (PLANNED)
+
+**Goal:** Implement a formal framework for managing externally binding commitments that agents create, ensuring commitments can be tracked, reversed, and repaired with full auditability
+
+The "Issue Trackers as AI Agent Control Planes" research (211 lines, 44 citations)
+introduces the Theory of Transaction Closure: a formal framework arguing that task
+completion is insufficient for delegated AI -- agents must be evaluated on their ability
+to create, reverse, and repair externally binding commitments. The research defines
+four requirements for transaction closure: (1) typed mandates representing principal
+authority, (2) reversible lifecycle states for commitments, (3) receipt graphs linking
+authorization, payment, and outcome, and (4) recovery mechanisms including refunds
+and disputes. It also describes "split-state" detection -- when one part of a
+transaction succeeds but another fails (e.g., payment succeeds but reservation fails).
+Phase 112 (Coordination Failure Detection) detects and recovers from coordination
+failures BETWEEN agents, but does NOT manage the lifecycle of externally binding
+commitments that agents create WITH external systems. Phase 15 (Safety) approves
+actions but does not track commitment state after approval. No existing phase
+implements transaction-aware state management or split-state detection.
+
+
+### Deliverables
+
+- [ ] **Commitment lifecycle state machine** -- Typed mandates, lifecycle states (created/active/completed/reversed/disputed), and state transitions
+  - [ ] `p144.d1.t1` Create commitment state machine
+    > Create commitment.py with: (1) Commitment dataclass with fields: id, mandate_type, principal, scope, lifecycle_state, created_at, updated_at, receipt_ref, (2) CommitmentManager class that creates, transitions, and queries commitments, (3) StateMachine validator that enforces valid transitions, (4) TypedMandate enum for authority types (read, write, execute, financial, deploy).
+    _Files: ~/zion/projects/agent-orchestration/commitment.py_
+  - [ ] Defines Commitment dataclass with mandate_type, principal, scope, lifecycle_state, created_at, completed_at
+    _Validation: read dataclass definition_
+  - [ ] Supports state transitions: created -> active -> completed, active -> reversed, any -> disputed
+    _Validation: test state machine_
+  _~100 LOC_
+- [ ] **Receipt graph and split-state detection** -- Track linked actions in a receipt graph and detect split-state failures
+  - [ ] `p144.d2.t1` Implement receipt graph and split-state detection (depends: p144.d1.t1)
+    > Extend commitment.py: (1) ReceiptGraph class that links commitments into a directed graph (authorization -> action -> outcome), (2) detect_split_states() method that traverses the graph and flags inconsistencies (e.g., payment succeeded but deployment failed), (3) generate_recovery_plan() that suggests remediation actions for detected split states, (4) persist receipt graph to JSON for auditability.
+    _Files: ~/zion/projects/agent-orchestration/commitment.py_
+  - [ ] Receipt graph links authorization, action, and outcome nodes
+    _Validation: test graph construction_
+  - [ ] Split-state detector identifies when linked actions have inconsistent outcomes
+    _Validation: test split-state detection_
+  _~90 LOC_
+- [ ] **Integration with executor and tests** -- Wire commitment tracking into the DAG executor and write tests
+  - [ ] `p144.d3.t1` Integrate commitments with executor (depends: p144.d2.t1)
+    > Modify executor.py: when a Bash node executes a command tagged with "external_commitment: true", create a Commitment entry. After execution, update the commitment lifecycle state. Run split-state detection after each pipeline completion.
+    _Files: ~/zion/projects/agent-orchestration/executor.py_
+  - [ ] `p144.d4.t1` Write transaction closure tests (depends: p144.d3.t1)
+    > Test cases: (1) commitment lifecycle transitions, (2) receipt graph construction, (3) split-state detection with 2-node and 3-node graphs, (4) recovery plan generation, (5) executor integration creates commitments on tagged nodes.
+    _Files: ~/zion/projects/agent-orchestration/test_commitment.py_
+  - [ ] Bash nodes that modify external state create commitments automatically
+    _Validation: test executor integration_
+  - [ ] Tests verify split-state detection and recovery planning
+    _Validation: run tests_
+  _~80 LOC_
+
+### Technical Notes
+
+The research emphasizes the distinction between "Action Closure" (completing a technical step) and "Transaction Closure" (safely managing the consequences). The orchestrator currently only has Action Closure. This phase adds Transaction Closure.
+
+### Risks
+
+- External commitment tracking adds complexity -- make it opt-in via node tagging, not mandatory for all pipelines
+- Split-state recovery plans may require human approval -- integrate with phase 15 safety gates
+
+## [ ] phase-145: Stale Claim Stealing and Task Reclamation (PLANNED)
+
+**Goal:** Enable workers to reclaim tasks that have been held too long by stalled agents, implementing lease-based ownership with automatic reclamation
+
+The "Geometry OS Autodev Loop" research (259 lines, 47 citations) describes "Stale
+Claim Stealing" where if a phase remains in the in_progress state for more than
+30 minutes, it is considered stale. The next worker to run can "steal" the phase,
+resetting its state or re-claiming it for a fresh session. This acts as a reactive
+garbage collector for the developmental queue. Phase 116 (Stagnation Circuit Breaker)
+detects commit stalls and HALTS execution, but does NOT implement reclamation where
+another worker picks up the stalled task. Phase 14 (Health Monitor) detects stuck
+workspaces but only alerts -- it does not release the task for reassignment. Phase 112
+(Coordination Failure) covers Token Holding as a failure mode but focuses on detection,
+not active reclamation. The key difference is that stale claim stealing is a RECOVERY
+mechanism, not just a detection mechanism -- it enables the system to self-heal from
+stalled workers without human intervention.
+
+
+### Deliverables
+
+- [ ] **Lease-based task ownership tracker** -- Track task ownership with configurable TTL, enabling automatic stale detection
+  - [ ] `p145.d1.t1` Create lease-based task ownership tracker
+    > Create lease_tracker.py with: (1) TaskLease dataclass with fields: task_id, owner_id, claimed_at, ttl_seconds, fencing_token, (2) LeaseTracker class that manages leases: claim(task_id, owner_id, ttl), release(task_id), is_stale(task_id), steal(task_id, new_owner_id), (3) Configurable default TTL (default 1800 seconds = 30 minutes), (4) JSON persistence for lease state across restarts.
+    _Files: ~/zion/projects/agent-orchestration/lease_tracker.py_
+  - [ ] Each task claim records owner_id, claimed_at timestamp, and TTL
+    _Validation: read tracker data_
+  - [ ] is_stale() returns true when claimed_at + TTL < now
+    _Validation: test stale detection_
+  _~90 LOC_
+- [ ] **Task reclamation and owner handoff** -- Enable workers to steal stale tasks with proper context transfer
+  - [ ] `p145.d2.t1` Implement task reclamation protocol (depends: p145.d1.t1)
+    > Extend lease_tracker.py: (1) steal() method that validates staleness, transfers ownership, increments fencing token, (2) get_handoff_context(task_id) that returns: previous owner ID, duration of previous ownership, execution history summary, workspace state snapshot, (3) Integration with execution_history (phase 8) to gather progress data for the new owner.
+    _Files: ~/zion/projects/agent-orchestration/lease_tracker.py_
+  - [ ] Stealing a task transfers ownership and increments fencing token
+    _Validation: test steal operation_
+  - [ ] New owner receives summary of previous owner progress
+    _Validation: check handoff data_
+  _~70 LOC_
+- [ ] **Integration with orchestrator and tests** -- Wire stale claim stealing into the poller/spawner and write tests
+  - [ ] `p145.d3.t1` Integrate lease tracking with orchestrator (depends: p145.d2.t1)
+    > Modify poller.py: before assigning a task, check lease_tracker.is_stale(). If stale, call steal() to reclaim. Modify spawner.py: when spawning a worker for a reclaimed task, call get_handoff_context() and inject into the initial prompt. Log reclamation events to execution_history.
+    _Files: ~/zion/projects/agent-orchestration/poller.py, ~/zion/projects/agent-orchestration/spawner.py_
+  - [ ] `p145.d4.t1` Write stale claim stealing tests (depends: p145.d3.t1)
+    > Test cases: (1) claim and release lifecycle, (2) stale detection after TTL expiry, (3) steal transfers ownership, (4) steal increments fencing token, (5) handoff context includes progress data, (6) poller reclaims stale tasks, (7) spawner injects handoff context.
+    _Files: ~/zion/projects/agent-orchestration/test_lease_tracker.py_
+  - [ ] Poller skips stale-claimed tasks and marks them for reclamation
+    _Validation: test poller integration_
+  - [ ] Spawner injects handoff context when claiming a reclaimed task
+    _Validation: test spawner integration_
+  _~80 LOC_
+
+### Technical Notes
+
+The Geometry OS research uses a 30-minute TTL as the default. This should be configurable per-task based on complexity scoring from phase 107. The fencing token (phase 146) prevents zombie writes from stale workers.
+
+### Risks
+
+- Aggressive TTL may reclaim tasks from legitimately slow agents -- use complexity-based TTL scaling
+- Handoff context may be too large for the context window -- use the context budget from phase 20
+
+## [ ] phase-146: Fencing Tokens and Zombie Write Prevention (PLANNED)
+
+**Goal:** Prevent stale or crashed workers from corrupting state by using monotonically increasing fencing tokens that validate write authority
+
+The "Geometry OS Autodev Loop" research (259 lines, 47 citations) describes "Fencing
+Tokens" as a distributed systems pattern where a monotonically increasing number is
+associated with each lock. When a worker claims a task, it receives the current token.
+If it tries to commit work but the token has been incremented (due to a timeout or
+stale steal), the commit is rejected. This prevents the "Zombie Write" problem where
+a paused process wakes up and overwrites newer, valid data. Phase 117 (Cron Mutex)
+handles mutual exclusion via lock files but does NOT implement fencing tokens for
+write validation. Phase 83 (State Persistence) provides schema versioning but NOT
+per-operation fencing. Phase 145 (Stale Claim Stealing) increments a fencing token
+on steal but does not implement the full validation and rejection logic. Fencing
+tokens are a fundamental distributed systems primitive for correctness in concurrent
+systems where workers may become stale.
+
+
+### Deliverables
+
+- [ ] **Fencing token manager** -- Monotonically increasing version tokens for all state mutations
+  - [ ] `p146.d1.t1` Create fencing token manager
+    > Create fencing.py with: (1) FencingTokenManager class with get_token(resource_id) that returns current token, (2) increment_token(resource_id) that increments and returns new token, (3) validate_token(resource_id, held_token) that returns True if held_token matches current token, (4) TokenStore backed by JSON file with atomic write, (5) Configurable token namespace for different resource types (task, workspace, config).
+    _Files: ~/zion/projects/agent-orchestration/fencing.py_
+  - [ ] Each state mutation is associated with a fencing token
+    _Validation: check token assignment_
+  - [ ] Tokens are monotonically increasing and never reused
+    _Validation: test token generation_
+  _~80 LOC_
+- [ ] **Zombie write prevention** -- Reject writes from workers holding stale tokens
+  - [ ] `p146.d2.t1` Implement zombie write prevention (depends: p146.d1.t1)
+    > Extend fencing.py: (1) WriteGuard class that wraps state mutations with token validation, (2) guarded_write(resource_id, held_token, write_fn) that validates token before executing write_fn, (3) raises StaleTokenError if validation fails, (4) logs all rejections with: resource_id, held_token, current_token, worker_id, timestamp.
+    _Files: ~/zion/projects/agent-orchestration/fencing.py_
+  - [ ] Write attempt with stale token is rejected with clear error
+    _Validation: test write rejection_
+  - [ ] Rejection is logged with worker ID and token mismatch details
+    _Validation: check rejection log_
+  _~60 LOC_
+- [ ] **Integration and tests** -- Wire fencing tokens into the executor and stale claim stealing, write tests
+  - [ ] `p146.d3.t1` Integrate fencing tokens with executor and lease tracker (depends: p146.d2.t1, p145.d2.t1)
+    > Modify executor.py: before writing execution results, validate fencing token via WriteGuard. Modify lease_tracker.py: steal() method calls fencing.increment_token(). If executor detects StaleTokenError, abort the pipeline and log the zombie write attempt.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/lease_tracker.py_
+  - [ ] `p146.d4.t1` Write fencing token tests (depends: p146.d3.t1)
+    > Test cases: (1) token generation is monotonic, (2) validation succeeds with current token, (3) validation fails with stale token, (4) guarded_write rejects stale tokens, (5) steal increments token and invalidates old worker, (6) executor rejects writes with stale tokens, (7) rejection is properly logged.
+    _Files: ~/zion/projects/agent-orchestration/test_fencing.py_
+  - [ ] Executor validates fencing tokens before writing state
+    _Validation: test executor integration_
+  - [ ] Stale claim steal increments fencing token, invalidating old worker
+    _Validation: test steal integration_
+  _~70 LOC_
+
+### Technical Notes
+
+Fencing tokens are a well-known distributed systems pattern (used in Hadoop, Redlock, etc.). The key insight from Geometry OS is that they prevent "Zombie Writes" -- a paused worker waking up and overwriting data that a newer worker has already modified. This is essential for the stale claim stealing pattern to be safe.
+
+### Risks
+
+- Fencing token storage must be crash-safe -- use atomic file writes with fsync
+- Token counter overflow is theoretically possible but extremely unlikely with 64-bit integers
+
+## [ ] phase-147: Roadmap Metadata Auditor and State Consistency Checker (PLANNED)
+
+**Goal:** Periodically audit the roadmap state machine for metadata consistency, drift detection, block count escalation, and stability KPI calculation
+
+The "Geometry OS Autodev Loop" research (259 lines, 47 citations) describes a "Roadmap
+Auditor" that runs every 60 minutes and checks metadata consistency of the roadmap YAML.
+It identifies "Drift" -- phases where deliverables are marked done but status is still
+in_progress, or phases where block_count has been incorrectly incremented. It also
+cross-references state transitions against the event log to ensure every transition
+is backed by a corresponding event. Additionally, the research describes block count
+escalation: if a phase is blocked 3+ times, it is moved to deferred state to prevent
+infinite retry loops. It also defines a "Stability Index" KPI: SI = 1 - (reverts/claims),
+with a benchmark of 0.85 for a healthy system. Phase 71 (Config Validation) validates
+orchestrator configuration but NOT roadmap metadata consistency. Phase 25 (Resilience)
+handles recovery but NOT proactive consistency auditing. Phase 19 (Self-Improvement)
+analyzes execution patterns but NOT roadmap state drift. No existing phase performs
+periodic roadmap consistency auditing or calculates the stability index.
+
+
+### Deliverables
+
+- [ ] **Roadmap metadata auditor** -- Automated consistency checker for roadmap state machine
+  - [ ] `p147.d1.t1` Create roadmap metadata auditor
+    > Create roadmap_auditor.py with: (1) audit_roadmap() that loads roadmap.yaml and checks: all deliverables marked done -> phase status should be complete, all tasks done -> deliverable should be done, block_count matches actual revert events, no orphaned dependencies, (2) cross_reference_events() that loads events from execution_history and verifies every state transition has a corresponding event, (3) AuditReport dataclass with findings: drift, missing_events, orphaned_deps, inconsistent_counts.
+    _Files: ~/zion/projects/agent-orchestration/roadmap_auditor.py_
+  - [ ] Detects phases where deliverables are done but status is still in-progress
+    _Validation: test drift detection_
+  - [ ] Cross-references state transitions against execution event log
+    _Validation: test event log correlation_
+  _~100 LOC_
+- [ ] **Block count escalation and stability index** -- Auto-defer phases with excessive blocks and calculate stability KPI
+  - [ ] `p147.d2.t1` Implement block escalation and stability KPI (depends: p147.d1.t1)
+    > Extend roadmap_auditor.py: (1) escalate_blocked_phases() that scans for phases with block_count >= threshold (default 3) and changes status to "deferred", (2) calculate_stability_index() that computes SI = 1 - (reverted_tasks / total_claims) from execution history, (3) StabilityReport dataclass with: stability_index, claims_total, reverts_total, blocked_phases, deferred_phases, (4) Configurable block threshold via config.
+    _Files: ~/zion/projects/agent-orchestration/roadmap_auditor.py_
+  - [ ] Phases blocked 3+ times are automatically moved to deferred status
+    _Validation: test escalation logic_
+  - [ ] Stability index (1 - reverts/claims) is calculated and reported
+    _Validation: test KPI calculation_
+  _~70 LOC_
+- [ ] **Periodic scheduling and tests** -- Schedule periodic audits and write tests
+  - [ ] `p147.d3.t1` Schedule periodic audits and write tests (depends: p147.d2.t1)
+    > Create audit_cron.py that can be scheduled via cron to run the full audit: consistency check, event cross-reference, block escalation, stability index calculation. Output a structured report to stdout and optionally log findings to execution history. Write tests: (1) drift detection with inconsistent deliverable/phase status, (2) block count escalation at threshold, (3) stability index calculation with known values, (4) event log cross-reference with missing events.
+    _Files: ~/zion/projects/agent-orchestration/audit_cron.py, ~/zion/projects/agent-orchestration/test_roadmap_auditor.py_
+  - [ ] Auditor runs on a configurable schedule (default hourly)
+    _Validation: check scheduling config_
+  - [ ] Tests verify drift detection, escalation, and KPI calculation
+    _Validation: run tests_
+  _~80 LOC_
+
+### Technical Notes
+
+The Geometry OS research emphasizes that "Without a consistent roadmap, the loop would eventually succumb to Temporal Drift, where the agent understanding of its goal shifts over several days of execution." The auditor is the "Supervisor" in a Manager-Worker pattern -- it does not write code but ensures the system internal model remains accurate.
+
+### Risks
+
+- Auditor must not modify the roadmap during an active session -- acquire a read lock
+- Block escalation to deferred should be reversible -- allow manual un-defer via CLI
+
+## [ ] phase-148: Auto-Replenish Oracle for Roadmap Gap Detection (PLANNED)
+
+**Goal:** Detect when the roadmap runs empty and automatically generate new phases using a rule-based gap scanner and LLM-powered Oracle
+
+The "Geometry OS Autodev Loop" research (259 lines, 47 citations) describes an
+"Auto-Replenish" cycle that triggers when the roadmap is empty. It operates in two
+passes: (1) a rule-based gap scanner that checks for missing programs or subsystems,
+and (2) an Oracle pass that proposes new phases based on the project current layer.
+This dual-pass system prevents the Oracle from hallucinating irrelevant tasks and
+ensures proposed work aligns with architectural milestones defined in a "North Star"
+document. Phase 24 (Onboarding Bootstrap) generates initial orchestrator config for
+NEW projects but does NOT replenish existing projects when they run low on work.
+Phase 26 (Work Decomposition) breaks issues into sub-issues but does NOT generate
+new high-level phases. Phase 41 (Intelligent Scheduling) prioritizes existing tasks
+but does NOT create new ones. The auto-replenish pattern is what enables truly
+autonomous, long-running development -- the system can sustain itself without human
+input by continuously generating appropriate next steps.
+
+
+### Deliverables
+
+- [ ] **Rule-based gap scanner** -- Detect missing subsystems and components based on project structure
+  - [ ] `p148.d1.t1` Create rule-based gap scanner
+    > Create gap_scanner.py with: (1) scan_test_gaps() that finds Python modules without corresponding test_ files, (2) scan_doc_gaps() that finds modules without docstrings or README coverage, (3) scan_config_gaps() that checks for missing config files (pyproject.toml, .editorconfig, etc.), (4) scan_import_gaps() that finds imported but non-existent modules, (5) GapReport dataclass listing all detected gaps with severity (high/medium/low).
+    _Files: ~/zion/projects/agent-orchestration/gap_scanner.py_
+  - [ ] Scans project directory structure for missing test files, docs, config
+    _Validation: test with mock project_
+  - [ ] Checks codebase for modules without corresponding tests
+    _Validation: test test gap detection_
+  _~90 LOC_
+- [ ] **LLM Oracle phase proposer** -- Generate new roadmap phases based on project state and North Star goals
+  - [ ] `p148.d2.t1` Create LLM Oracle phase proposer (depends: p148.d1.t1)
+    > Create oracle.py with: (1) ReplenishOracle class that takes: gap_report, completed_phases, north_star_doc, project_structure, (2) propose_phases() method that constructs a prompt including: gap analysis, completed work summary, North Star goals, and asks the LLM to propose 3-5 new phases, (3) parse_proposals() that extracts structured phase proposals from LLM output (title, goal, description, deliverables), (4) validate_proposals() that checks against existing phases to prevent duplicates, (5) Configurable LLM endpoint and model.
+    _Files: ~/zion/projects/agent-orchestration/oracle.py_
+  - [ ] Oracle reads project state and generates phase proposals
+    _Validation: test with mock project_
+  - [ ] Proposals are grounded in North Star document and gap scan results
+    _Validation: check proposal content_
+  _~100 LOC_
+- [ ] **Replenish trigger and integration** -- Detect empty roadmap and trigger replenishment automatically
+  - [ ] `p148.d3.t1` Implement replenish trigger and roadmap update (depends: p148.d2.t1)
+    > Create replenish.py with: (1) check_roadmap_health() that loads roadmap.yaml and counts planned vs complete phases, (2) trigger_replenish() that runs gap scanner, then Oracle, then validates proposals, (3) append_to_roadmap() that adds validated proposals to roadmap.yaml with proper YAML formatting, (4) CLI entry point: python3 replenish.py [--dry-run] [--min-planned N]. Integrate with preflight: if planned count < threshold, suggest running replenish.
+    _Files: ~/zion/projects/agent-orchestration/replenish.py_
+  - [ ] `p148.d4.t1` Write auto-replenish tests (depends: p148.d3.t1)
+    > Test cases: (1) gap scanner detects missing tests/docs/config, (2) Oracle generates structured proposals (mock LLM response), (3) proposal validation rejects duplicates, (4) replenish trigger detects empty roadmap, (5) roadmap append produces valid YAML, (6) dry-run mode does not modify roadmap.
+    _Files: ~/zion/projects/agent-orchestration/test_replenish.py_
+  - [ ] Empty roadmap (no planned phases) triggers replenishment cycle
+    _Validation: test trigger logic_
+  - [ ] Generated phases are appended to roadmap.yaml
+    _Validation: test roadmap update_
+  _~80 LOC_
+
+### Technical Notes
+
+The Geometry OS research emphasizes a dual-pass approach: rule-based first (deterministic, no LLM cost), then Oracle (probabilistic, higher quality). This prevents wasted tokens on obvious gaps that rules can catch. The North Star document is critical -- without it, the Oracle may propose work that does not align with project goals.
+
+### Risks
+
+- LLM-generated phases may be low quality -- require human approval before execution (integrate with phase 15)
+- Oracle may hallucinate duplicate phases -- strict validation against existing phases is essential
+- Replenishment in a tight loop could burn tokens -- rate-limit to once per hour minimum
+
+## [ ] phase-149: Resource-Contended Test Lock and Execution Scheduling (PLANNED)
+
+**Goal:** Prevent concurrent high-resource test execution from exhausting system memory via file-based mutex and queue-based scheduling
+
+The "Geometry OS Autodev Loop" research (259 lines, 47 citations) describes a critical
+infrastructure constraint: each execution of cargo test requires approximately 17GB of
+RAM. In a multi-worker environment, concurrent test runs would quickly exhaust the host
+memory, leading to kernel panics or OOM-killer interventions. GeOS uses a file-based
+lock at /tmp/geo_cargo_test.lock to serialize test execution. While this ensures
+stability, it introduces latency as workers idle while waiting for the lock. The
+research decomposes this latency into four phases: Prefill (100-200ms/k-tokens),
+Decode (2-5s/500 tokens), Execution (30-90s for test suite), and Wait (0-90s for
+lock acquisition). Phase 64 (Workspace Sandboxing) provides OS-level isolation but
+does NOT handle resource contention between concurrent test executions. Phase 70
+(Backpressure) manages API rate limits but NOT system resource contention. No existing
+phase implements resource-aware test scheduling or execution serialization for
+memory-intensive operations.
+
+
+### Deliverables
+
+- [ ] **Resource-contended execution lock** -- File-based mutex for serializing high-resource operations
+  - [ ] `p149.d1.t1` Create resource execution lock
+    > Create resource_lock.py with: (1) ResourceLock class that implements file-based mutex using fcntl.flock(), (2) acquire(resource_name, timeout) with blocking wait and timeout, (3) release(resource_name), (4) is_locked(resource_name) for status checking, (5) queue_position(resource_name) that returns the position in the wait queue, (6) Configurable lock directory (default /tmp/orch_locks/) and timeout per resource type.
+    _Files: ~/zion/projects/agent-orchestration/resource_lock.py_
+  - [ ] Only one high-resource operation executes at a time
+    _Validation: test concurrent access_
+  - [ ] Lock acquisition has configurable timeout (default 300 seconds)
+    _Validation: test timeout behavior_
+  _~80 LOC_
+- [ ] **Execution scheduler with resource awareness** -- Schedule test execution to minimize idle time while preventing resource exhaustion
+  - [ ] `p149.d2.t1` Create resource-aware execution scheduler (depends: p149.d1.t1)
+    > Extend resource_lock.py: (1) ResourceScheduler class that manages a queue of pending executions, (2) schedule_execution(resource_name, command, callback) that adds to queue and acquires lock when available, (3) get_wait_estimate(resource_name) that returns estimated time based on average execution duration and queue depth, (4) cancel_pending(resource_name, execution_id) to remove from queue, (5) Track execution metrics: avg_duration, queue_depth_history, total_wait_time.
+    _Files: ~/zion/projects/agent-orchestration/resource_lock.py_
+  - [ ] Scheduler respects resource lock before launching test execution
+    _Validation: test scheduling_
+  - [ ] Workers receive estimated wait time when lock is held
+    _Validation: check wait time estimate_
+  _~80 LOC_
+- [ ] **Integration with executor and tests** -- Wire resource locking into DAG executor Bash nodes and write tests
+  - [ ] `p149.d3.t1` Integrate resource locking with executor (depends: p149.d2.t1)
+    > Modify executor.py: when a Bash node has metadata "resource_intensive: true", acquire resource lock before execution and release after. If timeout, log warning and skip execution. Modify metrics.py: expose lock acquisition time, wait queue depth, and execution duration as Prometheus metrics.
+    _Files: ~/zion/projects/agent-orchestration/executor.py, ~/zion/projects/agent-orchestration/metrics.py_
+  - [ ] `p149.d4.t1` Write resource lock tests (depends: p149.d3.t1)
+    > Test cases: (1) single acquisition and release, (2) concurrent access serialization, (3) timeout on acquisition, (4) queue position tracking, (5) wait estimate accuracy, (6) executor integration with tagged Bash nodes, (7) metrics export includes lock stats.
+    _Files: ~/zion/projects/agent-orchestration/test_resource_lock.py_
+  - [ ] Bash nodes tagged with "resource_intensive: true" acquire lock before execution
+    _Validation: test executor integration_
+  - [ ] Lock statistics are exposed via metrics endpoint
+    _Validation: check metrics output_
+  _~70 LOC_
+
+### Technical Notes
+
+The Geometry OS research notes that resource contention can add up to 90 seconds of idle wait time per worker. The scheduler aims to minimize this by providing wait estimates so workers can do other work (like planning) while waiting. The file-based lock is simpler and more portable than a Redis-based distributed lock, and sufficient for single-host deployment.
+
+### Risks
+
+- File-based locks may not be cleaned up after crashes -- implement stale lock detection (PID check)
+- Resource contention may become a bottleneck at high concurrency -- consider resource pools with configurable limits
 
 ## Conventions
 
