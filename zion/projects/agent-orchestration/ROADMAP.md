@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/149 phases complete, 0 in progress
+**Progress:** 23/155 phases complete, 0 in progress
 
-**Deliverables:** 90/581 complete
+**Deliverables:** 90/593 complete
 
-**Tasks:** 90/586 complete
+**Tasks:** 90/604 complete
 
 ## Scope Summary
 
@@ -161,6 +161,12 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-147 Roadmap Metadata Auditor and State Consistency Checker | PLANNED | 0/3 | 250 | 10 |
 | phase-148 Auto-Replenish Oracle for Roadmap Gap Detection | PLANNED | 0/3 | 270 | 8 |
 | phase-149 Resource-Contended Test Lock and Execution Scheduling | PLANNED | 0/3 | 230 | 8 |
+| phase-150 TOON Token-Optimized Serialization for Agent Communication | PLANNED | 0/2 | 270 | 9 |
+| phase-151 Proactive Task Routing by Complexity Tier | PLANNED | 0/2 | 260 | 8 |
+| phase-152 Compaction Gate and PreCompact State Preservation | PLANNED | 0/2 | 260 | 9 |
+| phase-153 AI Gateway Token Governance and Directional Guardrails | PLANNED | 0/2 | 260 | 9 |
+| phase-154 Three-Tier Watchdog with OS Signal-Based Recovery | PLANNED | 0/2 | 280 | 9 |
+| phase-155 Progressive Disclosure and Sub-Agent Proxy Streaming | PLANNED | 0/2 | 260 | 10 |
 
 ## Dependencies
 
@@ -687,6 +693,17 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-64 | phase-149 | soft | Workspace sandboxing provides OS isolation; resource locking provides resource contention management |
 | phase-70 | phase-149 | soft | Backpressure manages API rate limits; resource locking manages system resource limits |
 | phase-72 | phase-149 | soft | Resource lock metrics are exposed via the telemetry pipeline |
+| phase-20 | phase-150 | soft | Context budget management benefits from reduced token usage |
+| phase-79 | phase-151 | hard | Backend abstraction must exist before routing decisions can be made |
+| phase-107 | phase-151 | soft | Task complexity scoring provides inputs for routing classification |
+| phase-20 | phase-152 | hard | Context budget tracking must exist before compaction gate can measure thresholds |
+| phase-97 | phase-152 | soft | Session chaining provides the mechanism to carry preserved state into new sessions |
+| phase-20 | phase-153 | soft | Context budget provides token counting infrastructure |
+| phase-70 | phase-153 | soft | Backpressure handles rate limits; governance handles spending limits |
+| phase-143 | phase-153 | soft | Quality throttling and governance work together for cost control |
+| phase-14 | phase-154 | soft | Health monitor provides process monitoring infrastructure |
+| phase-91 | phase-155 | soft | Web dashboard provides the output channel for progressive disclosure |
+| phase-106 | phase-155 | soft | Alerting infrastructure provides notification delivery for proxy streaming |
 
 ## [x] phase-2: Map Symphony Patterns to Hermes Infrastructure (COMPLETE)
 
@@ -9408,6 +9425,294 @@ The Geometry OS research notes that resource contention can add up to 90 seconds
 
 - File-based locks may not be cleaned up after crashes -- implement stale lock detection (PID check)
 - Resource contention may become a bottleneck at high concurrency -- consider resource pools with configurable limits
+
+## [ ] phase-150: TOON Token-Optimized Serialization for Agent Communication (PLANNED)
+
+**Goal:** Reduce inter-agent and prompt communication token costs by 35-60% using Token-Oriented Object Notation at model boundaries
+
+The "Building an AI Agent Bridge" research (300 lines, 62 citations) describes TOON
+(Token-Oriented Object Notation), a serialization format engineered specifically to
+minimize token count when exchanging structured data with LLMs. TOON borrows
+indentation-based nesting from YAML and tabular patterns from CSV to represent the
+full semantic structure of JSON with a fraction of the token cost. Benchmarks show
+35-60% token reduction for uniform object arrays (the most common pattern in agent
+communication: task lists, file change lists, test results). TOON also slightly
+improves LLM comprehension accuracy (73.9% vs 69.7% for compact JSON) because its
+explicit schema headers and array length declarations serve as structural guardrails
+that reduce hallucination. Phase 130 (Context Cache Warmth) optimizes KV-cache hit
+rates but does NOT address serialization format. Phase 47 (Knowledge Extraction)
+extracts patterns but uses standard formats. No phase implements token-optimized
+serialization for agent communication payloads.
+
+
+### Deliverables
+
+- [ ] **TOON serializer and deserializer** -- Python module for converting between JSON and TOON format
+  - [ ] `p150.d1.t1` Create TOON serializer
+    > Create toon.py: (1) to_dtoon(data: dict|list) -> str that converts Python dicts/lists to TOON format, (2) from_dtoon(toon_str: str) -> dict|list that parses TOON back to Python objects, (3) token_count_comparison(json_str, toon_str) -> dict showing token reduction percentage, (4) Support nested objects, uniform arrays (table mode), and mixed arrays, (5) Schema headers: type declarations like users{id,name,role}: for validation.
+    _Files: ~/zion/projects/agent-orchestration/toon.py_
+  - [ ] JSON objects serialize to TOON with >30% token reduction for uniform arrays
+    _Validation: test with sample agent payloads_
+  - [ ] TOON deserializes back to equivalent JSON without data loss
+    _Validation: round-trip test_
+  _~120 LOC_
+- [ ] **Integration with agent prompt builder** -- Use TOON format for task lists, results, and state payloads in agent prompts
+  - [ ] `p150.d2.t1` Integrate TOON with prompt builder (depends: p150.d1.t1)
+    > Modify prompt_builder.py: (1) add to_dtoon() calls for task list serialization, (2) add to_dtoon() calls for execution result summaries, (3) add to_dtoon() calls for state payloads in session handoff, (4) Log token count comparison (JSON vs TOON) to metrics, (5) Fallback to JSON if TOON serialization fails.
+    _Files: ~/zion/projects/agent-orchestration/prompt_builder.py_
+  - [ ] `p150.d3.t1` Write TOON tests (depends: p150.d2.t1)
+    > Test cases: (1) round-trip JSON->TOON->JSON for nested objects, (2) round-trip for uniform arrays (table mode), (3) round-trip for mixed arrays, (4) token count reduction >30% for uniform arrays, (5) token count reduction >20% for nested objects, (6) prompt builder integration uses TOON, (7) fallback to JSON on error.
+    _Files: ~/zion/projects/agent-orchestration/test_toon.py_
+  - [ ] Agent prompts use TOON for task lists and results instead of JSON
+    _Validation: inspect prompt construction_
+  - [ ] Token savings are logged as metrics
+    _Validation: check metrics endpoint_
+  _~80 LOC_
+
+### Risks
+
+- TOON is a non-standard format -- maintain JSON as canonical storage and use TOON only at LLM boundaries
+- Complex nested structures may not achieve the same token savings as uniform arrays
+
+## [ ] phase-151: Proactive Task Routing by Complexity Tier (PLANNED)
+
+**Goal:** Route agent tasks to appropriate model tiers (local small, cloud frontier, specialized) based on task complexity classification to optimize cost and latency
+
+The "Hybrid LLM: API Fallback to Local" research (196 lines, 39 citations) describes a
+task classification system that routes requests based on their functional intent:
+background tasks (file indexing, repo scans) to local 7-8B models, default coding tasks
+to cloud frontier models (Sonnet 3.5), complex architectural planning to the most
+capable models (Opus 4.5), and long-context analysis to specialized models (Gemini).
+This "proactive routing" approach prevents 429/1302 rate limit errors by offloading
+token-expensive but reasoning-simple tasks to local inference. The research notes that
+agentic frameworks are uniquely susceptible to rate limits because they transmit massive
+context windows with every iterative tool use -- repository file trees, environment
+metadata, and conversation history. Phase 79 (Inner Harness Backend Abstraction SDK)
+abstracts backend selection but does NOT classify tasks by complexity for routing
+decisions. Phase 107 (Task Complexity Scoring) scores complexity but does NOT use the
+score to select different model tiers. Phase 70 (Backpressure) handles rate limits
+reactively but does NOT proactively prevent them via task routing.
+
+
+### Deliverables
+
+- [ ] **Task complexity classifier** -- Classify incoming tasks into complexity tiers for model routing
+  - [ ] `p151.d1.t1` Create task complexity classifier
+    > Create task_router.py: (1) TaskClassifier class with classify(task_description, context_size, task_type) -> tier, (2) Four tiers: background (file ops, indexing, status checks), default (standard coding, bug fixes), think (architecture, multi-step planning), longContext (>60k token repo analysis), (3) Rule-based scoring: context_size weight, task_type mapping (e.g., "refactor" -> think, "lint" -> background), estimated_iterations weight, (4) Configurable thresholds and tier-to-model mapping in config.yaml.
+    _Files: ~/zion/projects/agent-orchestration/task_router.py_
+  - [ ] Tasks are classified into at least 4 tiers: background, default, think, longContext
+    _Validation: test classification logic_
+  - [ ] Classification is deterministic (rule-based) with configurable thresholds
+    _Validation: inspect rules configuration_
+  _~100 LOC_
+- [ ] **Model tier routing integration** -- Wire classifier into backend selection to route tasks to appropriate models
+  - [ ] `p151.d2.t1` Integrate routing with backend selection (depends: p151.d1.t1)
+    > Modify backend_manager.py: (1) import TaskClassifier and classify before backend selection, (2) Map tiers to backend configs: background -> local_model (if configured), default -> primary_cloud, think -> premium_cloud, longContext -> large_context_model, (3) Fall back to primary_cloud if configured tier is unavailable, (4) Log routing decisions with tier, task description snippet, and selected backend, (5) Track per-tier usage metrics (request count, token count, latency).
+    _Files: ~/zion/projects/agent-orchestration/backend_manager.py_
+  - [ ] `p151.d3.t1` Write routing tests (depends: p151.d2.t1)
+    > Test cases: (1) file indexing task classified as background, (2) standard coding task classified as default, (3) architecture planning classified as think, (4) large repo analysis classified as longContext, (5) background tasks routed to local model when configured, (6) fallback to primary cloud when tier model unavailable, (7) routing metrics are tracked.
+    _Files: ~/zion/projects/agent-orchestration/test_task_router.py_
+  - [ ] Background tasks are routed to local/small models when configured
+    _Validation: test routing decision_
+  - [ ] Routing decisions and model selections are logged
+    _Validation: check logs_
+  _~80 LOC_
+
+### Risks
+
+- Misclassification could route complex tasks to weak models -- conservative defaults with fallback
+- Local model quality varies significantly -- only route truly simple tasks locally
+
+## [ ] phase-152: Compaction Gate and PreCompact State Preservation (PLANNED)
+
+**Goal:** Prevent context window overflow with a hard compaction threshold and preserve critical state before context compaction occurs
+
+The "Autonomous Agent Design: Orchestrator-Worker" research (183 lines, 40 citations)
+describes a "Compaction Gate" that forces a terminal stop and summary generation when
+context usage exceeds a threshold (e.g., 85%), ensuring the agent always has sufficient
+"room to think." The "Claude Code Automation and Event Handling" research (234 lines,
+30 citations) describes a PreCompact lifecycle event that fires before history is
+truncated, enabling critical state preservation. Without these mechanisms, agents in
+long sessions suffer "attention scarcity" where the accumulation of tool definitions,
+history, and raw data degrades the model's ability to attend to critical instructions.
+Phase 20 (Context Budget) manages context window size with token counting and budget
+alerts but does NOT implement a hard compaction gate that forces session termination
+at a threshold. Phase 97 (Session Chaining) marshals context between sessions but
+does NOT preserve critical state before compaction events. Phase 118 (Context Window
+Manager) handles window management but not pre-compaction preservation hooks.
+
+
+### Deliverables
+
+- [ ] **Compaction gate enforcer** -- Hard threshold that forces session termination and summary before context overflow
+  - [ ] `p152.d1.t1` Create compaction gate
+    > Create compaction_gate.py: (1) CompactionGate class with check(context_usage: float) -> bool, (2) Configurable threshold (default 0.85) with env override ORCH_COMPACTION_THRESHOLD, (3) trigger_compaction(session_id) that: (a) generates session summary via LLM call, (b) stores summary in session state file, (c) emits compaction event for downstream handlers, (d) returns summary for use in next session, (4) Integrate with context_budget.py to automatically check after each tool call, (5) Track compaction events: count, timestamps, context sizes at trigger.
+    _Files: ~/zion/projects/agent-orchestration/compaction_gate.py_
+  - [ ] Session is terminated when context usage exceeds configurable threshold (default 85%)
+    _Validation: test threshold enforcement_
+  - [ ] Summary is generated and stored before termination
+    _Validation: check summary output_
+  _~100 LOC_
+- [ ] **PreCompact state preservation** -- Capture and preserve critical state before context compaction to prevent information loss
+  - [ ] `p152.d2.t1` Create precompact state preservation (depends: p152.d1.t1)
+    > Create precompact_preserver.py: (1) PreCompactPreserver class with preserve(session_state) -> StateSnapshot, (2) Captures: open file paths, modified but unsaved files (git diff --stat), current task and subtask IDs, pending tool call results, error states and retry counts, (3) Compresses captured state into a compact "holographic memory" summary (<500 tokens), (4) Stores snapshot in session state directory with timestamp, (5) Integrates with session_chaining.py to inject preserved state into fresh sessions.
+    _Files: ~/zion/projects/agent-orchestration/precompact_preserver.py_
+  - [ ] `p152.d3.t1` Write compaction gate and preservation tests (depends: p152.d2.t1)
+    > Test cases: (1) gate triggers at 85% threshold, (2) gate does not trigger below threshold, (3) compaction generates valid summary, (4) preserved state includes open files and pending changes, (5) preserved state is compressed to <500 tokens, (6) preserved state is correctly injected into new session, (7) configurable threshold via env var, (8) compaction events are tracked in metrics.
+    _Files: ~/zion/projects/agent-orchestration/test_compaction.py_
+  - [ ] Critical state (open files, pending changes, task progress) is captured before compaction
+    _Validation: test state capture_
+  - [ ] Preserved state is injected into the next session via session chaining
+    _Validation: test session resume_
+  _~80 LOC_
+
+### Risks
+
+- Compaction may trigger too frequently for complex tasks -- make threshold configurable per task type
+- State preservation may miss important context -- include user-configurable preservation rules
+
+## [ ] phase-153: AI Gateway Token Governance and Directional Guardrails (PLANNED)
+
+**Goal:** Prevent runaway token costs from unbounded agent loops via directional guardrails, recursive loop detection, and hard token quotas
+
+The "Auto Research: Agentic Loops Explained" research (184 lines, 36 citations)
+describes how agentic loops may cycle 50-200 times for a single task, creating massive
+token costs that can burn thousands of dollars overnight if left unchecked. Enterprises
+have adopted AI Gateways (e.g., Kong AI Gateway) that enforce "directional guardrails":
+monitoring recursive token generation and setting hard quotas on output tokens. The
+research notes the shift from "task-based billing" to "execution-based billing" where
+a 50-cycle loop counts as one execution rather than 50 separate tasks. Phase 70
+(Backpressure) handles API rate limits (429 errors) reactively but does NOT implement
+proactive directional guardrails or hard token quotas. Phase 20 (Context Budget)
+manages per-session context but NOT cumulative token consumption across loops. Phase 143
+(Adaptive Quality Throttling) adjusts quality based on budget but does NOT detect
+recursive token generation patterns or enforce hard spending limits.
+
+
+### Deliverables
+
+- [ ] **Token governance engine** -- Track cumulative token consumption and enforce hard quotas across agent loops
+  - [ ] `p153.d1.t1` Create token governance engine
+    > Create token_governor.py: (1) TokenGovernor class with consume(tokens, task_id, session_id), (2) Hard quota per task (configurable, default 100k tokens), (3) Hard quota per session (configurable, default 500k tokens), (4) Hard daily quota (configurable, default 2M tokens), (5) QuotaExceeded exception with metadata: current_usage, limit, task_id, (6) Quota check before each LLM call in the harness, (7) Reset quotas on task completion or session start, (8) Persist quota state to file for crash recovery.
+    _Files: ~/zion/projects/agent-orchestration/token_governor.py_
+  - [ ] Cumulative token consumption is tracked per task and per session
+    _Validation: test tracking_
+  - [ ] Hard quota limits prevent runaway spending (configurable per task tier)
+    _Validation: test quota enforcement_
+  _~100 LOC_
+- [ ] **Recursive loop detection and directional guardrails** -- Detect patterns of recursive token generation and enforce directional spending controls
+  - [ ] `p153.d2.t1` Create recursive loop detector (depends: p153.d1.t1)
+    > Create recursive_detector.py: (1) RecursiveLoopDetector class that monitors token spending patterns, (2) Track tokens per iteration: if iteration N+1 costs > 1.5x iteration N for 3 consecutive iterations, flag as recursive acceleration, (3) Track cost-per-progress ratio: if token cost is increasing but task completion progress is flat, flag as runaway loop, (4) On detection: (a) log warning with full spending history, (b) emit event for downstream handlers, (c) optionally force quality tier reduction (think -> default -> background), (d) optionally force task termination if acceleration continues after tier reduction.
+    _Files: ~/zion/projects/agent-orchestration/recursive_detector.py_
+  - [ ] `p153.d3.t1` Write governance tests (depends: p153.d2.t1)
+    > Test cases: (1) hard quota blocks LLM call when exceeded, (2) per-task quota is independent of per-session quota, (3) daily quota resets at midnight, (4) recursive acceleration detected within 3 iterations, (5) cost-per-progress regression triggers alert, (6) tier reduction on recursive detection, (7) quota state persists across crashes, (8) governance metrics are exposed.
+    _Files: ~/zion/projects/agent-orchestration/test_governance.py_
+  - [ ] Recursive spending patterns (e.g., token cost accelerating) are detected within 3 iterations
+    _Validation: test detection_
+  - [ ] Directional guardrails reduce quality tier when spending accelerates
+    _Validation: test tier reduction_
+  _~80 LOC_
+
+### Risks
+
+- Overly aggressive quotas may kill legitimate long-running tasks -- provide override mechanism
+- Recursive detection may have false positives -- use conservative thresholds and log-only mode by default
+
+## [ ] phase-154: Three-Tier Watchdog with OS Signal-Based Recovery (PLANNED)
+
+**Goal:** Implement a three-tier watchdog system (passive observation, SIGUSR1 nudge, critical escalation) for recovering stuck or frozen agent processes
+
+The "Building an AI Agent Bridge" research (300 lines, 62 citations) describes an
+ASCII watchdog system that polls shared state every 5 seconds and implements a
+three-tier recovery sequence: Level 1 (passive intervention) checks for pending
+questions and routes them to operators; Level 2 (active nudge) sends SIGUSR1 to
+unblock frozen processes or SIGALRM to enforce task timeouts; Level 3 (critical
+escalation) halts the autonomous loop and sends alerts. The research provides a
+signal usage table: SIGUSR1 (code 10) for waking orchestrators and triggering
+heartbeat, SIGALRM (code 14) for enforcing task timeouts, SIGTERM (code 15) for
+graceful shutdown, and SIGKILL (code 9) for forced termination. Phase 14 (Health
+Monitor) watches agent processes but does NOT use OS signals for recovery or implement
+multi-tier escalation. Phase 117 (Cron Mutex) handles locking but not process-level
+recovery. Phase 50 (Chaos Testing) tests resilience but does not provide production
+recovery mechanisms.
+
+
+### Deliverables
+
+- [ ] **Multi-tier watchdog daemon** -- Background daemon that monitors agent processes and recovers from stuck states
+  - [ ] `p154.d1.t1` Create watchdog daemon
+    > Create watchdog.py: (1) WatchdogDaemon class that runs as background thread, (2) poll_interval configurable (default 5s), (3) Monitor agent processes via: (a) last_activity timestamp in state file, (b) process existence via PID check, (c) CPU/memory usage via psutil, (4) stuck_threshold configurable (default 30s no activity), (5) Level 1 recovery: check for pending questions, route to operator, (6) Level 2 recovery: send SIGUSR1 to process, wait 10s for response, if still stuck send SIGALRM, (7) Level 3 recovery: if stuck_count > 3, send SIGTERM, wait 5s, then SIGKILL, emit critical alert.
+    _Files: ~/zion/projects/agent-orchestration/watchdog.py_
+  - [ ] Watchdog detects stuck agents within 30 seconds of last activity
+    _Validation: test stuck detection_
+  - [ ] Three-tier recovery escalates automatically if lower tier fails
+    _Validation: test escalation_
+  _~120 LOC_
+- [ ] **Signal handler and process recovery** -- Register signal handlers in agent processes to respond to watchdog signals
+  - [ ] `p154.d2.t1` Create signal handlers (depends: p154.d1.t1)
+    > Create signal_handlers.py: (1) register_watchdog_signals(process_state) that installs: (a) SIGUSR1 handler: log heartbeat, dump current task state, check for interrupted I/O, (b) SIGALRM handler: set timeout flag, gracefully cancel current operation, save state, (c) SIGTERM handler: save state, close connections, exit cleanly, (2) ProcessState class that tracks: current_task, last_activity, stuck_count, pending_questions, (3) Signal-safe state file updates using fcntl locks.
+    _Files: ~/zion/projects/agent-orchestration/signal_handlers.py_
+  - [ ] `p154.d3.t1` Write watchdog tests (depends: p154.d2.t1)
+    > Test cases: (1) watchdog detects stuck process within threshold, (2) Level 1 routes pending questions, (3) Level 2 SIGUSR1 wakes frozen process, (4) Level 2 SIGALRM enforces timeout, (5) Level 3 escalates after 3 failed nudges, (6) SIGTERM triggers graceful shutdown, (7) SIGKILL as final fallback, (8) watchdog metrics (recovery_count, escalation_count) are tracked.
+    _Files: ~/zion/projects/agent-orchestration/test_watchdog.py_
+  - [ ] Agent processes handle SIGUSR1 by logging heartbeat and checking for pending work
+    _Validation: test signal handling_
+  - [ ] Agent processes handle SIGALRM by gracefully terminating current operation
+    _Validation: test timeout enforcement_
+  _~80 LOC_
+
+### Risks
+
+- Signal handling in Python has limitations (only main thread can receive signals)
+- SIGUSR1 may interfere with application code that uses the same signal -- use SIGUSR2 as fallback
+- Watchdog daemon adds a persistent process to manage -- ensure it does not become a single point of failure
+
+## [ ] phase-155: Progressive Disclosure and Sub-Agent Proxy Streaming (PLANNED)
+
+**Goal:** Separate agent reasoning from user-facing output and stream sub-agent progress through the main agent for real-time observability
+
+The "OpenClaw: Improving Agent UX" research (214 lines, 47 citations) describes two
+key UX patterns for agent orchestration: (1) Progressive Disclosure -- separating
+"Internal Monologue" (thinking/reasoning) from "User-Facing Response" (acting/output)
+using a Status Message pattern that shows milestone activity logs instead of raw
+thinking tokens, and (2) Proxy Streaming -- piping sub-agent event streams through
+the main agent session to the user, reducing the "sequential bottleneck" where users
+see nothing until the entire sub-agent hierarchy completes. The research notes that
+users currently experience "hours-long" waits for complex multi-agent tasks with no
+visibility into progress. Phase 91 (Web Dashboard) provides observability dashboards
+but does NOT implement progressive disclosure of agent reasoning. Phase 106 (Alerting)
+sends notifications but does NOT stream sub-agent progress in real-time. Phase 11
+(Workspace Lifecycle) manages agent lifecycles but does NOT forward sub-agent events.
+
+
+### Deliverables
+
+- [ ] **Progressive disclosure output filter** -- Filter agent output to show milestone progress instead of raw reasoning tokens
+  - [ ] `p155.d1.t1` Create progressive disclosure filter
+    > Create progressive_disclosure.py: (1) OutputFilter class that classifies output chunks as: thinking (internal reasoning), acting (tool calls, file edits), status (milestone summaries), (2) Default mode: show only status and acting chunks, hide thinking chunks, (3) Verbose mode: show all chunks (thinking + acting + status), (4) Status extraction: parse agent output for milestone patterns like "[Acting] ...", "[Thinking] ...", "[Done] ...", (5) Compact status view: show checklist of completed/pending milestones, (6) Configurable via ORCH_VERBOSE env var or per-task metadata.
+    _Files: ~/zion/projects/agent-orchestration/progressive_disclosure.py_
+  - [ ] Agent output is filtered to show action milestones, not raw thinking
+    _Validation: test output filtering_
+  - [ ] Users can opt into seeing full reasoning via "show more" toggle
+    _Validation: test toggle behavior_
+  _~100 LOC_
+- [ ] **Sub-agent proxy streaming** -- Forward sub-agent event streams through main agent for real-time progress visibility
+  - [ ] `p155.d2.t1` Create proxy streaming (depends: p155.d1.t1)
+    > Create proxy_stream.py: (1) ProxyStreamer class that bridges sub-agent events to main session, (2) forward_event(sub_agent_id, event_type, event_data) that relays events to the main output stream, (3) Event types: partial_result (intermediate output), milestone (step completion), error (failure notification), progress (percentage/step count), (4) Aggregate multiple sub-agent streams into a unified progress view, (5) Throttle event forwarding to prevent flooding (configurable, default 1 event/second per sub-agent), (6) Buffer events during output filter processing to prevent interleaving.
+    _Files: ~/zion/projects/agent-orchestration/proxy_stream.py_
+  - [ ] `p155.d3.t1` Write progressive disclosure and streaming tests (depends: p155.d2.t1)
+    > Test cases: (1) thinking chunks are hidden in default mode, (2) acting chunks are shown in default mode, (3) verbose mode shows all chunks, (4) milestone patterns are correctly extracted, (5) compact status view shows checklist, (6) sub-agent events are forwarded in real-time, (7) partial results are relayed before sub-agent completion, (8) event throttling prevents flooding, (9) multiple sub-agent streams are aggregated.
+    _Files: ~/zion/projects/agent-orchestration/test_progressive.py_
+  - [ ] Sub-agent progress events are streamed to the user in real-time
+    _Validation: test event forwarding_
+  - [ ] Main agent can relay sub-agent partial results without waiting for completion
+    _Validation: test partial result forwarding_
+  _~80 LOC_
+
+### Risks
+
+- Output filtering may hide important diagnostic information -- ensure verbose mode is easily accessible
+- Proxy streaming adds complexity to the event system -- keep throttling simple and configurable
 
 ## Conventions
 
