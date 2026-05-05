@@ -17,7 +17,7 @@ And returns a structured decision with implementation guidance.
 import os, sys, json, re, time, subprocess, yaml, atexit, signal
 
 sys.path.insert(0, os.path.dirname(__file__))
-from geo_event_log import claim, stale_steal, test_gate, test_gate_halt, test_gate_timeout, auto_replenish, roadmap_empty, wip_self_commit
+from geo_event_log import claim, stale_steal, test_gate, test_gate_halt, test_gate_timeout, auto_replenish, skip, roadmap_empty, wip_self_commit
 
 PROJECT = os.path.expanduser("~/zion/projects/geometry_os/geometry_os")
 
@@ -274,6 +274,16 @@ def parse_oracle_decision(response):
     return None
 
 
+
+def skip_phase(roadmap, phase, reason):
+    """Skip a phase and mark it as done/skipped in the roadmap."""
+    phase["status"] = "done"  # mark as done to skip it
+    phase["_skipped"] = True
+    phase["_skip_reason"] = reason
+    save_roadmap(roadmap)
+    log(f"SKIPPED phase {phase["id"]}: {reason}")
+    skip(phase["id"], WORKER_ID, reason=reason)
+
 def find_phase(roadmap, phase_id):
     """Find a phase by ID in the roadmap."""
     for phase in roadmap.get("phases", []):
@@ -329,6 +339,7 @@ def fifo_fallback(roadmap):
 
 BLOCKED_FILE = os.path.join(PROJECT, "BLOCKED.md")
 BLOCKED_MAX_AGE = 3600  # 1 hour -- blocked phases auto-expire
+AUTO_SKIP_THRESHOLD = 3  # skip phase if it fails this many times
 
 
 def load_blocked_phases():
@@ -1144,6 +1155,16 @@ def main():
 
     check_desktop()
     roadmap = load_roadmap()
+
+    # AUTO-SKIP: Check for phases that have failed repeatedly
+    blocked_phases = load_blocked_phases()
+    for b in blocked_phases:
+        if b['block_count'] >= AUTO_SKIP_THRESHOLD:
+            phase_to_skip = find_phase(roadmap, b["id"])
+            if phase_to_skip and phase_to_skip.get("status") == "planned":
+                skip_phase(roadmap, phase_to_skip, f"Auto-skipped after {b['block_count']} failures")
+                # Reload roadmap after skip
+                roadmap = load_roadmap()
 
     # Build context for the Oracle
     phase_lines, done_count, planned_count, in_progress_count = get_phase_summary(roadmap)

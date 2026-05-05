@@ -98,6 +98,9 @@ def escalate(phase_id, reason, block_count):
     append("escalate", phase_id, worker_id="reviewer",
            reason=reason, block_count=block_count)
 
+def skip(phase_id, worker_id, reason=""):
+    append("skip", phase_id, worker_id=worker_id, reason=reason)
+
 def phase_done(phase_id, title=""):
     append("phase_done", phase_id, title=title)
 
