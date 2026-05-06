@@ -2,11 +2,11 @@
 
 Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon to the Hermes agent ecosystem. Synthesize research into wiki, map concepts to existing infrastructure, and implement concrete improvements.
 
-**Progress:** 23/190 phases complete, 0 in progress
+**Progress:** 24/190 phases complete, 0 in progress
 
-**Deliverables:** 90/705 complete
+**Deliverables:** 94/705 complete
 
-**Tasks:** 90/729 complete
+**Tasks:** 98/729 complete
 
 ## Scope Summary
 
@@ -34,7 +34,7 @@ Apply patterns from OpenAI Symphony, Harness Engineering, Gas Town, and Archon t
 | phase-21 Merge Queue and Conflict Prevention (Refinery Pattern) | COMPLETE | 4/4 | 410 | 10 |
 | phase-22 Config Hot-Reload and Live Tuning | COMPLETE | 3/4 | 270 | 5 |
 | phase-23 End-to-End Integration and Real-World Validation | COMPLETE | 4/4 | 550 | 15 |
-| phase-24 Project Onboarding Bootstrap | PLANNED | 0/4 | 400 | 10 |
+| phase-24 Project Onboarding Bootstrap | COMPLETE | 4/4 | 400 | 10 |
 | phase-25 Orchestrator Resilience and State Recovery | PLANNED | 0/4 | 380 | 10 |
 | phase-26 Work Item Decomposition (Mayor Pattern) | PLANNED | 0/4 | 400 | 10 |
 | phase-27 Live Terminal Dashboard (Witness Pattern) | PLANNED | 0/4 | 380 | 5 |
@@ -1936,7 +1936,7 @@ This is the "does it actually work?" phase. Focus on real integration, not unit 
 - Timing-based tests may be flaky -- use generous timeouts
 - Test cleanup may fail if workspaces are in use -- add force cleanup
 
-## [ ] phase-24: Project Onboarding Bootstrap (PLANNED)
+## [x] phase-24: Project Onboarding Bootstrap (COMPLETE)
 
 **Goal:** Create a quick-start tool that onboards new GitHub repos to the orchestrator in under 5 minutes
 
@@ -1945,31 +1945,31 @@ Symphony reads WORKFLOW.md from each project automatically. The Hermes orchestra
 ### Deliverables
 
 - [ ] **Project type detector** -- Analyze a repo to detect its language, framework, build system, and test runner
-  - [ ] `p24.d1.t1` Create project detector module
+  - [x] `p24.d1.t1` Create project detector module
     > Python module that analyzes a local repo clone: (1) check for language markers (setup.py, pyproject.toml, package.json, go.mod, Cargo.toml), (2) detect framework (Django, FastAPI, Express, React, etc.) from dependencies, (3) find test runner (pytest, jest, go test, cargo test), (4) locate build commands, (5) check for existing AI_GUIDE.md or AGENT.md. Output as structured dict. Use gh CLI to get repo metadata (language, topics) as additional signal.
     _Files: ~/zion/projects/agent-orchestration/onboard.py_
-  - [ ] Can detect at least 5 project types (Python/pip, Python/poetry, Node/npm, Go, Rust)
+  - [x] Can detect at least 5 project types (Python/pip, Python/poetry, Node/npm, Go, Rust)
     _Validation: python3 onboard.py --detect ~/zion/projects/some-repo_
   _~120 LOC_
 - [ ] **AI_GUIDE.md generator** -- Generate a project-specific AI_GUIDE.md based on detected project type and conventions
-  - [ ] `p24.d2.t1` Add AI_GUIDE.md generation to onboard.py
+  - [x] `p24.d2.t1` Add AI_GUIDE.md generation to onboard.py
     > Add --guide mode to onboard.py: (1) use project detector output to select appropriate template, (2) fill in tech stack section with detected versions (python --version, node --version), (3) generate executable commands section based on detected build/test/lint tools, (4) add three-tier boundaries with sensible defaults for the project type, (5) scan existing code for naming patterns and include them as conventions. Output to stdout or write to file with --write flag.
     _Files: ~/zion/projects/agent-orchestration/onboard.py_
-  - [ ] Generates a valid AI_GUIDE.md with tech stack, commands, and three-tier boundaries
+  - [x] Generates a valid AI_GUIDE.md with tech stack, commands, and three-tier boundaries
     _Validation: python3 onboard.py --guide ~/zion/projects/some-repo_
   _~100 LOC_
 - [ ] **Full onboarding CLI** -- One-command onboarding that configures everything needed for a new repo
-  - [ ] `p24.d3.t1` Implement full onboarding flow
+  - [x] `p24.d3.t1` Implement full onboarding flow
     > Implement the full onboard.py flow: (1) clone or verify repo exists locally, (2) run project detection, (3) generate AI_GUIDE.md and write to repo root, (4) create minimal orchestrator.yaml entry for the repo, (5) use gh CLI to add "agent-ready" label to the repo, (6) detect test commands and validate they work, (7) output a ready-to-use cron job command. Support --dry-run to preview changes without applying them. Support --pipeline flag to select which pipeline template to use.
     _Files: ~/zion/projects/agent-orchestration/onboard.py_
-  - [ ] Single command sets up: orchestrator config, AI_GUIDE.md, GitHub label, and outputs cron command
+  - [x] Single command sets up: orchestrator config, AI_GUIDE.md, GitHub label, and outputs cron command
     _Validation: python3 onboard.py owner/repo --full_
   _~100 LOC_
 - [ ] **Onboarding validation test** -- Test the onboarding flow on a real repo and verify the generated config works
-  - [ ] `p24.d4.t1` Create test_onboard.py
+  - [x] `p24.d4.t1` Create test_onboard.py
     > Test the onboarding flow: (1) test project detection on fixture repos (Python, Node, Go), (2) test AI_GUIDE.md generation includes correct commands, (3) test dry-run mode makes no changes, (4) test full onboarding on a test repo creates valid config, (5) test error handling for unsupported project types, missing gh auth, empty repos.
     _Files: ~/zion/projects/agent-orchestration/test_onboard.py_
-  - [ ] Can onboard a test repo and the generated config produces a valid orchestrator setup
+  - [x] Can onboard a test repo and the generated config produces a valid orchestrator setup
     _Validation: python3 -m pytest test_onboard.py -v_
   _~80 LOC_
 
